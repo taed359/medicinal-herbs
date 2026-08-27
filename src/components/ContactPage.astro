@@ -75,7 +75,7 @@ const questions = Object.values(t.contact.questionOptions);
               <input id="contact-privacy" class="cursor-pointer" name="privacy" type="checkbox" required />
               <label for="contact-privacy">
                 {t.contact.privacyAgreementPrefix}
-                <a href={localePath(lang, 'policies/privacy-policy')}>{t.contact.privacyPolicy}</a>
+                <a href={localePath(lang, 'policies/privacy-policy')} data-astro-reload>{t.contact.privacyPolicy}</a>
                 {t.contact.privacyAgreementSuffix}
               </label>
             </div>

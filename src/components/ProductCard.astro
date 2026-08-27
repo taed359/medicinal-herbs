@@ -18,7 +18,7 @@ const computedAlt = (alt && alt.trim().length > 0) ? alt : `${name} product imag
 const formattedPrice = typeof price === 'number' ? price.toLocaleString() : price;
 const formattedOriginalPrice = typeof originalPrice === 'number' ? originalPrice.toLocaleString() : originalPrice;
 ---
-<a href={href} class="pc-card group flex h-full flex-col" aria-label={name}>
+<a href={href} data-astro-reload class="pc-card group flex h-full flex-col" aria-label={name}>
   <!-- Image: the hero of the card. Cream backdrop + generous internal padding
        so a transparent-PNG bottle packshot sits naturally, never cropped. -->
   <div class="pc-image relative aspect-square overflow-hidden bg-cream">

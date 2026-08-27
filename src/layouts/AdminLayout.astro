@@ -1,0 +1,513 @@
+---
+/**
+ * Shared admin shell -- redesigned pass (still Phase 2). Adds:
+ *   - a collapsible sidebar (icon-rail when collapsed, remembered via
+ *     localStorage + a tiny blocking inline script in <head> so there's
+ *     no flash-of-wrong-width on reload)
+ *   - a topbar that actually shows something (page heading + breadcrumb,
+ *     a real avatar-initial + email, a labeled logout button) instead of
+ *     just an email string and a bare button
+ *   - a logout flow that checks the response and surfaces a failure
+ *     instead of silently redirecting to /admin/login even when the
+ *     server-side session was NOT actually deleted (see the <script>
+ *     block below for the full reasoning -- this was a real security gap,
+ *     not just a cosmetic one)
+ *
+ * Every admin page still sets its own `export const prerender = false`
+ * and does its own session/redirect check -- this layout only renders
+ * the shell, it never touches auth itself.
+ */
+interface Props {
+  title: string;
+  activeNav: 'dashboard' | 'products';
+  adminUser: { email: string };
+}
+
+const { title, activeNav, adminUser } = Astro.props;
+
+const NAV_ITEMS = [
+  {
+    key: 'dashboard' as const,
+    href: '/admin',
+    label: 'Dashboard',
+    icon: 'M3 3h7v9H3V3Zm11 0h7v5h-7V3ZM3 16h7v5H3v-5Zm11-5h7v10h-7V11Z',
+  },
+  {
+    key: 'products' as const,
+    href: '/admin/products',
+    label: 'Products',
+    icon: 'M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5v-9Zm0 0L12 12l8.5-4.5M12 12v9',
+  },
+];
+
+const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — Medicinal Herbs Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="stylesheet" href="/admin.css" />
+    <script is:inline>
+      // Blocking, runs before first paint -- sets the collapsed state
+      // from localStorage immediately so the sidebar never flashes wide
+      // then snaps narrow (or vice versa) on reload. Kept deliberately
+      // tiny and framework-free, same as every other client script in
+      // this project.
+      try {
+        if (localStorage.getItem('admin-sidebar-collapsed') === 'true') {
+          document.documentElement.setAttribute('data-admin-sidebar-collapsed', 'true');
+        }
+      } catch {
+        // localStorage unavailable (private mode, etc.) -- default to expanded.
+      }
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="admin-skip-link">Skip to content</a>
+    <div class="admin-shell">
+      <aside class="admin-sidebar" data-admin-sidebar>
+        <div class="admin-sidebar-top">
+          <a href="/admin" class="admin-sidebar-brand">
+            <span class="admin-sidebar-brand-mark" aria-hidden="true">MH</span>
+            <span class="admin-sidebar-brand-text">Medicinal Herbs</span>
+          </a>
+          <button
+            type="button"
+            id="sidebar-toggle"
+            class="admin-sidebar-toggle"
+            aria-label="Collapse sidebar"
+            aria-expanded="true"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.75" />
+              <path d="M9.5 4v16" stroke="currentColor" stroke-width="1.75" />
+            </svg>
+          </button>
+        </div>
+
+        <nav class="admin-sidebar-nav" aria-label="Admin sections">
+          <ul>
+            {NAV_ITEMS.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  aria-current={activeNav === item.key ? 'page' : undefined}
+                  title={item.label}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d={item.icon} stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="admin-sidebar-nav-label">{item.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="admin-main">
+        <header class="admin-topbar">
+          <div class="admin-topbar-heading">
+            <p class="admin-topbar-breadcrumb">Admin{activeNav === 'products' && title !== 'Products' ? ' / Products' : ''}</p>
+            <h1>{title}</h1>
+          </div>
+
+          <div class="admin-topbar-user">
+            <span class="admin-avatar" aria-hidden="true">{avatarInitial}</span>
+            <span class="admin-user-email">{adminUser.email}</span>
+            <button type="button" id="logout-button" class="admin-logout-button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>Log out</span>
+            </button>
+          </div>
+        </header>
+
+        <p id="logout-error" class="logout-error" role="alert" hidden></p>
+
+        <main id="main" class="admin-content">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #f6f5f1;
+      }
+
+      /* Visually hidden until keyboard-focused -- the first focusable
+       * element on every admin page, so a keyboard user can jump straight
+       * past the sidebar (brand link, collapse toggle, nav items) to
+       * #main instead of re-tabbing through it on every single
+       * full-page navigation (this admin area has no client-side router --
+       * see the top-of-file doc comment). Not display:none/visibility:
+       * hidden, which would also remove it from the tab order. */
+      .admin-skip-link {
+        position: absolute;
+        top: -3rem;
+        left: 0.75rem;
+        z-index: 100;
+        padding: 0.6rem 1rem;
+        background: var(--admin-brand, #3f5b45);
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 0 0 var(--admin-radius-sm, 6px) var(--admin-radius-sm, 6px);
+        transition: top 0.15s ease;
+      }
+      .admin-skip-link:focus {
+        top: 0;
+      }
+
+      .admin-shell {
+        display: flex;
+        min-height: 100vh;
+        color: #1f2421;
+      }
+
+      /* ---------------------------------------------------------------
+         Sidebar
+         --------------------------------------------------------------- */
+      .admin-sidebar {
+        width: 15.5rem;
+        flex-shrink: 0;
+        background: #1b1e18;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        padding: 1.1rem 0.9rem;
+        transition: width 0.18s ease;
+        overflow: hidden;
+      }
+
+      .admin-sidebar-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .admin-sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        text-decoration: none;
+        color: #fff;
+        min-width: 0;
+      }
+
+      .admin-sidebar-brand-mark {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 8px;
+        background: #3f5b45;
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 0.02em;
+      }
+
+      .admin-sidebar-brand-text {
+        font-weight: 700;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .admin-sidebar-toggle {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.75);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+      .admin-sidebar-toggle:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+      .admin-sidebar-toggle:focus-visible {
+        outline: 2px solid #7fae87;
+        outline-offset: 2px;
+      }
+
+      .admin-sidebar-nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.25rem;
+      }
+
+      .admin-sidebar-nav a {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+      .admin-sidebar-nav a:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+      .admin-sidebar-nav a[aria-current='page'] {
+        background: #3f5b45;
+        color: #fff;
+      }
+      .admin-sidebar-nav svg {
+        flex-shrink: 0;
+      }
+      .admin-sidebar-nav-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Collapsed (icon-rail) state -- toggled by JS setting this
+         attribute on <html>, mirrored onto the sidebar's own class so the
+         CSS only has to key off one place. */
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar {
+        width: 4.5rem;
+      }
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar-brand-text,
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar-nav-label {
+        display: none;
+      }
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar-top {
+        justify-content: center;
+      }
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar-brand {
+        display: none;
+      }
+      html[data-admin-sidebar-collapsed='true'] .admin-sidebar-nav a {
+        justify-content: center;
+        padding: 0.6rem;
+      }
+
+      /* ---------------------------------------------------------------
+         Main column
+         --------------------------------------------------------------- */
+      .admin-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .admin-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.75rem;
+        background: #fff;
+        border-bottom: 1px solid #e3e1dc;
+      }
+
+      .admin-topbar-breadcrumb {
+        margin: 0 0 0.15rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #8a8d81;
+      }
+
+      .admin-topbar-heading h1 {
+        margin: 0;
+        font-size: 1.3rem;
+      }
+
+      .admin-topbar-user {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        flex-shrink: 0;
+      }
+
+      .admin-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 999px;
+        background: #e4efe6;
+        color: #2f6b3f;
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+
+      .admin-user-email {
+        font-size: 0.85rem;
+        color: #4a4d43;
+        max-width: 14rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .admin-logout-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.45rem 0.85rem;
+        border: 1px solid #cbcbc0;
+        border-radius: 999px;
+        background: #fff;
+        color: #34382f;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+      }
+      .admin-logout-button:hover {
+        border-color: #c0392b;
+        color: #c0392b;
+      }
+      .admin-logout-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .logout-error {
+        margin: 0.75rem 1.75rem 0;
+        padding: 0.6rem 0.85rem;
+        border-radius: 4px;
+        background: #fdecea;
+        color: #9b1c1c;
+        font-size: 0.85rem;
+      }
+
+      .admin-content {
+        padding: 1.75rem;
+        flex: 1;
+      }
+
+      @media (max-width: 720px) {
+        .admin-user-email {
+          display: none;
+        }
+      }
+    </style>
+
+    <script>
+      // Sidebar collapse/expand toggle. State lives in localStorage (per
+      // browser, not per session) and is mirrored as a `data-*` attribute
+      // on <html> -- the blocking inline script in <head> already applied
+      // it once before paint; this just keeps it in sync on click and
+      // persists the choice for next time.
+      const sidebarToggle = document.querySelector('#sidebar-toggle');
+      if (sidebarToggle instanceof HTMLButtonElement) {
+        const root = document.documentElement;
+
+        const setCollapsed = (collapsed: boolean) => {
+          if (collapsed) {
+            root.setAttribute('data-admin-sidebar-collapsed', 'true');
+          } else {
+            root.removeAttribute('data-admin-sidebar-collapsed');
+          }
+          sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+          sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+          try {
+            localStorage.setItem('admin-sidebar-collapsed', String(collapsed));
+          } catch {
+            // localStorage unavailable -- the toggle still works for this page view.
+          }
+        };
+
+        // Reflect whatever the blocking <head> script already applied.
+        setCollapsed(root.hasAttribute('data-admin-sidebar-collapsed'));
+
+        sidebarToggle.addEventListener('click', () => {
+          setCollapsed(!root.hasAttribute('data-admin-sidebar-collapsed'));
+        });
+      }
+
+      // Sign out. Ends the Better Auth session server-side (deletes the
+      // DB session row -- see api/routes/sign-out.mjs's `deleteSession`
+      // call), not just a client-side cookie clear.
+      //
+      // SECURITY FIX: the previous version fired-and-forgot the fetch --
+      // it neither checked the response status nor caught a network
+      // failure, so on ANY failure (a thrown fetch, a non-2xx response)
+      // one of two bad things happened: either the click appeared to do
+      // nothing at all (an uncaught rejection stops the handler before
+      // the redirect line ever runs), or the browser navigated to
+      // /admin/login while the server-side session row was still very
+      // much alive -- an operator who believed they'd logged out, on a
+      // machine someone else could reach, while the session was in fact
+      // still valid. Now: the button disables itself, the request is
+      // awaited inside try/catch, and the redirect to /admin/login only
+      // happens after a confirmed 2xx response. Any failure keeps the
+      // operator on the page with a visible error instead of a silent,
+      // unverified "you're logged out".
+      const logoutButton = document.querySelector('#logout-button');
+      const logoutError = document.querySelector('#logout-error');
+      if (logoutButton instanceof HTMLButtonElement && logoutError instanceof HTMLElement) {
+        logoutButton.addEventListener('click', async () => {
+          logoutError.hidden = true;
+          logoutButton.disabled = true;
+
+          try {
+            // Better Auth 1.7.2's router is created with
+            // `allowedMediaTypes: ["application/json"]` (confirmed by
+            // reading the installed node_modules/better-auth/dist/api/
+            // index.mjs directly, not assumed) -- every one of its own
+            // endpoints, sign-out included, rejects a request with no
+            // `Content-Type: application/json` as 415 Unsupported Media
+            // Type, even though sign-out's own body schema is optional.
+            // A bodyless `fetch(..., { method: 'POST' })` was hitting
+            // exactly that: no Content-Type header, no body, 415 before
+            // the session was ever touched. Sending an explicit
+            // `application/json` header with an empty JSON object
+            // satisfies the media-type check and matches the endpoint's
+            // actual (optional) body schema.
+            const res = await fetch('/api/auth/sign-out', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({}),
+              credentials: 'same-origin',
+              cache: 'no-store',
+            });
+
+            if (!res.ok) {
+              throw new Error(`Sign-out failed (${res.status}).`);
+            }
+
+            window.location.href = '/admin/login';
+            return;
+          } catch {
+            logoutError.textContent = 'Could not sign out -- please try again.';
+            logoutError.hidden = false;
+            logoutButton.disabled = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

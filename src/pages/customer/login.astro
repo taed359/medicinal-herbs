@@ -1,0 +1,169 @@
+---
+// Server-rendered login form, same plain-fetch pattern as
+// src/pages/admin/login.astro. Calls customerAuth's REST endpoint
+// directly -- no client SDK, no framework island.
+export const prerender = false;
+
+import { resolveSafeRedirect } from '../../server/lib/validate-redirect';
+
+// Already signed in -- nothing to do here. Session was already resolved
+// once by middleware (see src/middleware.ts) and exposed via locals; this
+// page never calls getSession itself.
+const redirectTarget = resolveSafeRedirect(Astro.url.searchParams.get('redirect'), '/');
+if (Astro.locals.customerUser) {
+  return Astro.redirect(redirectTarget);
+}
+
+const registerHref = `/customer/register?redirect=${encodeURIComponent(redirectTarget)}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="Sign in to your Medicinal Herbs account to manage your profile, track orders, and continue your shopping experience securely." />
+    <title>Sign in — Medicinal Herbs</title>
+    <link rel="stylesheet" href="/customer.css" />
+  </head>
+  <body>
+    <div class="auth-shell">
+      <section class="auth-form-panel">
+        <div class="auth-logo-area">
+          <a href="/" class="auth-logo" aria-label="Medicinal Herbs — back to storefront">Medicinal Herbs</a>
+        </div>
+
+        <main class="auth-form-content">
+        <div class="auth-content">
+          <h1 class="auth-heading">Sign in</h1>
+          <p class="auth-subtitle">Sign in or create an account to continue.</p>
+
+          <!-- UI prepared for future social authentication.
+               Not connected in Phase 1. Real, disabled <button>s --
+               no click handler, no request, cannot falsely authenticate. -->
+          <div class="auth-social-list">
+            <button type="button" class="auth-social-button" disabled aria-disabled="true">
+              <span class="auth-social-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" /><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">G</text></svg>
+              </span>
+              <span class="auth-social-label">Continue with Google</span>
+              <span class="auth-social-soon">Soon</span>
+            </button>
+            <button type="button" class="auth-social-button" disabled aria-disabled="true">
+              <span class="auth-social-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" /><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">f</text></svg>
+              </span>
+              <span class="auth-social-label">Continue with Facebook</span>
+              <span class="auth-social-soon">Soon</span>
+            </button>
+            <button type="button" class="auth-social-button" disabled aria-disabled="true">
+              <span class="auth-social-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h16l-1.4 10.5a2 2 0 0 1-2 1.5H7.4a2 2 0 0 1-2-1.5L4 8Z" stroke-linejoin="round" /><path d="M8 8V6.5a4 4 0 0 1 8 0V8" /></svg>
+              </span>
+              <span class="auth-social-label">Continue with Shop</span>
+              <span class="auth-social-soon">Soon</span>
+            </button>
+          </div>
+
+          <div class="auth-divider">or</div>
+
+          <p id="login-error" class="auth-error" role="alert" hidden></p>
+
+          <form id="login-form" class="auth-form" novalidate>
+            <div class="auth-field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" autocomplete="username" required />
+            </div>
+
+            <div class="auth-field">
+              <label for="password">Password</label>
+              <div class="auth-password-row">
+                <input id="password" name="password" type="password" autocomplete="current-password" required />
+                <button type="button" id="toggle-password" class="auth-password-toggle" aria-pressed="false" aria-label="Show password">
+                  <svg data-icon-show width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" /></svg>
+                  <svg data-icon-hide width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.6 6.7C4.3 8.2 2.7 10.4 2 12c0 0 3.6 7 10 7 1.8 0 3.4-.4 4.7-1.1M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7-.5.9-1.3 2.1-2.4 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+              </div>
+              <div class="auth-inline-link-row">
+                <a href="/customer/forgot-password">Forgot password?</a>
+              </div>
+            </div>
+
+            <button type="submit" class="auth-submit">Sign in</button>
+          </form>
+
+          <p class="auth-bottom-line">Don't have an account? <a href={registerHref}>Create account</a></p>
+        </div>
+
+        <p class="auth-legal"><a href="/privacy-policy/">Privacy policy</a></p>
+        </main>
+      </section>
+
+      <aside class="auth-image-panel">
+        <img src="/images/customer-auth/Energy.webp" alt="" loading="lazy" />
+      </aside>
+    </div>
+
+    <script is:inline define:vars={{ redirectTarget }}>
+      const form = document.querySelector('#login-form');
+      const errorEl = document.querySelector('#login-error');
+      const emailInput = document.querySelector('#email');
+      const passwordInput = document.querySelector('#password');
+      const submitButton = document.querySelector('#login-form button[type="submit"]');
+      const toggleButton = document.querySelector('#toggle-password');
+
+      if (toggleButton instanceof HTMLButtonElement && passwordInput instanceof HTMLInputElement) {
+        toggleButton.addEventListener('click', () => {
+          const showing = passwordInput.type === 'text';
+          passwordInput.type = showing ? 'password' : 'text';
+          toggleButton.setAttribute('aria-pressed', showing ? 'false' : 'true');
+          toggleButton.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        });
+      }
+
+      if (
+        form instanceof HTMLFormElement &&
+        errorEl instanceof HTMLElement &&
+        emailInput instanceof HTMLInputElement &&
+        passwordInput instanceof HTMLInputElement &&
+        submitButton instanceof HTMLButtonElement
+      ) {
+        const originalLabel = submitButton.textContent;
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          errorEl.hidden = true;
+          submitButton.disabled = true;
+          submitButton.textContent = 'Signing in…';
+
+          try {
+            const res = await fetch('/api/customer-auth/sign-in/email', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email: emailInput.value, password: passwordInput.value }),
+            });
+
+            if (res.ok) {
+              window.location.href = redirectTarget;
+              return;
+            }
+
+            // Wrong password and unknown email must not be distinguishable
+            // -- always the same generic message here, regardless of what
+            // the server actually returned, except for rate limiting.
+            errorEl.textContent = res.status === 429
+              ? 'Too many attempts. Please try again later.'
+              : 'Invalid email or password.';
+            errorEl.hidden = false;
+          } catch {
+            errorEl.textContent = 'Something went wrong. Please try again.';
+            errorEl.hidden = false;
+          } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

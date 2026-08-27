@@ -9,6 +9,17 @@ const { lang } = Astro.props;
 
 const t = getTranslations(lang);
 const homeHref = localeHomePath(lang);
+
+// Customer session state, read the same way every other part of this app
+// reads it -- middleware already resolved it once and exposed it here.
+// Every page that renders this Header today is fully static/prerendered
+// (no `export const prerender = false`), so middleware never runs for it
+// and this is always `undefined` in practice -- see the account-widget
+// script below for why and how that's handled without forcing the
+// storefront into on-demand rendering. This read stays correct (and free)
+// on the day any page using this Header ever does become server-rendered.
+const customerUser = Astro.locals.customerUser;
+const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathname)}`;
 ---
 <AnnouncementBar lang={lang} messages={t.header.announcement} />
 
@@ -30,7 +41,7 @@ const homeHref = localeHomePath(lang);
       </button>
 
       <!-- Logo -->
-      <a href={homeHref} class="absolute left-1/2 -translate-x-1/2 flex flex-col leading-tight no-underline shrink-0 md:static md:translate-x-0">
+      <a href={homeHref} data-astro-reload class="absolute left-1/2 -translate-x-1/2 flex flex-col leading-tight no-underline shrink-0 md:static md:translate-x-0">
         <span class="font-sans text-2xl text-heading">{t.common.siteName}</span>
         <span class="header-meta-text text-caption hidden sm:block">{t.common.tagline}</span>
       </a>
@@ -70,12 +81,50 @@ const homeHref = localeHomePath(lang);
           </form>
         </div>
 
-        <a href="#" aria-label={t.header.accountLabel} class="hidden md:inline-flex text-heading hover:text-brand transition-colors">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
-            <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-          </svg>
-        </a>
+        <div
+          class="hidden md:flex items-center gap-3"
+          data-account-widget
+          data-resolved={customerUser ? 'true' : 'false'}
+        >
+          <a
+            href={loginHref}
+            data-astro-reload
+            data-account-guest
+            hidden={Boolean(customerUser)}
+            class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <span class="font-sans text-sm">{t.header.accountLabel}</span>
+          </a>
+          <a
+            href="/customer/account"
+            data-astro-reload
+            data-account-user
+            hidden={!customerUser}
+            class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <span class="font-sans text-sm" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
+          </a>
+          <button
+            type="button"
+            data-account-logout
+            hidden={!customerUser}
+            aria-label={t.header.logoutLabel}
+            class="inline-flex text-heading hover:text-brand transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
 
         <!-- Mobile search toggle -->
         <button
@@ -149,7 +198,7 @@ const homeHref = localeHomePath(lang);
       data-mobile-menu-panel
     >
       <div class="mobile-drawer-topbar">
-        <a href={homeHref} class="font-sans text-lg text-heading no-underline">{t.common.siteName}</a>
+        <a href={homeHref} data-astro-reload class="font-sans text-lg text-heading no-underline">{t.common.siteName}</a>
         <button
           type="button"
           class="mobile-drawer-icon-button"
@@ -162,14 +211,40 @@ const homeHref = localeHomePath(lang);
         </button>
       </div>
 
-      <div class="mobile-profile-row">
-        <span class="mobile-profile-icon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
-            <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-          </svg>
-        </span>
-        <span class="font-sans text-sm font-semibold text-heading">{t.header.accountLabel}</span>
+      <div data-account-widget data-resolved={customerUser ? 'true' : 'false'}>
+        <a
+          href={loginHref}
+          data-astro-reload
+          data-account-guest
+          hidden={Boolean(customerUser)}
+          class="mobile-profile-row"
+        >
+          <span class="mobile-profile-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="font-sans text-sm font-semibold text-heading">{t.header.accountLabel}</span>
+        </a>
+
+        <div data-account-user hidden={!customerUser} class="mobile-profile-row mobile-profile-row-authed">
+          <span class="mobile-profile-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </span>
+          <div class="mobile-profile-details">
+            <span class="font-sans text-sm font-semibold text-heading" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
+            <div class="mobile-profile-actions">
+              <a href="/customer/account" data-astro-reload class="mobile-profile-action-link">{t.header.myAccountLabel}</a>
+              <button type="button" data-account-logout class="mobile-profile-action-link mobile-profile-logout-button">
+                {t.header.logoutLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="mobile-menu-viewport">
@@ -201,7 +276,7 @@ const homeHref = localeHomePath(lang);
               <span>{t.header.navShopBy}</span>
             </button>
             <nav class="mobile-menu-list">
-              <a href={localePath(lang, t.naturalOils.collectionPath)} class="mobile-menu-row">
+              <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="mobile-menu-row">
                 {t.naturalOils.eyebrow}
               </a>
             </nav>
@@ -350,7 +425,39 @@ const homeHref = localeHomePath(lang);
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-cream);
+    text-decoration: none;
   }
+
+  .mobile-profile-row-authed { align-items: flex-start; }
+
+  .mobile-profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .mobile-profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .mobile-profile-action-link {
+    padding: 0;
+    color: var(--color-brand);
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mobile-profile-action-link:hover { text-decoration: underline; }
+
+  .mobile-profile-logout-button { color: var(--color-muted); }
 
   .mobile-profile-icon {
     display: inline-flex;
@@ -572,4 +679,95 @@ const homeHref = localeHomePath(lang);
 
   initMobileDrawer();
   document.addEventListener('astro:page-load', initMobileDrawer);
+</script>
+
+<script>
+  // Every page rendering this Header is fully static/prerendered, so
+  // Astro.locals.customerUser (populated by src/middleware.ts) is never
+  // available server-side here -- see the frontmatter comment above. The
+  // baked HTML always defaults to the guest markup; this is the one place
+  // that resolves the real, per-visitor session, using the SAME Better
+  // Auth endpoint every other customer-auth page already calls (no new
+  // route, no duplicated session logic). Re-runs on `astro:page-load` --
+  // fired on first load AND every ClientRouter soft-navigation in this
+  // project (see the search-popup/drawer scripts above for the same
+  // pattern) -- so a soft-navigated page's freshly-swapped-in guest
+  // markup gets checked again rather than staying stale.
+  async function initAccountWidgets() {
+    const widgets = Array.from(document.querySelectorAll('[data-account-widget]')).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement,
+    );
+
+    function applyState(widget: HTMLElement, user: { name?: string; email?: string } | null) {
+      const guest = widget.querySelector('[data-account-guest]');
+      const authed = widget.querySelector('[data-account-user]');
+      const logout = widget.querySelector('[data-account-logout]');
+      const nameEl = widget.querySelector('[data-account-name]');
+      if (user) {
+        if (nameEl instanceof HTMLElement) nameEl.textContent = user.name || user.email || '';
+        if (guest instanceof HTMLElement) guest.hidden = true;
+        if (authed instanceof HTMLElement) authed.hidden = false;
+        if (logout instanceof HTMLElement) logout.hidden = false;
+      } else {
+        if (guest instanceof HTMLElement) guest.hidden = false;
+        if (authed instanceof HTMLElement) authed.hidden = true;
+        if (logout instanceof HTMLElement) logout.hidden = true;
+      }
+    }
+
+    // Skip the fetch entirely for a widget that was already resolved
+    // server-side (a real, non-default value baked into `data-resolved`) --
+    // this only ever happens if this Header is one day rendered on an
+    // on-demand page, but the guard costs nothing and avoids a genuinely
+    // unnecessary request when the server already knows the answer.
+    const unresolved = widgets.filter((widget) => widget.dataset.resolved !== 'true');
+    if (unresolved.length > 0) {
+      try {
+        const res = await fetch('/api/customer-auth/get-session', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+        const data = res.ok ? await res.json().catch(() => null) : null;
+        const user = data?.user ?? null;
+        unresolved.forEach((widget) => applyState(widget, user));
+      } catch {
+        // Network error -- leave the already-rendered guest markup as-is.
+        // Never assume authenticated on failure.
+      }
+    }
+
+    document.querySelectorAll('[data-account-logout]').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement) || button.dataset.wired === 'true') return;
+      button.dataset.wired = 'true';
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          // The existing Better Auth customer-auth sign-out endpoint is
+          // the only source of truth for logout -- same call already
+          // proven correct in src/layouts/AdminLayout.astro's logout
+          // script. A plain <form method="post"> would NOT work here:
+          // Better Auth 1.7.2's router requires `content-type:
+          // application/json` on every request (confirmed against the
+          // installed source), which a native form submission never sends.
+          await fetch('/api/customer-auth/sign-out', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '{}',
+            credentials: 'same-origin',
+            cache: 'no-store',
+          });
+        } catch {
+          // Fall through to the reload regardless -- worst case the header
+          // still shows the stale authenticated name until the next real
+          // check, which is safe (this widget never gates access to
+          // anything; middleware/get-session remain the actual gate).
+        } finally {
+          window.location.reload();
+        }
+      });
+    });
+  }
+
+  initAccountWidgets();
+  document.addEventListener('astro:page-load', initAccountWidgets);
 </script>

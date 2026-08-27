@@ -20,6 +20,8 @@ export const zh: TranslationSchema = {
     searchPlaceholder: '搜索产品...',
     searchLabel: '搜索',
     accountLabel: '账户',
+    myAccountLabel: '我的账户',
+    logoutLabel: '退出登录',
     cartLabel: '购物车',
     menuLabel: '菜单',
   },

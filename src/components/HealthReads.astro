@@ -40,7 +40,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
         return (
           <li class="hr-card h-full">
             <article class="group h-full">
-              <a href={href} class="block h-full rounded-card overflow-hidden bg-surface border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
+              <a href={href} data-astro-reload class="block h-full rounded-card overflow-hidden bg-surface border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
                 <div class="relative aspect-square overflow-hidden">
                   <Image src={it.image} alt="" width={640} height={640} loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
@@ -57,7 +57,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
 
     <!-- CTA -->
     <div class="mt-7 sm:mt-8 text-center">
-      <a href={localePath(lang, 'health-reads')} class="btn btn-secondary no-underline transition-colors duration-300 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
+      <a href={localePath(lang, 'health-reads')} data-astro-reload class="btn btn-secondary no-underline transition-colors duration-300 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
         {t.healthReads.ctaViewAll}
       </a>
     </div>

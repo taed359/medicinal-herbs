@@ -29,7 +29,7 @@ const year = new Date().getFullYear();
       <div>
         <h3 class="footer-heading">{t.footer.supportHeading}</h3>
         <ul class="m-0 p-0 list-none space-y-2">
-          <li><a class="footer-link" href={contactHref}>{t.footer.supportLinks.contact}</a></li>
+          <li><a class="footer-link" href={contactHref} data-astro-reload>{t.footer.supportLinks.contact}</a></li>
           <li><a class="footer-link" href="#">{t.footer.supportLinks.faqs}</a></li>
           <li><a class="footer-link" href="#">{t.footer.supportLinks.wholesale}</a></li>
         </ul>
@@ -85,7 +85,7 @@ const year = new Date().getFullYear();
         <span class="hidden sm:inline">•</span>
         <a href="#" class="text-cream hover:text-gold no-underline w-fit">{t.footer.terms}</a>
         <span class="hidden sm:inline">|</span>
-        <a href={privacyHref} class="text-cream hover:text-gold no-underline w-fit">{t.footer.privacy}</a>
+        <a href={privacyHref} data-astro-reload class="text-cream hover:text-gold no-underline w-fit">{t.footer.privacy}</a>
       </div>
     </div>
   </div>

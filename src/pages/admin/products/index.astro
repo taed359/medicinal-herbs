@@ -1,0 +1,899 @@
+---
+/**
+ * Products Admin Grid.
+ *
+ * Search/filter/sort/pagination are ALL server-rendered navigation:
+ * every control here is a real <a>/<form method="get">, the query string
+ * (`q`, `category`, `status`, `featured`, `sort`, `direction`, `page`,
+ * `limit`) is the single source of truth for what's displayed, and the
+ * whole page works with JavaScript disabled. JS only enhances it
+ * (debounced auto-submit on typing, a page-size auto-submit, and the
+ * bulk-select/bulk-delete UI, which has no non-JS equivalent because
+ * there's nothing meaningful for it to degrade to).
+ *
+ * See src/server/lib/parse-admin-product-list-params.ts for how the query
+ * string is validated (closed allow-lists for sort/status/featured/page
+ * size -- nothing here reaches the repository as a raw, unchecked value)
+ * and src/server/repositories/admin/postgres/admin-product-repository.ts
+ * for the query itself (SORTABLE_COLUMNS allow-list, batched price/
+ * inventory lookup, effectiveFrom/effectiveTo-aware pricing).
+ */
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { adminProductRepository } from '../../../server/repositories/admin';
+import { parseAdminProductListParams, PAGE_SIZE_OPTIONS } from '../../../server/lib/parse-admin-product-list-params';
+import type { AdminProductSortColumn } from '../../../domain/admin-types';
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+
+const params = parseAdminProductListParams(Astro.url.searchParams);
+const [{ items, total, page, totalPages }, categories] = await Promise.all([
+  adminProductRepository.list(params),
+  adminProductRepository.listCategories(),
+]);
+
+// Trimmed only for this "is a filter actually active" decision -- every
+// other use of params.search below (the input's value, hidden `q`
+// carry-forward fields, buildHref) keeps the untrimmed value on purpose,
+// so a trailing space the user is still typing is never silently dropped.
+const hasFilters =
+  params.search.trim() !== '' || params.categoryId !== null || params.status !== 'all' || params.featured !== 'all';
+
+/** Builds `/admin/products?...` preserving every current param except the
+ *  ones explicitly overridden. Any param whose new/current value is
+ *  empty/default is omitted from the URL entirely, so links stay clean
+ *  (`/admin/products` rather than `/admin/products?status=all&...`). By
+ *  default the page resets to 1 -- pass keepPage: true for prev/next/
+ *  page-size links, which set page explicitly themselves. */
+function buildHref(
+  overrides: Partial<{
+    q: string;
+    category: string;
+    status: string;
+    featured: string;
+    sort: string;
+    direction: string;
+    page: number;
+    limit: number;
+  }>,
+  keepPage = false
+): string {
+  const next = new URLSearchParams();
+
+  const q = overrides.q ?? params.search;
+  if (q) next.set('q', q);
+
+  const category = overrides.category ?? params.categoryId ?? '';
+  if (category) next.set('category', category);
+
+  const status = overrides.status ?? params.status;
+  if (status !== 'all') next.set('status', status);
+
+  const featured = overrides.featured ?? params.featured;
+  if (featured !== 'all') next.set('featured', featured);
+
+  const sort = overrides.sort ?? params.sort;
+  if (sort !== 'updatedAt') next.set('sort', sort);
+
+  const direction = overrides.direction ?? params.direction;
+  if (direction !== 'desc') next.set('direction', direction);
+
+  const limit = overrides.limit ?? params.pageSize;
+  if (limit !== 25) next.set('limit', String(limit));
+
+  const targetPage = overrides.page ?? (keepPage ? params.page : 1);
+  if (targetPage > 1) next.set('page', String(targetPage));
+
+  const qs = next.toString();
+  return qs ? `/admin/products?${qs}` : '/admin/products';
+}
+
+function sortHref(column: AdminProductSortColumn): string {
+  const nextDirection = params.sort === column && params.direction === 'asc' ? 'desc' : 'asc';
+  return buildHref({ sort: column, direction: nextDirection });
+}
+
+function ariaSort(column: AdminProductSortColumn): 'ascending' | 'descending' | 'none' {
+  if (params.sort !== column) return 'none';
+  return params.direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function formatPrice(priceMinor: number, currency: string): string {
+  // priceMinor is stored as a whole VND amount (see ProductDetail.astro's
+  // identical formatPrice) -- not divided by 100.
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(priceMinor);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('vi-VN');
+}
+---
+<AdminLayout title="Products" activeNav="products" adminUser={adminUser}>
+  <div class="products-toolbar">
+    <form method="get" action="/admin/products" class="products-search-form" role="search">
+      <input type="hidden" name="category" value={params.categoryId ?? ''} />
+      <input type="hidden" name="status" value={params.status} />
+      <input type="hidden" name="featured" value={params.featured} />
+      <input type="hidden" name="sort" value={params.sort} />
+      <input type="hidden" name="direction" value={params.direction} />
+      <input type="hidden" name="limit" value={String(params.pageSize)} />
+      <label for="q" class="sr-only">Search products</label>
+      <input
+        type="search"
+        id="q"
+        name="q"
+        value={params.search}
+        placeholder="Search by name (VI or ZH)…"
+        class="products-search-input"
+        data-search-input
+      />
+      <button type="submit" class="admin-btn admin-btn-secondary">Search</button>
+    </form>
+
+    <a href="/admin/products/new" class="admin-btn admin-btn-primary">+ New product</a>
+  </div>
+
+  <form method="get" action="/admin/products" class="admin-card products-filters" aria-label="Filter and sort products">
+    <input type="hidden" name="q" value={params.search} />
+    <input type="hidden" name="limit" value={String(params.pageSize)} />
+
+    <div class="products-filter-field">
+      <label for="category">Category</label>
+      <select id="category" name="category" data-auto-submit>
+        <option value="">All categories</option>
+        {categories.map((c) => (
+          <option value={c.id} selected={params.categoryId === c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+
+    <div class="products-filter-field">
+      <label for="status">Status</label>
+      <select id="status" name="status" data-auto-submit>
+        <option value="all" selected={params.status === 'all'}>All</option>
+        <option value="published" selected={params.status === 'published'}>Published</option>
+        <option value="draft" selected={params.status === 'draft'}>Draft</option>
+      </select>
+    </div>
+
+    <div class="products-filter-field">
+      <label for="featured">Featured</label>
+      <select id="featured" name="featured" data-auto-submit>
+        <option value="all" selected={params.featured === 'all'}>All</option>
+        <option value="featured" selected={params.featured === 'featured'}>Featured</option>
+        <option value="not-featured" selected={params.featured === 'not-featured'}>Not featured</option>
+      </select>
+    </div>
+
+    <div class="products-filter-field">
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort" data-auto-submit>
+        <option value="updatedAt" selected={params.sort === 'updatedAt'}>Last updated</option>
+        <option value="name" selected={params.sort === 'name'}>Name</option>
+        <option value="sortOrder" selected={params.sort === 'sortOrder'}>Sort order</option>
+      </select>
+    </div>
+
+    <div class="products-filter-field">
+      <label for="direction">Direction</label>
+      <select id="direction" name="direction" data-auto-submit>
+        <option value="desc" selected={params.direction === 'desc'}>Descending</option>
+        <option value="asc" selected={params.direction === 'asc'}>Ascending</option>
+      </select>
+    </div>
+
+    <noscript>
+      <button type="submit" class="admin-btn admin-btn-secondary">Apply</button>
+    </noscript>
+
+    {hasFilters && (
+      <a href="/admin/products" class="products-clear-filters">Clear filters</a>
+    )}
+  </form>
+
+  <div class="bulk-toolbar" data-bulk-toolbar hidden>
+    <span data-bulk-count>0 selected</span>
+    <button type="button" class="admin-btn admin-btn-text" data-bulk-clear>Clear selection</button>
+    <button type="button" class="admin-btn admin-btn-danger" data-bulk-delete>Delete selected</button>
+  </div>
+
+  {items.length === 0 ? (
+    <div class="products-empty">
+      {hasFilters ? (
+        <>
+          <p>No products match your search and filters.</p>
+          <p class="admin-hint">Try a different search term, or clear the filters below.</p>
+          <a href="/admin/products" class="products-clear-filters">Clear filters</a>
+        </>
+      ) : (
+        <>
+          <p>No products yet.</p>
+          <p class="admin-hint">Create your first product to see it here.</p>
+          <a href="/admin/products/new" class="admin-btn admin-btn-primary">+ New product</a>
+        </>
+      )}
+    </div>
+  ) : (
+    <>
+      <div class="admin-card products-table-scroll">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th scope="col" class="col-checkbox">
+                <input
+                  type="checkbox"
+                  id="select-all-checkbox"
+                  data-select-all
+                  aria-label="Select all products on this page"
+                />
+              </th>
+              <th scope="col" class="col-image" aria-label="Image"></th>
+              <th scope="col" aria-sort={ariaSort('name')}>
+                <a href={sortHref('name')} class="sort-link">
+                  Name
+                  <span aria-hidden="true">{ariaSort('name') === 'ascending' ? '▲' : ariaSort('name') === 'descending' ? '▼' : ''}</span>
+                </a>
+              </th>
+              <th scope="col" class="col-optional">SKU</th>
+              <th scope="col" class="col-optional">Category</th>
+              <th scope="col" class="col-optional">Price</th>
+              <th scope="col" class="col-optional">Inventory</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="col-optional">Featured</th>
+              <th scope="col" class="col-optional" aria-sort={ariaSort('updatedAt')}>
+                <a href={sortHref('updatedAt')} class="sort-link">
+                  Updated
+                  <span aria-hidden="true">{ariaSort('updatedAt') === 'ascending' ? '▲' : ariaSort('updatedAt') === 'descending' ? '▼' : ''}</span>
+                </a>
+              </th>
+              <th scope="col" aria-label="Actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr>
+                <td class="col-checkbox">
+                  <input
+                    type="checkbox"
+                    class="row-checkbox"
+                    data-row-checkbox
+                    data-id={item.id}
+                    data-name={item.displayName}
+                    aria-label={`Select ${item.displayName}`}
+                  />
+                </td>
+                <td class="col-image">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.imageAlt ?? ''} class="products-thumb" width="40" height="40" loading="lazy" />
+                  ) : (
+                    <span class="products-thumb products-thumb-placeholder" aria-hidden="true">—</span>
+                  )}
+                </td>
+                <td>
+                  <a href={`/admin/products/${item.id}/edit`} class="products-name-link">{item.displayName}</a>
+                </td>
+                <td class="col-optional">{item.sku ?? '—'}</td>
+                <td class="col-optional">{item.categoryName}</td>
+                <td class="col-optional">{item.priceMinor != null && item.currency ? formatPrice(item.priceMinor, item.currency) : '—'}</td>
+                <td class="col-optional">{item.inventoryQuantity ?? '—'}</td>
+                <td>
+                  <span class:list={['admin-badge', { 'admin-badge-published': item.isPublished }]}>
+                    {item.isPublished ? 'Published' : 'Draft'}
+                  </span>
+                </td>
+                <td class="col-optional">
+                  {item.isFeatured && <span class="admin-badge admin-badge-featured">Featured</span>}
+                </td>
+                <td class="col-optional">{formatDate(item.updatedAt)}</td>
+                <td class="products-table-actions">
+                  <a href={`/admin/products/${item.id}/edit`}>Edit</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="products-pagination">
+        <form method="get" action="/admin/products" class="products-page-size-form">
+          <input type="hidden" name="q" value={params.search} />
+          <input type="hidden" name="category" value={params.categoryId ?? ''} />
+          <input type="hidden" name="status" value={params.status} />
+          <input type="hidden" name="featured" value={params.featured} />
+          <input type="hidden" name="sort" value={params.sort} />
+          <input type="hidden" name="direction" value={params.direction} />
+          <label for="limit">Rows per page</label>
+          <select id="limit" name="limit" data-auto-submit>
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option value={size} selected={params.pageSize === size}>{size}</option>
+            ))}
+          </select>
+          <noscript>
+            <button type="submit" class="admin-btn admin-btn-secondary">Apply</button>
+          </noscript>
+        </form>
+
+        <div class="products-pagination-nav">
+          <span class="products-pagination-summary">
+            {total === 0 ? '0 results' : `${(page - 1) * params.pageSize + 1}–${Math.min(page * params.pageSize, total)} of ${total}`}
+            {totalPages > 0 && ` · Page ${page} of ${totalPages}`}
+          </span>
+          {page > 1 ? (
+            <a href={buildHref({ page: page - 1 }, true)} class="admin-btn admin-btn-secondary">Previous</a>
+          ) : (
+            <span class="admin-btn admin-btn-secondary is-disabled" aria-disabled="true">Previous</span>
+          )}
+          {page < totalPages ? (
+            <a href={buildHref({ page: page + 1 }, true)} class="admin-btn admin-btn-secondary">Next</a>
+          ) : (
+            <span class="admin-btn admin-btn-secondary is-disabled" aria-disabled="true">Next</span>
+          )}
+        </div>
+      </div>
+    </>
+  )}
+
+  <div class="confirm-overlay" data-confirm-overlay hidden>
+    <div
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-desc"
+      data-confirm-dialog
+    >
+      <h2 id="confirm-title">Delete <span data-confirm-count>0</span> product(s)?</h2>
+      <ul id="confirm-desc" class="confirm-product-list" data-confirm-list></ul>
+      <p class="confirm-warning">This action cannot be undone.</p>
+      <p class="confirm-error" data-confirm-error role="alert" hidden></p>
+      <div class="confirm-actions">
+        <button type="button" class="admin-btn admin-btn-secondary" data-confirm-cancel>Cancel</button>
+        <button type="button" class="admin-btn admin-btn-danger" data-confirm-delete>Delete products</button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .products-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .products-search-form {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 14rem;
+    max-width: 26rem;
+  }
+
+  .products-search-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 8px;
+    font: inherit;
+  }
+
+  /* Buttons and focus rings now come from the shared /admin.css utility
+   * classes (.admin-btn / .admin-btn-primary / etc.) linked in
+   * AdminLayout.astro -- this page just adds the one thing that's specific
+   * to it: disabled prev/next pagination links render as a <span> rather
+   * than an <a>, so they need their own not-clickable treatment. */
+  .admin-btn.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* background/border/border-radius come from the shared .admin-card
+   * utility class (see the markup) -- only this bar's own layout is kept
+   * here. The compound selector (not just .products-filters) beats
+   * .admin-card's own padding rule on specificity regardless of each
+   * stylesheet's source order, so this stays more compact than a default
+   * card. */
+  .products-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .products-filters.admin-card {
+    padding: 0.85rem 1rem;
+  }
+  .products-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .products-filter-field label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-subtle);
+  }
+  .products-filter-field select {
+    font: inherit;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 6px;
+    background: #fff;
+    min-width: 9rem;
+  }
+  .products-clear-filters {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--admin-brand);
+    margin-left: auto;
+  }
+
+  .bulk-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--admin-brand-soft);
+    border: 1px solid #bcd8c1;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--admin-brand-soft-text);
+  }
+  .bulk-toolbar[hidden] {
+    display: none;
+  }
+
+  .products-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--admin-text-muted);
+    background: #fff;
+    border: 1px dashed var(--admin-border-strong);
+    border-radius: 10px;
+  }
+  .products-empty p {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+  }
+  .products-empty a {
+    color: var(--admin-brand);
+    font-weight: 600;
+  }
+
+  /* background/border/border-radius come from the shared .admin-card
+   * utility class (see the markup); the table needs to bleed to the
+   * card's edges, so the compound selector zeroes out admin-card's own
+   * padding regardless of stylesheet source order. */
+  .products-table-scroll {
+    overflow-x: auto;
+  }
+  .products-table-scroll.admin-card {
+    padding: 0;
+  }
+  .products-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87rem;
+  }
+  .products-table th,
+  .products-table td {
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--admin-border);
+    vertical-align: middle;
+  }
+  .products-table tbody tr:hover {
+    background: #f9f8f5;
+  }
+  .products-table tbody tr:has(.row-checkbox:checked) {
+    background: #eef4ef;
+  }
+  .products-table th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-muted);
+    white-space: nowrap;
+  }
+  .col-checkbox {
+    width: 2.5rem;
+  }
+  .col-image {
+    width: 3.5rem;
+  }
+  .sort-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: inherit;
+    text-decoration: none;
+  }
+  .sort-link:hover {
+    color: var(--admin-brand);
+  }
+  .products-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    background: #f0efe9;
+  }
+  .products-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b3b6a9;
+  }
+  .products-name-link {
+    color: var(--admin-text);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .products-name-link:hover {
+    color: var(--admin-brand);
+    text-decoration: underline;
+  }
+  .products-table-actions a {
+    color: var(--admin-brand);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  /* Status/Featured badges now come from the shared /admin.css utility
+   * classes (.admin-badge / .admin-badge-published / .admin-badge-featured). */
+
+  .products-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .products-page-size-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--admin-text-muted);
+  }
+  .products-page-size-form select {
+    font: inherit;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 6px;
+  }
+  .products-pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .products-pagination-summary {
+    font-size: 0.82rem;
+    color: var(--admin-text-muted);
+  }
+
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 22, 18, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 50;
+  }
+  .confirm-overlay[hidden] {
+    display: none;
+  }
+  .confirm-dialog {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 26rem;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  }
+  .confirm-dialog h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+  }
+  .confirm-product-list {
+    margin: 0 0 0.75rem;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    color: #4a4d43;
+    max-height: 9rem;
+    overflow-y: auto;
+  }
+  .confirm-warning {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--admin-danger);
+    font-weight: 600;
+  }
+  .confirm-error {
+    margin: 0 0 1rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    background: var(--admin-danger-soft);
+    color: var(--admin-danger);
+    font-size: 0.85rem;
+  }
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  @media (max-width: 900px) {
+    .col-optional {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement only -- every control this script touches
+  // already works via plain <form method="get">/<a> navigation without
+  // it. This script adds: (1) debounced auto-navigation while typing in
+  // search, (2) auto-submit on filter/page-size change, (3) the bulk
+  // selection + confirm-delete flow, which has no non-JS equivalent.
+
+  function submitForm(form: HTMLFormElement) {
+    if (typeof (form as unknown as { requestSubmit?: () => void }).requestSubmit === 'function') {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  }
+
+  // --- Search focus bug fix ---------------------------------------------
+  // Root cause: the admin area does full server-rendered navigation (no
+  // ClientRouter here -- see AdminLayout.astro), so every search
+  // submission is a genuine document navigation. The browser discards the
+  // entire old DOM, including whatever had focus, and loads a fresh page
+  // -- there is no "soft" focus loss to patch on the old page; the new
+  // page simply starts with nothing focused. The fix is NOT to call
+  // input.focus() unconditionally on load (that would steal focus after
+  // every navigation, including ones the user triggered via filters,
+  // sort, or pagination). Instead: a sessionStorage marker is set ONLY
+  // by the search form's own `submit` event (covers both the debounced
+  // auto-submit below and a literal Enter keypress, since Enter fires a
+  // real `submit` event on the form before the browser navigates) --
+  // filter-select changes and pagination links never touch this form, so
+  // they never set the marker. On the next page load, the marker (if
+  // present) is consumed once and cleared immediately, so it can never
+  // cause a second, unwanted focus restore or a focus loop.
+  const SEARCH_FOCUS_KEY = 'admin-products-search-focus';
+  const searchInput = document.querySelector<HTMLInputElement>('[data-search-input]');
+  const searchForm = searchInput?.closest('form');
+
+  if (searchForm instanceof HTMLFormElement) {
+    searchForm.addEventListener('submit', () => {
+      try {
+        sessionStorage.setItem(SEARCH_FOCUS_KEY, '1');
+      } catch {
+        // sessionStorage unavailable (private mode, etc.) -- search still
+        // works, it just won't restore focus on the next page load.
+      }
+    });
+  }
+
+  if (searchInput) {
+    try {
+      if (sessionStorage.getItem(SEARCH_FOCUS_KEY) === '1') {
+        sessionStorage.removeItem(SEARCH_FOCUS_KEY);
+        searchInput.focus();
+        // Caret at the end, matching what the user was typing (e.g.
+        // "Dầu " keeps the trailing space and the cursor after it).
+        const end = searchInput.value.length;
+        searchInput.setSelectionRange(end, end);
+      }
+    } catch {
+      // sessionStorage unavailable -- no focus restore, no crash either.
+    }
+
+    // --- Debounced search-as-you-type ------------------------------------
+    // Skips the auto-submit entirely if the value hasn't actually changed
+    // from what the server already rendered this page with (e.g. focus/
+    // blur firing 'input' with no real edit, or typing back to the
+    // original value) -- avoids an unnecessary reload/request.
+    const committedValue = searchInput.value;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    searchInput.addEventListener('input', () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (searchInput.value === committedValue) return;
+        if (searchForm instanceof HTMLFormElement) submitForm(searchForm);
+      }, 300);
+    });
+  }
+
+  // --- Auto-submit on filter/page-size change --------------------------
+  document.querySelectorAll<HTMLSelectElement>('[data-auto-submit]').forEach((select) => {
+    select.addEventListener('change', () => {
+      const form = select.closest('form');
+      if (form instanceof HTMLFormElement) submitForm(form);
+    });
+  });
+
+  // --- Bulk selection ----------------------------------------------------
+  const selected = new Map<string, string>(); // id -> display name
+  const bulkToolbar = document.querySelector<HTMLElement>('[data-bulk-toolbar]');
+  const bulkCount = document.querySelector<HTMLElement>('[data-bulk-count]');
+  const selectAllCheckbox = document.querySelector<HTMLInputElement>('[data-select-all]');
+  const rowCheckboxes = Array.from(document.querySelectorAll<HTMLInputElement>('[data-row-checkbox]'));
+
+  function refreshBulkUi() {
+    if (bulkToolbar) bulkToolbar.hidden = selected.size === 0;
+    if (bulkCount) bulkCount.textContent = `${selected.size} selected`;
+    if (selectAllCheckbox) {
+      const visibleIds = rowCheckboxes.map((cb) => cb.dataset.id).filter((id): id is string => !!id);
+      const selectedVisible = visibleIds.filter((id) => selected.has(id)).length;
+      selectAllCheckbox.checked = visibleIds.length > 0 && selectedVisible === visibleIds.length;
+      selectAllCheckbox.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+    }
+  }
+
+  rowCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      const id = checkbox.dataset.id;
+      const name = checkbox.dataset.name ?? '';
+      if (!id) return;
+      if (checkbox.checked) selected.set(id, name);
+      else selected.delete(id);
+      refreshBulkUi();
+    });
+  });
+
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', () => {
+      rowCheckboxes.forEach((checkbox) => {
+        const id = checkbox.dataset.id;
+        const name = checkbox.dataset.name ?? '';
+        if (!id) return;
+        checkbox.checked = selectAllCheckbox.checked;
+        if (selectAllCheckbox.checked) selected.set(id, name);
+        else selected.delete(id);
+      });
+      refreshBulkUi();
+    });
+  }
+
+  const bulkClearButton = document.querySelector<HTMLButtonElement>('[data-bulk-clear]');
+  bulkClearButton?.addEventListener('click', () => {
+    selected.clear();
+    rowCheckboxes.forEach((checkbox) => (checkbox.checked = false));
+    refreshBulkUi();
+  });
+
+  // --- Confirm-delete dialog ---------------------------------------------
+  const overlay = document.querySelector<HTMLElement>('[data-confirm-overlay]');
+  const dialog = document.querySelector<HTMLElement>('[data-confirm-dialog]');
+  const confirmCount = document.querySelector<HTMLElement>('[data-confirm-count]');
+  const confirmList = document.querySelector<HTMLElement>('[data-confirm-list]');
+  const confirmError = document.querySelector<HTMLElement>('[data-confirm-error]');
+  const confirmCancelButton = document.querySelector<HTMLButtonElement>('[data-confirm-cancel]');
+  const confirmDeleteButton = document.querySelector<HTMLButtonElement>('[data-confirm-delete]');
+  const bulkDeleteButton = document.querySelector<HTMLButtonElement>('[data-bulk-delete]');
+
+  let triggerElement: HTMLElement | null = null;
+
+  function openDialog() {
+    if (!overlay || !dialog || !confirmCount || !confirmList || !confirmError) return;
+    confirmCount.textContent = String(selected.size);
+    confirmList.replaceChildren(
+      ...Array.from(selected.values()).map((name) => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        return li;
+      })
+    );
+    confirmError.hidden = true;
+    confirmError.textContent = '';
+    triggerElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.hidden = false;
+    confirmCancelButton?.focus();
+    document.addEventListener('keydown', handleDialogKeydown);
+  }
+
+  function closeDialog() {
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.removeEventListener('keydown', handleDialogKeydown);
+    triggerElement?.focus();
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog();
+      return;
+    }
+    if (event.key === 'Tab' && dialog) {
+      const focusable = dialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
+  bulkDeleteButton?.addEventListener('click', () => {
+    if (selected.size > 0) openDialog();
+  });
+  confirmCancelButton?.addEventListener('click', closeDialog);
+  overlay?.addEventListener('click', (event) => {
+    if (event.target === overlay) closeDialog();
+  });
+
+  const confirmDeleteButtonOriginalText = confirmDeleteButton?.textContent ?? null;
+
+  confirmDeleteButton?.addEventListener('click', async () => {
+    if (!confirmDeleteButton || !confirmError) return;
+    const ids = Array.from(selected.keys());
+    confirmDeleteButton.disabled = true;
+    confirmDeleteButton.textContent = 'Deleting…';
+    if (confirmCancelButton) confirmCancelButton.disabled = true;
+    confirmError.hidden = true;
+
+    try {
+      const res = await fetch('/api/admin/products/bulk-delete', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids }),
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+
+      if (!res.ok) {
+        let message = 'Failed to delete the selected products.';
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === 'string') message = data.error;
+        } catch {
+          // response body wasn't JSON -- keep the generic message
+        }
+        confirmError.textContent = message;
+        confirmError.hidden = false;
+        confirmDeleteButton.disabled = false;
+        confirmDeleteButton.textContent = confirmDeleteButtonOriginalText;
+        if (confirmCancelButton) confirmCancelButton.disabled = false;
+        return;
+      }
+
+      // Reload the current query-string page so the grid re-fetches from
+      // the server with the deleted rows gone (also correctly recomputes
+      // total/totalPages/page rather than trying to patch the DOM by hand).
+      window.location.reload();
+    } catch {
+      confirmError.textContent = 'Network error -- the selected products were not deleted.';
+      confirmError.hidden = false;
+      confirmDeleteButton.disabled = false;
+      confirmDeleteButton.textContent = confirmDeleteButtonOriginalText;
+      if (confirmCancelButton) confirmCancelButton.disabled = false;
+    }
+  });
+
+  refreshBulkUi();
+</script>

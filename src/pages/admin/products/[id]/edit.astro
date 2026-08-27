@@ -1,0 +1,29 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import AdminProductForm from '../../../../components/admin/AdminProductForm.astro';
+import { adminProductRepository } from '../../../../server/repositories/admin';
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/admin/products');
+}
+
+const [categories, product] = await Promise.all([
+  adminProductRepository.listCategories(),
+  adminProductRepository.getById(id),
+]);
+
+if (!product) {
+  return Astro.redirect('/admin/products');
+}
+---
+<AdminLayout title={`Edit ${product.nameVi}`} activeNav="products" adminUser={adminUser}>
+  <AdminProductForm mode="edit" categories={categories} product={product} />
+</AdminLayout>

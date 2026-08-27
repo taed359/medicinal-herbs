@@ -20,6 +20,8 @@ export const vi: TranslationSchema = {
     searchPlaceholder: 'Tìm kiếm sản phẩm...',
     searchLabel: 'Tìm kiếm',
     accountLabel: 'Tài khoản',
+    myAccountLabel: 'Tài khoản của tôi',
+    logoutLabel: 'Đăng xuất',
     cartLabel: 'Giỏ hàng',
     menuLabel: 'Menu',
   },

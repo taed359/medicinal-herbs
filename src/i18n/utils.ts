@@ -53,6 +53,8 @@ export interface TranslationSchema {
     searchPlaceholder: string;
     searchLabel: string;
     accountLabel: string;
+    myAccountLabel: string;
+    logoutLabel: string;
     cartLabel: string;
     menuLabel: string;
   };

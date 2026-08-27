@@ -24,7 +24,7 @@ const ariaLabel = t.productDetail.breadcrumbLabel;
       <li class:list={["bc-item", { 'bc-current': it.current }]}
           aria-current={it.current ? 'page' : undefined}>
         {it.href && !it.current ? (
-          <a href={it.href} class="bc-link">{it.label}</a>
+          <a href={it.href} data-astro-reload class="bc-link">{it.label}</a>
         ) : (
           <span class="bc-current-label">{it.label}</span>
         )}

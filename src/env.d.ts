@@ -13,5 +13,20 @@ declare namespace App {
       name: string;
       email: string;
     };
+
+    /**
+     * Set by src/middleware.ts for every request under /customer/* once
+     * the customer Better Auth session has been resolved (undefined if
+     * there is no valid session -- most /customer/* pages are public,
+     * this is not itself an auth gate). Value originates ONLY from
+     * customerAuth.api.getSession's verified result -- never trust a
+     * customer identity from body/query/path for authorization.
+     */
+    customerUser?: {
+      id: string;
+      name: string;
+      email: string;
+      emailVerified: boolean;
+    };
   }
 }

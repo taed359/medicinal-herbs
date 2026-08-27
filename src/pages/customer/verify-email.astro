@@ -1,0 +1,108 @@
+---
+// Consumes the token from src/server/email/customer-email.ts's
+// verification link (?token=...) by calling Better Auth's own
+// GET /verify-email endpoint via fetch, then shows the result inline.
+// Deliberately does NOT let the browser navigate straight to Better
+// Auth's endpoint (no <a href> / redirect-based flow) so this page can
+// show a plain, consistent success/error message the same way every
+// other customer auth page does.
+export const prerender = false;
+
+const token = Astro.url.searchParams.get('token') ?? '';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Verify your email — Medicinal Herbs</title>
+    <link rel="stylesheet" href="/customer.css" />
+  </head>
+  <body>
+    <div class="auth-shell">
+      <div class="auth-form-panel">
+        <div class="auth-logo-area">
+          <a href="/" class="auth-logo" aria-label="Medicinal Herbs — back to storefront">Medicinal Herbs</a>
+        </div>
+
+        <div class="auth-form-content">
+        <div class="auth-content auth-content--centered">
+          <span id="verify-icon" class="auth-status-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </span>
+
+          <h1 id="verify-heading" class="auth-heading">Verifying your email…</h1>
+          <p id="verify-subtitle" class="auth-subtitle">This will only take a moment.</p>
+
+          <p id="verify-error" class="auth-error" role="alert" hidden></p>
+
+          <div id="verify-actions" hidden style="width: 100%; display: flex; flex-direction: column; gap: 0.75rem;">
+            <a id="verify-continue" href="/" class="auth-submit" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Continue</a>
+          </div>
+
+          <p id="verify-back-link" class="auth-bottom-line" hidden><a href="/customer/login">Back to sign in</a></p>
+        </div>
+
+        <p class="auth-legal"><a href="/privacy-policy/">Privacy policy</a></p>
+        </div>
+      </div>
+
+      <div class="auth-image-panel">
+        <img src="/images/customer-auth/Energy.webp" alt="" loading="lazy" />
+      </div>
+    </div>
+
+    <script is:inline define:vars={{ token }}>
+      const iconEl = document.querySelector('#verify-icon');
+      const headingEl = document.querySelector('#verify-heading');
+      const subtitleEl = document.querySelector('#verify-subtitle');
+      const errorEl = document.querySelector('#verify-error');
+      const actionsEl = document.querySelector('#verify-actions');
+      const backLinkEl = document.querySelector('#verify-back-link');
+
+      function showError(message) {
+        if (iconEl instanceof HTMLElement) {
+          iconEl.dataset.variant = 'error';
+          iconEl.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+        }
+        if (headingEl instanceof HTMLElement) headingEl.textContent = 'Verification failed';
+        if (subtitleEl instanceof HTMLElement) subtitleEl.hidden = true;
+        if (errorEl instanceof HTMLElement) {
+          errorEl.textContent = message;
+          errorEl.hidden = false;
+        }
+        if (backLinkEl instanceof HTMLElement) backLinkEl.hidden = false;
+      }
+
+      function showSuccess() {
+        if (iconEl instanceof HTMLElement) {
+          iconEl.dataset.variant = 'success';
+        }
+        if (headingEl instanceof HTMLElement) headingEl.textContent = 'Email verified';
+        if (subtitleEl instanceof HTMLElement) subtitleEl.textContent = 'Your account is ready to go.';
+        if (actionsEl instanceof HTMLElement) actionsEl.hidden = false;
+      }
+
+      async function run() {
+        if (!token) {
+          showError('This verification link is missing its token.');
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/customer-auth/verify-email?token=${encodeURIComponent(token)}`);
+          if (res.ok) {
+            showSuccess();
+          } else {
+            showError('This verification link is invalid or has expired.');
+          }
+        } catch {
+          showError('Something went wrong. Please try again.');
+        }
+      }
+
+      run();
+    </script>
+  </body>
+</html>

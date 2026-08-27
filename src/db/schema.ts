@@ -312,3 +312,119 @@ export const adminVerifications = pgTable('admin_verifications', {
 }, (table) => [
   index('idx_admin_verifications_identifier').on(table.identifier),
 ]);
+
+// ---------------------------------------------------------------------------
+// Customer auth (Better Auth) — Phase 1 (Customer Authentication).
+//
+// A SECOND, fully independent Better Auth instance (src/server/auth/
+// customer-auth.ts) — never the admin one. Physically separate tables, same
+// shape/convention as admin_* above (see that block's own doc comment for
+// why column names/types follow Better Auth's canonical field set). This is
+// a deliberate security boundary, not duplication for its own sake: a bug
+// anywhere in public customer registration/login can never touch admin_*
+// rows, because no code path here ever references them.
+// ---------------------------------------------------------------------------
+export const customerUsers = pgTable('customer_users', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  image: text('image'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const customerSessions = pgTable('customer_sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => customerUsers.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_customer_sessions_user').on(table.userId),
+]);
+
+export const customerAccounts = pgTable('customer_accounts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => customerUsers.id, { onDelete: 'cascade' }),
+  issuer: text('issuer').notNull().default('local:credential'),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+  scope: text('scope'),
+  idToken: text('id_token'),
+  password: text('password'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_customer_accounts_issuer_account').on(table.issuer, table.accountId),
+  index('idx_customer_accounts_user').on(table.userId),
+]);
+
+export const customerVerifications = pgTable('customer_verifications', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_customer_verifications_identifier').on(table.identifier),
+]);
+
+// ---------------------------------------------------------------------------
+// customer_profiles — the auth/business-domain boundary. customer_users
+// (above) is entirely Better-Auth-owned; nothing app-specific belongs on it.
+// This table is where that ever grows (display name overrides, phone,
+// marketing preferences, etc.) — deliberately near-empty for Phase 1 (no
+// requirement exists yet for any of those fields), but created eagerly for
+// every customer at signup (see customer-auth.ts's databaseHooks.user.create
+// .after) so no backfill migration is ever needed once a real field shows
+// up. 1:1 via a shared primary key (customerId), not a separate id + unique
+// index — there is exactly one profile per customer, ever.
+// ---------------------------------------------------------------------------
+export const customerProfiles = pgTable('customer_profiles', {
+  customerId: text('customer_id').primaryKey().references(() => customerUsers.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// rateLimit — Better Auth's own canonical model for `rateLimit.storage:
+// 'database'` (verified against the installed better-auth@1.7.2's
+// createDatabaseStorageWrapper and @better-auth/core's rateLimitSchema:
+// exactly `key`/`count`/`lastRequest`, ms-epoch). Used only by the customer
+// Better Auth instance's built-in IP+path limiter — admin's rate limiter is
+// unchanged (still in-memory, out of scope for this phase). `lastRequest`
+// is bigint/number-mode, matching this project's existing convention for
+// large plain-number columns (see pricing.priceMinor).
+// ---------------------------------------------------------------------------
+export const rateLimit = pgTable('rate_limit', {
+  id: text('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  count: integer('count').notNull().default(0),
+  lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// customer_login_attempts — application-owned, NOT part of Better Auth's
+// schema/adapter mapping. Backs the per-account (email) sign-in limiter
+// required because Better Auth's own `rateLimit.customRules` can only
+// adjust the window/max of its existing IP+path bucket, not key by email
+// (verified against the installed rate-limiter source — no public API
+// supports an email-keyed bucket). Queried directly via Drizzle from
+// customer-auth.ts's `hooks.before`, never through Better Auth's adapter —
+// this table has no relationship to Better Auth's own `rateLimit` model
+// above beyond incidentally sharing a similar key/count/lastRequest shape.
+// ---------------------------------------------------------------------------
+export const customerLoginAttempts = pgTable('customer_login_attempts', {
+  email: text('email').primaryKey(),
+  count: integer('count').notNull().default(0),
+  windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
+});

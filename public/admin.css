@@ -1,0 +1,341 @@
+/**
+ * Shared admin design tokens + a small reusable utility set (Phase 7 of
+ * the Product Editor/Grid audit). Served as a static file and linked from
+ * AdminLayout.astro's <head> so every admin page can rely on these
+ * classes instead of redefining buttons/badges/cards/fields per file.
+ * Storefront pages never link this file -- it has zero effect there.
+ *
+ * Tokens mirror the colors already established across the admin area
+ * (AdminLayout.astro, the products grid, the product form) rather than
+ * introducing a new palette.
+ */
+
+:root {
+  --admin-brand: #3f5b45;
+  --admin-brand-soft: #e4efe6;
+  --admin-brand-soft-text: #2f6b3f;
+  --admin-bg: #f6f5f1;
+  --admin-surface: #fff;
+  --admin-border: #e3e1dc;
+  --admin-border-strong: #cbcbc0;
+  --admin-text: #1f2421;
+  --admin-text-muted: #6b6f63;
+  --admin-text-subtle: #8a8d81;
+  --admin-danger: #9b1c1c;
+  --admin-danger-soft: #fdecea;
+  --admin-danger-border: #f3c8c3;
+  --admin-featured-soft: #fbf0da;
+  --admin-featured-text: #8a6116;
+  --admin-focus: #7fae87;
+  --admin-radius-lg: 12px;
+  --admin-radius: 10px;
+  --admin-radius-sm: 6px;
+  --admin-radius-pill: 999px;
+}
+
+/* Buttons -------------------------------------------------------------- */
+.admin-btn {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--admin-radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.admin-btn-primary {
+  background: var(--admin-brand);
+  color: #fff;
+}
+.admin-btn-secondary {
+  background: var(--admin-surface);
+  color: #34382f;
+  border-color: var(--admin-border-strong);
+}
+.admin-btn-secondary:hover {
+  border-color: var(--admin-brand);
+  color: var(--admin-brand);
+}
+.admin-btn-danger {
+  background: var(--admin-danger-soft);
+  color: var(--admin-danger);
+  border-color: var(--admin-danger-border);
+}
+.admin-btn-danger:hover {
+  background: var(--admin-danger);
+  color: #fff;
+}
+.admin-btn-text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-text-muted);
+  padding: 0.5rem 0.4rem;
+}
+.admin-btn-text:hover {
+  color: var(--admin-brand);
+}
+.admin-btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Badges ----------------------------------------------------------------*/
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--admin-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #ece9e2;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+}
+.admin-badge-published {
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand-soft-text);
+}
+.admin-badge-featured {
+  background: var(--admin-featured-soft);
+  color: var(--admin-featured-text);
+}
+
+/* Cards / sections ------------------------------------------------------*/
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 1.25rem 1.4rem;
+}
+/* Spacing between stacked cards comes from the parent's flex `gap`
+ * (.product-form-main / .product-form-sidebar) -- a sibling margin here
+ * as well used to double that gap to ~2.5rem. Do not add margin-top back
+ * here; if a page stacks .admin-card outside a flex-gap container, add
+ * gap/margin at that container instead of here. */
+.admin-card-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+.admin-card-subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+}
+
+/* Form fields -------------------------------------------------------------*/
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 1rem;
+}
+.admin-field:first-child {
+  margin-top: 0;
+}
+/* A field's own textarea grows to fill whatever extra height its row
+ * gained from a taller sibling (a wrapped label, a longer hint, etc.) --
+ * inputs/selects are intentionally left at their natural single-line
+ * height (see .admin-columns-2 below for why the row itself still
+ * aligns even when a control doesn't stretch). */
+.admin-field textarea {
+  flex: 1;
+}
+.admin-field > label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #34382f;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  width: 100%;
+  box-sizing: border-box;
+}
+.admin-field textarea {
+  resize: vertical;
+}
+.admin-field input:invalid,
+.admin-field.has-error input,
+.admin-field.has-error select,
+.admin-field.has-error textarea {
+  border-color: var(--admin-danger);
+}
+.admin-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--admin-text-muted);
+}
+.admin-error-text {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--admin-danger);
+  font-weight: 600;
+}
+.admin-optional {
+  font-weight: 400;
+  color: var(--admin-text-subtle);
+  font-size: 0.78rem;
+}
+.admin-required-mark {
+  color: var(--admin-danger);
+}
+.admin-columns-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0 1.25rem;
+  margin-top: 1rem;
+}
+.admin-columns-2:first-child {
+  margin-top: 0;
+}
+/* A field's own `margin-top` (above) assumes it's stacked directly under
+ * a sibling -- inside a 2-column grid row that's wrong in a way that's
+ * easy to miss: only the LEFT field is ever actually `:first-child` of
+ * its parent (the grid), so the right field silently kept its 1rem
+ * margin-top and sat 1rem lower than the left one. The row as a whole
+ * now carries the spacing (margin-top above), so neither field inside it
+ * should add its own. */
+.admin-columns-2 > .admin-field {
+  margin-top: 0;
+}
+/* A field/row immediately after a card's title or subtitle already gets
+ * its spacing for free from that title/subtitle's own bottom margin --
+ * without this, the row-level margin-top above would stack on top of it
+ * for a doubled gap under the card heading. */
+.admin-card-title + .admin-field,
+.admin-card-title + .admin-columns-2,
+.admin-card-subtitle + .admin-field,
+.admin-card-subtitle + .admin-columns-2 {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .admin-columns-2 {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  /* Collapsed to one column, the two fields are just stacked vertically
+   * again and need the normal field-to-field gap back. */
+  .admin-columns-2 > .admin-field {
+    margin-top: 1rem;
+  }
+  .admin-columns-2 > .admin-field:first-child {
+    margin-top: 0;
+  }
+}
+
+/* Empty state notes -------------------------------------------------------*/
+.admin-empty-note {
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--admin-border-strong);
+  border-radius: var(--admin-radius-sm);
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+  background: var(--admin-bg);
+}
+.admin-pending-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.76rem;
+  color: var(--admin-text-subtle);
+  font-style: italic;
+}
+
+/* Checkbox rows -----------------------------------------------------------*/
+.admin-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #34382f;
+}
+.admin-checkbox-row input {
+  width: auto;
+  accent-color: var(--admin-brand);
+}
+
+/* Screen-reader-only text -- visually hidden but still announced/
+ * focusable. Shared across every admin page that needs a label an input
+ * can reference without showing it (repeatable-row fields, search inputs,
+ * etc.) -- keep this the single definition rather than re-declaring it
+ * per file. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Danger-toned text button -- same footprint as .admin-btn-text, just
+ * colored to signal a destructive (but not yet committed) action, e.g.
+ * "Remove price" in the product editor. */
+.admin-btn-text-danger {
+  color: var(--admin-danger);
+}
+.admin-btn-text-danger:hover {
+  color: var(--admin-danger);
+  text-decoration: underline;
+}
+
+/* Two controls side by side sharing one visual field (e.g. a quantity
+ * number input + its unit <select>) -- the first control grows, the
+ * second stays its natural width. */
+.admin-inline-pair {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.admin-inline-pair input {
+  min-width: 0;
+  flex: 1;
+}
+.admin-inline-pair select {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Small inline status text next to a control, e.g. "Price will be removed
+ * when you save." Danger-toned since it always follows a pending
+ * destructive action. */
+.admin-inline-status {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--admin-danger);
+}

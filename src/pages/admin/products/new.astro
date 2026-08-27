@@ -1,0 +1,17 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminProductForm from '../../../components/admin/AdminProductForm.astro';
+import { adminProductRepository } from '../../../server/repositories/admin';
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+
+const categories = await adminProductRepository.listCategories();
+---
+<AdminLayout title="New product" activeNav="products" adminUser={adminUser}>
+  <AdminProductForm mode="create" categories={categories} />
+</AdminLayout>

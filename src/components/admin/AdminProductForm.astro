@@ -1,0 +1,1363 @@
+---
+/**
+ * Shared Create/Edit form for Product CRUD -- redesigned (Product Editor
+ * audit). Renders the same markup for both src/pages/admin/products/
+ * new.astro and src/pages/admin/products/[id]/edit.astro; the two pages
+ * only differ in `mode`, whether `product` is pre-filled, and which HTTP
+ * verb + URL the client script below submits to.
+ *
+ * Field coverage: every input here maps to a real, persisted column (see
+ * AdminProductWriteInput / the Postgres repository's create()/update()).
+ * Every repeatable child-record section (benefits, warnings,
+ * certifications, gallery images, variants+pricing+inventory) is a full
+ * replace-set editor, not a read-only display -- see each section's own
+ * repository method (replaceBenefits/replaceWarnings/
+ * replaceCertifications/replaceGalleryImages/replaceVariants) for how the
+ * on-screen row order and field values become the row's complete set of
+ * children after save. Pricing specifically edits the variant's current
+ * effective price in place rather than adding price-history versioning UI
+ * -- see AdminProductVariantInput's doc comment.
+ *
+ * Follows the same plain-fetch, no-framework submit pattern established
+ * in Phase 1 (see login.astro) -- no form library, no framework island.
+ */
+import type { AdminCategoryOption, AdminProductEditView } from '../../domain/admin-types';
+
+interface Props {
+  mode: 'create' | 'edit';
+  categories: AdminCategoryOption[];
+  product?: AdminProductEditView;
+}
+
+const { mode, categories, product } = Astro.props;
+
+const submitUrl = mode === 'create' ? '/api/admin/products' : `/api/admin/products/${product!.id}`;
+const submitMethod = mode === 'create' ? 'POST' : 'PATCH';
+const deleteUrl = mode === 'edit' ? `/api/admin/products/${product!.id}` : '';
+const editBasePath = mode === 'edit' ? `/admin/products/${product!.id}/edit` : '';
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString('vi-VN');
+}
+
+const galleryImages = (product?.images ?? []).filter((img) => img.role !== 'primary' || img.id !== product?.imageId);
+---
+
+<form id="product-form" class="product-form" novalidate>
+  <noscript>
+    <p class="product-form-error">JavaScript is required to use the product editor.</p>
+  </noscript>
+  <p id="product-form-error" class="product-form-error" role="alert" hidden></p>
+  <p id="product-form-success" class="product-form-success" role="status" hidden></p>
+
+  <div class="product-form-header">
+    <div class="product-form-header-main">
+      <a href="/admin/products" class="product-form-back">&larr; Back to products</a>
+      <div class="product-form-heading">
+        <h2 id="product-form-title">{mode === 'create' ? 'New product' : (product?.nameVi || 'Untitled product')}</h2>
+        {mode === 'edit' && (
+          <span class:list={['admin-badge', { 'admin-badge-published': product?.isPublished }]} data-status-badge>
+            {product?.isPublished ? 'Published' : 'Draft'}
+          </span>
+        )}
+        {mode === 'edit' && product?.isFeatured && <span class="admin-badge admin-badge-featured">Featured</span>}
+      </div>
+    </div>
+    <div class="product-form-header-actions">
+      <button type="submit" class="admin-btn admin-btn-secondary" data-submit-intent="continue" id="product-form-save-continue">
+        Save &amp; continue editing
+      </button>
+      <button type="submit" class="admin-btn admin-btn-primary" data-submit-intent="list" id="product-form-submit">
+        {mode === 'create' ? 'Create product' : 'Save changes'}
+      </button>
+    </div>
+  </div>
+
+  <div class="product-form-layout">
+    <div class="product-form-main">
+      <section class="admin-card">
+        <h3 class="admin-card-title">Basic information</h3>
+        <p class="admin-card-subtitle">The product's name and storefront URL.</p>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="nameVi">Name (VI) <span class="admin-required-mark" aria-hidden="true">*</span></label>
+            <input id="nameVi" name="nameVi" type="text" required value={product?.nameVi ?? ''} aria-describedby="nameVi-hint" />
+          </div>
+          <div class="admin-field">
+            <label for="nameZh">Name (ZH) <span class="admin-required-mark" aria-hidden="true">*</span></label>
+            <input id="nameZh" name="nameZh" type="text" required value={product?.nameZh ?? ''} />
+          </div>
+        </div>
+
+        <div class="admin-field">
+          <label for="slug">Slug <span class="admin-required-mark" aria-hidden="true">*</span></label>
+          <input
+            id="slug"
+            name="slug"
+            type="text"
+            required
+            pattern="[a-z0-9]+(-[a-z0-9]+)*"
+            placeholder="coconut-oil"
+            value={product?.slug ?? ''}
+            aria-describedby="slug-hint"
+          />
+          <p id="slug-hint" class="admin-hint">Lowercase letters, numbers, and hyphens only. Used in the product's storefront URL.</p>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Descriptions</h3>
+        <p class="admin-card-subtitle">Shown on the storefront product page. VI and ZH are edited side by side.</p>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="shortDescriptionVi">Short description (VI) <span class="admin-optional">optional</span></label>
+            <textarea id="shortDescriptionVi" name="shortDescriptionVi" rows="2">{product?.shortDescriptionVi ?? ''}</textarea>
+          </div>
+          <div class="admin-field">
+            <label for="shortDescriptionZh">Short description (ZH) <span class="admin-optional">optional</span></label>
+            <textarea id="shortDescriptionZh" name="shortDescriptionZh" rows="2">{product?.shortDescriptionZh ?? ''}</textarea>
+          </div>
+        </div>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="descriptionVi">Description (VI) <span class="admin-optional">optional</span></label>
+            <textarea id="descriptionVi" name="descriptionVi" rows="5">{product?.descriptionVi ?? ''}</textarea>
+          </div>
+          <div class="admin-field">
+            <label for="descriptionZh">Description (ZH) <span class="admin-optional">optional</span></label>
+            <textarea id="descriptionZh" name="descriptionZh" rows="5">{product?.descriptionZh ?? ''}</textarea>
+          </div>
+        </div>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="ingredientsVi">Ingredients (VI) <span class="admin-optional">optional</span></label>
+            <textarea id="ingredientsVi" name="ingredientsVi" rows="3">{product?.ingredientsVi ?? ''}</textarea>
+          </div>
+          <div class="admin-field">
+            <label for="ingredientsZh">Ingredients (ZH) <span class="admin-optional">optional</span></label>
+            <textarea id="ingredientsZh" name="ingredientsZh" rows="3">{product?.ingredientsZh ?? ''}</textarea>
+          </div>
+        </div>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="usageVi">Usage instructions (VI) <span class="admin-optional">optional</span></label>
+            <textarea id="usageVi" name="usageVi" rows="3">{product?.usageVi ?? ''}</textarea>
+          </div>
+          <div class="admin-field">
+            <label for="usageZh">Usage instructions (ZH) <span class="admin-optional">optional</span></label>
+            <textarea id="usageZh" name="usageZh" rows="3">{product?.usageZh ?? ''}</textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Product information</h3>
+        <p class="admin-card-subtitle">Real attribute columns on the product. All optional -- leave blank if unknown rather than guessing.</p>
+
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="botanicalName">Botanical name <span class="admin-optional">optional</span></label>
+            <input id="botanicalName" name="botanicalName" type="text" value={product?.botanicalName ?? ''} placeholder="e.g. Cocos nucifera" />
+          </div>
+          <div class="admin-field">
+            <label for="countryOfOriginCode">Country of origin <span class="admin-optional">optional</span></label>
+            <input id="countryOfOriginCode" name="countryOfOriginCode" type="text" value={product?.countryOfOriginCode ?? ''} placeholder="e.g. VN" maxlength="2" />
+            <p class="admin-hint">ISO 3166-1 alpha-2 code (e.g. VN, CN).</p>
+          </div>
+        </div>
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="extractionMethod">Extraction method <span class="admin-optional">optional</span></label>
+            <input id="extractionMethod" name="extractionMethod" type="text" value={product?.extractionMethod ?? ''} placeholder="e.g. cold-pressed" />
+          </div>
+          <div class="admin-field">
+            <label for="manufacturerName">Manufacturer <span class="admin-optional">optional</span></label>
+            <input id="manufacturerName" name="manufacturerName" type="text" value={product?.manufacturerName ?? ''} />
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Benefits</h3>
+        <p class="admin-card-subtitle">Marketing/factual claim bullets shown on the storefront. Add as many as needed, per locale.</p>
+        <div class="admin-columns-2">
+          <div>
+            <p class="admin-readonly-group-label">VI</p>
+            <div class="admin-repeat-list" data-repeat-list="benefits-vi">
+              {(product?.benefits.filter((b) => b.locale === 'vi') ?? []).map((b) => (
+                <div class="admin-repeat-row" data-row>
+                  <input type="hidden" data-field="id" value={b.id} />
+                  <div class="admin-field">
+                    <label class="sr-only">Benefit text (VI)</label>
+                    <textarea data-field="text" rows="2">{b.text}</textarea>
+                  </div>
+                  <div class="admin-field">
+                    <label class="sr-only">Claim type</label>
+                    <select data-field="claimType">
+                      <option value="marketing" selected={b.claimType === 'marketing'}>Marketing</option>
+                      <option value="factual" selected={b.claimType === 'factual'}>Factual</option>
+                      <option value="structure_function" selected={b.claimType === 'structure_function'}>Structure/function</option>
+                    </select>
+                  </div>
+                  <div class="admin-repeat-row-actions">
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p class="admin-empty-note" data-empty-note hidden>No VI benefits yet.</p>
+            <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="benefits-vi" data-template="benefit-row" data-locale="vi">+ Add benefit (VI)</button>
+          </div>
+          <div>
+            <p class="admin-readonly-group-label">ZH</p>
+            <div class="admin-repeat-list" data-repeat-list="benefits-zh">
+              {(product?.benefits.filter((b) => b.locale === 'zh') ?? []).map((b) => (
+                <div class="admin-repeat-row" data-row>
+                  <input type="hidden" data-field="id" value={b.id} />
+                  <div class="admin-field">
+                    <label class="sr-only">Benefit text (ZH)</label>
+                    <textarea data-field="text" rows="2">{b.text}</textarea>
+                  </div>
+                  <div class="admin-field">
+                    <label class="sr-only">Claim type</label>
+                    <select data-field="claimType">
+                      <option value="marketing" selected={b.claimType === 'marketing'}>Marketing</option>
+                      <option value="factual" selected={b.claimType === 'factual'}>Factual</option>
+                      <option value="structure_function" selected={b.claimType === 'structure_function'}>Structure/function</option>
+                    </select>
+                  </div>
+                  <div class="admin-repeat-row-actions">
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p class="admin-empty-note" data-empty-note hidden>No ZH benefits yet.</p>
+            <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="benefits-zh" data-template="benefit-row" data-locale="zh">+ Add benefit (ZH)</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Warnings</h3>
+        <p class="admin-card-subtitle">Safety notices shown on the storefront. Add as many as needed, per locale.</p>
+        <div class="admin-columns-2">
+          <div>
+            <p class="admin-readonly-group-label">VI</p>
+            <div class="admin-repeat-list" data-repeat-list="warnings-vi">
+              {(product?.warnings.filter((w) => w.locale === 'vi') ?? []).map((w) => (
+                <div class="admin-repeat-row" data-row>
+                  <input type="hidden" data-field="id" value={w.id} />
+                  <div class="admin-field">
+                    <label class="sr-only">Warning text (VI)</label>
+                    <textarea data-field="text" rows="2">{w.text}</textarea>
+                  </div>
+                  <div class="admin-repeat-row-actions">
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p class="admin-empty-note" data-empty-note hidden>No VI warnings yet.</p>
+            <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="warnings-vi" data-template="warning-row" data-locale="vi">+ Add warning (VI)</button>
+          </div>
+          <div>
+            <p class="admin-readonly-group-label">ZH</p>
+            <div class="admin-repeat-list" data-repeat-list="warnings-zh">
+              {(product?.warnings.filter((w) => w.locale === 'zh') ?? []).map((w) => (
+                <div class="admin-repeat-row" data-row>
+                  <input type="hidden" data-field="id" value={w.id} />
+                  <div class="admin-field">
+                    <label class="sr-only">Warning text (ZH)</label>
+                    <textarea data-field="text" rows="2">{w.text}</textarea>
+                  </div>
+                  <div class="admin-repeat-row-actions">
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                    <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p class="admin-empty-note" data-empty-note hidden>No ZH warnings yet.</p>
+            <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="warnings-zh" data-template="warning-row" data-locale="zh">+ Add warning (ZH)</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Certifications</h3>
+        <p class="admin-card-subtitle">Organic/ISO/etc. certifications shown on the storefront. certType is free text (no fixed list exists).</p>
+        <div class="admin-repeat-list admin-repeat-list-stack" data-repeat-list="certifications">
+          {(product?.certifications ?? []).map((c) => (
+            <div class="admin-repeat-row admin-repeat-row-block" data-row>
+              <input type="hidden" data-field="id" value={c.id} />
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Certification type</label>
+                  <input data-field="certType" type="text" placeholder="Certification type (e.g. organic)" value={c.certType} />
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Issuing body</label>
+                  <input data-field="issuingBody" type="text" placeholder="Issuing body (optional)" value={c.issuingBody ?? ''} />
+                </div>
+              </div>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Certificate number</label>
+                  <input data-field="certificateNumber" type="text" placeholder="Certificate number (optional)" value={c.certificateNumber ?? ''} />
+                </div>
+                <div class="admin-field admin-field-date-pair">
+                  <label class="sr-only">Valid from / to</label>
+                  <div class="admin-date-pair">
+                    <input data-field="validFrom" type="date" value={c.validFrom ?? ''} aria-label="Valid from" />
+                    <span aria-hidden="true">&ndash;</span>
+                    <input data-field="validTo" type="date" value={c.validTo ?? ''} aria-label="Valid to (blank = ongoing)" />
+                  </div>
+                </div>
+              </div>
+              <div class="admin-repeat-row-actions">
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="admin-empty-note" data-empty-note hidden>No certifications yet.</p>
+        <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="certifications" data-template="certification-row">+ Add certification</button>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Variants, pricing &amp; inventory</h3>
+        <p class="admin-card-subtitle">
+          One row per purchasable SKU. Exactly one variant may be marked default (shown in the Products grid).
+          Price edits update today's price directly -- there is no scheduling for future price changes here.
+        </p>
+        <div class="admin-repeat-list admin-repeat-list-stack" data-repeat-list="variants">
+          {(product?.variants ?? []).map((v) => (
+            <div class="admin-repeat-row admin-repeat-row-block" data-row>
+              <input type="hidden" data-field="id" value={v.id} />
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">SKU</label>
+                  <input data-field="sku" type="text" placeholder="SKU" required value={v.sku} />
+                </div>
+                <label class="admin-checkbox-row admin-variant-default-row">
+                  <input data-field="isDefault" type="checkbox" checked={v.isDefault} />
+                  Default variant
+                </label>
+              </div>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Label (VI)</label>
+                  <input data-field="labelVi" type="text" placeholder="Label (VI, optional)" value={v.labelVi ?? ''} />
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Label (ZH)</label>
+                  <input data-field="labelZh" type="text" placeholder="Label (ZH, optional)" value={v.labelZh ?? ''} />
+                </div>
+              </div>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Net quantity</label>
+                  <div class="admin-inline-pair">
+                    <input data-field="netQuantityValue" type="number" min="0" step="any" placeholder="Net qty" aria-label="Net quantity value" value={v.netQuantityValue ?? ''} />
+                    <select data-field="netQuantityUnit" aria-label="Net quantity unit">
+                      <option value="" selected={!v.netQuantityUnit}>Unit</option>
+                      <option value="ml" selected={v.netQuantityUnit === 'ml'}>ml</option>
+                      <option value="l" selected={v.netQuantityUnit === 'l'}>l</option>
+                      <option value="g" selected={v.netQuantityUnit === 'g'}>g</option>
+                      <option value="fl_oz" selected={v.netQuantityUnit === 'fl_oz'}>fl oz</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Container type</label>
+                  <input data-field="containerType" type="text" placeholder="Container type (optional)" value={v.containerType ?? ''} />
+                </div>
+              </div>
+              <div class="admin-field">
+                <label class="sr-only">GTIN</label>
+                <input data-field="gtin" type="text" placeholder="GTIN (optional)" value={v.gtin ?? ''} />
+              </div>
+              <p class="admin-readonly-group-label admin-variant-subsection">Pricing &amp; inventory</p>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Price (VND)</label>
+                  <input data-field="priceMinor" type="number" min="0" step="1" placeholder="Price (VND)" value={v.priceMinor ?? ''} />
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Compare-at price (VND)</label>
+                  <input data-field="compareAtMinor" type="number" min="0" step="1" placeholder="Compare-at price (VND, optional)" value={v.compareAtMinor ?? ''} />
+                </div>
+              </div>
+              <input type="hidden" data-field="clearPrice" value="false" />
+              <div class="admin-variant-price-actions" data-price-clear-control hidden={v.priceMinor == null}>
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm admin-btn-text-danger" data-clear-price-toggle>Remove price</button>
+                <span class="admin-inline-status" data-clear-price-status hidden>Price will be removed when you save.</span>
+              </div>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Inventory quantity</label>
+                  <input data-field="inventoryQuantity" type="number" min="0" step="1" placeholder="Inventory quantity" value={v.inventoryQuantity ?? ''} />
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Low stock threshold</label>
+                  <input data-field="lowStockThreshold" type="number" min="0" step="1" placeholder="Low stock threshold (optional)" value={v.lowStockThreshold ?? ''} />
+                </div>
+              </div>
+              <div class="admin-repeat-row-actions">
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="admin-empty-note" data-empty-note hidden>No variants yet.</p>
+        <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="variants" data-template="variant-row">+ Add variant</button>
+        <p class="admin-hint" style="margin-top: 0.75rem;">Leaving price or inventory fields blank leaves any existing pricing/inventory for that variant untouched.</p>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Images</h3>
+        <p class="admin-card-subtitle">The primary image is editable below. Width/height are measured automatically from the URL when you save.</p>
+
+        {product?.image?.url && (
+          <img src={product.image.url} alt={product.image.altVi} class="product-form-image-preview" loading="lazy" />
+        )}
+
+        <div class="admin-field">
+          <label for="imageUrl">Primary image URL <span class="admin-optional">optional</span></label>
+          <input id="imageUrl" name="imageUrl" type="url" placeholder="https://..." value={product?.image?.url ?? ''} />
+          <p class="admin-hint">Leave blank for no image.</p>
+        </div>
+        <div class="admin-columns-2">
+          <div class="admin-field">
+            <label for="imageAltVi">Alt text (VI)</label>
+            <input id="imageAltVi" name="imageAltVi" type="text" value={product?.image?.altVi ?? ''} />
+          </div>
+          <div class="admin-field">
+            <label for="imageAltZh">Alt text (ZH)</label>
+            <input id="imageAltZh" name="imageAltZh" type="text" value={product?.image?.altZh ?? ''} />
+          </div>
+        </div>
+
+        <p class="admin-readonly-group-label" style="margin-top: 1rem;">Gallery images</p>
+        <div class="admin-repeat-list admin-repeat-list-stack" data-repeat-list="galleryImages">
+          {galleryImages.map((img) => (
+            <div class="admin-repeat-row admin-repeat-row-block" data-row>
+              <input type="hidden" data-field="id" value={img.id} />
+              <img data-preview src={img.url} alt="" loading="lazy" class="admin-repeat-row-image-preview" />
+              <div class="admin-field">
+                <label class="sr-only">Image URL</label>
+                <input data-field="url" type="url" placeholder="https://..." value={img.url} />
+              </div>
+              <div class="admin-columns-2">
+                <div class="admin-field">
+                  <label class="sr-only">Alt text (VI)</label>
+                  <input data-field="altVi" type="text" placeholder="Alt text (VI)" value={img.altVi ?? ''} />
+                </div>
+                <div class="admin-field">
+                  <label class="sr-only">Alt text (ZH)</label>
+                  <input data-field="altZh" type="text" placeholder="Alt text (ZH)" value={img.altZh ?? ''} />
+                </div>
+              </div>
+              <div class="admin-repeat-row-actions">
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+                <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="admin-empty-note" data-empty-note hidden>No gallery images yet.</p>
+        <button type="button" class="admin-btn admin-btn-secondary admin-btn-sm" data-add-row="galleryImages" data-template="gallery-image-row">+ Add image</button>
+        <p class="admin-hint" style="margin-top: 0.75rem;">Width/height are measured automatically from each URL when you save. No file upload -- this project has no S3-compatible storage wired in yet, so images are managed by URL only.</p>
+      </section>
+    </div>
+
+    <div class="product-form-sidebar">
+      <section class="admin-card">
+        <h3 class="admin-card-title">Status</h3>
+        <label class="admin-checkbox-row">
+          <input id="isPublished" name="isPublished" type="checkbox" checked={product?.isPublished ?? false} data-status-checkbox />
+          Published
+        </label>
+        <p class="admin-hint">Unpublished (draft) products are hidden from the storefront.</p>
+        <label class="admin-checkbox-row" style="margin-top: 0.85rem;">
+          <input id="isFeatured" name="isFeatured" type="checkbox" checked={product?.isFeatured ?? false} />
+          Featured
+        </label>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Organization</h3>
+        <div class="admin-field">
+          <label for="categoryId">Category <span class="admin-required-mark" aria-hidden="true">*</span></label>
+          <select id="categoryId" name="categoryId" required>
+            {categories.map((c) => (
+              <option value={c.id} selected={product?.categoryId === c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div class="admin-field">
+          <label for="sortOrder">Sort order</label>
+          <input id="sortOrder" name="sortOrder" type="number" min="0" step="1" value={product?.sortOrder ?? 0} />
+          <p class="admin-hint">Lower numbers appear first within the category.</p>
+        </div>
+      </section>
+
+      {mode === 'edit' && product && (
+        <section class="admin-card">
+          <h3 class="admin-card-title">Metadata</h3>
+          <dl class="admin-meta-list">
+            <div><dt>Created</dt><dd>{formatDate(product.createdAt)}</dd></div>
+            <div><dt>Last updated</dt><dd>{formatDate(product.updatedAt)}</dd></div>
+            <div><dt>Product ID</dt><dd class="admin-meta-mono">{product.id}</dd></div>
+          </dl>
+        </section>
+      )}
+
+      {mode === 'edit' && (
+        <section class="admin-card admin-danger-zone">
+          <h3 class="admin-card-title">Danger zone</h3>
+          <p class="admin-card-subtitle">Deleting a product also removes its images, variants, pricing, inventory, benefits, warnings, and certifications.</p>
+          <button type="button" id="delete-product-button" class="admin-btn admin-btn-danger" data-delete-url={deleteUrl}>
+            Delete product
+          </button>
+        </section>
+      )}
+    </div>
+  </div>
+</form>
+
+<!-- Row templates for the "+ Add" buttons above -- cloned by the script
+     below into the matching [data-repeat-list]. Existing rows are
+     server-rendered directly (see the sections above) so the page shows
+     real data with JS disabled too; only ADDING a new row needs JS,
+     consistent with every other write action on this page. -->
+<template data-row-template="benefit-row">
+  <div class="admin-repeat-row" data-row>
+    <input type="hidden" data-field="id" value="" />
+    <div class="admin-field">
+      <label class="sr-only">Benefit text</label>
+      <textarea data-field="text" rows="2"></textarea>
+    </div>
+    <div class="admin-field">
+      <label class="sr-only">Claim type</label>
+      <select data-field="claimType">
+        <option value="marketing" selected>Marketing</option>
+        <option value="factual">Factual</option>
+        <option value="structure_function">Structure/function</option>
+      </select>
+    </div>
+    <div class="admin-repeat-row-actions">
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+    </div>
+  </div>
+</template>
+
+<template data-row-template="warning-row">
+  <div class="admin-repeat-row" data-row>
+    <input type="hidden" data-field="id" value="" />
+    <div class="admin-field">
+      <label class="sr-only">Warning text</label>
+      <textarea data-field="text" rows="2"></textarea>
+    </div>
+    <div class="admin-repeat-row-actions">
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+    </div>
+  </div>
+</template>
+
+<template data-row-template="certification-row">
+  <div class="admin-repeat-row admin-repeat-row-block" data-row>
+    <input type="hidden" data-field="id" value="" />
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Certification type</label>
+        <input data-field="certType" type="text" placeholder="Certification type (e.g. organic)" />
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Issuing body</label>
+        <input data-field="issuingBody" type="text" placeholder="Issuing body (optional)" />
+      </div>
+    </div>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Certificate number</label>
+        <input data-field="certificateNumber" type="text" placeholder="Certificate number (optional)" />
+      </div>
+      <div class="admin-field admin-field-date-pair">
+        <label class="sr-only">Valid from / to</label>
+        <div class="admin-date-pair">
+          <input data-field="validFrom" type="date" aria-label="Valid from" />
+          <span aria-hidden="true">&ndash;</span>
+          <input data-field="validTo" type="date" aria-label="Valid to (blank = ongoing)" />
+        </div>
+      </div>
+    </div>
+    <div class="admin-repeat-row-actions">
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+    </div>
+  </div>
+</template>
+
+<template data-row-template="variant-row">
+  <div class="admin-repeat-row admin-repeat-row-block" data-row>
+    <input type="hidden" data-field="id" value="" />
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">SKU</label>
+        <input data-field="sku" type="text" placeholder="SKU" required />
+      </div>
+      <label class="admin-checkbox-row admin-variant-default-row">
+        <input data-field="isDefault" type="checkbox" />
+        Default variant
+      </label>
+    </div>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Label (VI)</label>
+        <input data-field="labelVi" type="text" placeholder="Label (VI, optional)" />
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Label (ZH)</label>
+        <input data-field="labelZh" type="text" placeholder="Label (ZH, optional)" />
+      </div>
+    </div>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Net quantity</label>
+        <div class="admin-inline-pair">
+          <input data-field="netQuantityValue" type="number" min="0" step="any" placeholder="Net qty" aria-label="Net quantity value" />
+          <select data-field="netQuantityUnit" aria-label="Net quantity unit">
+            <option value="" selected>Unit</option>
+            <option value="ml">ml</option>
+            <option value="l">l</option>
+            <option value="g">g</option>
+            <option value="fl_oz">fl oz</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Container type</label>
+        <input data-field="containerType" type="text" placeholder="Container type (optional)" />
+      </div>
+    </div>
+    <div class="admin-field">
+      <label class="sr-only">GTIN</label>
+      <input data-field="gtin" type="text" placeholder="GTIN (optional)" />
+    </div>
+    <p class="admin-readonly-group-label admin-variant-subsection">Pricing &amp; inventory</p>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Price (VND)</label>
+        <input data-field="priceMinor" type="number" min="0" step="1" placeholder="Price (VND)" />
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Compare-at price (VND)</label>
+        <input data-field="compareAtMinor" type="number" min="0" step="1" placeholder="Compare-at price (VND, optional)" />
+      </div>
+    </div>
+    <input type="hidden" data-field="clearPrice" value="false" />
+    <div class="admin-variant-price-actions" data-price-clear-control hidden>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm admin-btn-text-danger" data-clear-price-toggle>Remove price</button>
+      <span class="admin-inline-status" data-clear-price-status hidden>Price will be removed when you save.</span>
+    </div>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Inventory quantity</label>
+        <input data-field="inventoryQuantity" type="number" min="0" step="1" placeholder="Inventory quantity" />
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Low stock threshold</label>
+        <input data-field="lowStockThreshold" type="number" min="0" step="1" placeholder="Low stock threshold (optional)" />
+      </div>
+    </div>
+    <div class="admin-repeat-row-actions">
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+    </div>
+  </div>
+</template>
+
+<template data-row-template="gallery-image-row">
+  <div class="admin-repeat-row admin-repeat-row-block" data-row>
+    <input type="hidden" data-field="id" value="" />
+    <img data-preview alt="" loading="lazy" class="admin-repeat-row-image-preview" />
+    <div class="admin-field">
+      <label class="sr-only">Image URL</label>
+      <input data-field="url" type="url" placeholder="https://..." />
+    </div>
+    <div class="admin-columns-2">
+      <div class="admin-field">
+        <label class="sr-only">Alt text (VI)</label>
+        <input data-field="altVi" type="text" placeholder="Alt text (VI)" />
+      </div>
+      <div class="admin-field">
+        <label class="sr-only">Alt text (ZH)</label>
+        <input data-field="altZh" type="text" placeholder="Alt text (ZH)" />
+      </div>
+    </div>
+    <div class="admin-repeat-row-actions">
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-up aria-label="Move up">&uarr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-move-down aria-label="Move down">&darr;</button>
+      <button type="button" class="admin-btn admin-btn-text admin-btn-sm" data-remove-row>Remove</button>
+    </div>
+  </div>
+</template>
+
+<style>
+  .product-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    /* AdminLayout's .admin-content already provides consistent gutters
+     * (1.75rem padding) and imposes no width constraint of its own --
+     * 72rem (1152px) was leaving a large unused margin on any desktop
+     * wider than that. Cards/fields fill whatever width is available
+     * (the sidebar stays a fixed 20rem below), so a generous cap here
+     * only exists to keep description text readable on ultra-wide
+     * monitors, not to recreate a centered marketing-form layout. */
+    width: 100%;
+    max-width: 96rem;
+  }
+  .product-form-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: var(--admin-bg, #f6f5f1);
+    padding: 0.5rem 0 0.75rem;
+  }
+  .product-form-header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .product-form-back {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--admin-text-muted, #6b6f63);
+    text-decoration: none;
+    width: fit-content;
+  }
+  .product-form-back:hover {
+    color: var(--admin-brand, #3f5b45);
+  }
+  .product-form-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .product-form-heading h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .product-form-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .product-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .product-form-main,
+  .product-form-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+  .product-form-sidebar {
+    position: sticky;
+    top: 4.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    .product-form-layout {
+      grid-template-columns: 1fr;
+    }
+    .product-form-sidebar {
+      position: static;
+    }
+  }
+
+  .admin-readonly-group-label {
+    margin: 0 0 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-subtle, #8a8d81);
+  }
+
+  .product-form-image-preview {
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    object-fit: cover;
+    border-radius: var(--admin-radius-sm, 6px);
+    border: 1px solid var(--admin-border, #e3e1dc);
+    margin-bottom: 1rem;
+  }
+  /* Repeatable-record rows (benefits/warnings/certifications/gallery
+   * images) -- one compact card-like row per record, consistent across
+   * all four entity types so the operator learns the pattern once. */
+  .admin-repeat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .admin-repeat-list:empty {
+    display: none;
+  }
+  .admin-repeat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    background: var(--admin-bg, #f6f5f1);
+    border: 1px solid var(--admin-border, #e3e1dc);
+    border-radius: var(--admin-radius-sm, 6px);
+  }
+  .admin-repeat-row .admin-field {
+    margin-top: 0;
+  }
+  .admin-repeat-row-block {
+    gap: 0.75rem;
+  }
+  .admin-repeat-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    justify-content: flex-end;
+  }
+  .admin-repeat-row-actions .admin-btn {
+    padding: 0.3rem 0.55rem;
+  }
+  .admin-date-pair {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .admin-date-pair input {
+    min-width: 0;
+    flex: 1;
+  }
+  /* Aligns the "Default variant" checkbox label with the SKU input's
+   * baseline in the same .admin-columns-2 row -- .admin-checkbox-row is
+   * normally a standalone control (no label/input stack), so without this
+   * it sits noticeably higher than the field label + input pair beside it. */
+  .admin-variant-default-row {
+    align-self: end;
+    padding-bottom: 0.55rem;
+  }
+  .admin-variant-subsection {
+    margin-top: 0.9rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--admin-border, #e3e1dc);
+  }
+  /* "Remove price" -- deliberately its own row, separate from the price
+   * inputs above, so it reads as a distinct destructive action rather
+   * than part of the fields (see AdminProductVariantPriceInput's doc
+   * comment: a blank price input alone never removes anything). */
+  .admin-variant-price-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .admin-repeat-row input:disabled {
+    background: var(--admin-bg, #f6f5f1);
+    color: var(--admin-text-subtle, #8a8d81);
+  }
+  .admin-repeat-row-image-preview {
+    display: block;
+    width: 5rem;
+    height: 5rem;
+    object-fit: cover;
+    border-radius: var(--admin-radius-sm, 6px);
+    border: 1px solid var(--admin-border, #e3e1dc);
+    background: var(--admin-surface, #fff);
+  }
+  .admin-repeat-row-image-preview[src=''],
+  .admin-repeat-row-image-preview:not([src]) {
+    visibility: hidden;
+  }
+
+  .admin-meta-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    font-size: 0.83rem;
+  }
+  .admin-meta-list > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .admin-meta-list dt {
+    color: var(--admin-text-muted, #6b6f63);
+  }
+  .admin-meta-list dd {
+    margin: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .admin-meta-mono {
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+  }
+
+  .admin-danger-zone {
+    border-color: var(--admin-danger-border, #f3c8c3);
+  }
+
+  .product-form-error,
+  .product-form-success {
+    margin: 0;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--admin-radius-sm, 6px);
+    font-size: 0.85rem;
+  }
+  .product-form-error {
+    background: var(--admin-danger-soft, #fdecea);
+    color: var(--admin-danger, #9b1c1c);
+  }
+  .product-form-success {
+    background: var(--admin-brand-soft, #e4efe6);
+    color: var(--admin-brand-soft-text, #2f6b3f);
+  }
+</style>
+
+<script is:inline define:vars={{ submitUrl, submitMethod, mode, editBasePath }}>
+  const form = document.querySelector('#product-form');
+  const errorEl = document.querySelector('#product-form-error');
+  const successEl = document.querySelector('#product-form-success');
+  const saveButton = document.querySelector('#product-form-submit');
+  const saveContinueButton = document.querySelector('#product-form-save-continue');
+  const deleteButton = document.querySelector('#delete-product-button');
+  const statusBadge = document.querySelector('[data-status-badge]');
+  const statusCheckbox = document.querySelector('[data-status-checkbox]');
+  const titleEl = document.querySelector('#product-form-title');
+  const nameViInput = document.querySelector('#nameVi');
+
+  function showError(message) {
+    if (!(errorEl instanceof HTMLElement)) return;
+    if (successEl instanceof HTMLElement) successEl.hidden = true;
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function showSuccess(message) {
+    if (!(successEl instanceof HTMLElement)) return;
+    if (errorEl instanceof HTMLElement) errorEl.hidden = true;
+    successEl.textContent = message;
+    successEl.hidden = false;
+  }
+
+  // "Save & continue editing" (edit mode) reloads with a one-time
+  // `?saved=1` marker so this page load can show success feedback -- the
+  // marker is stripped immediately via replaceState so a manual refresh
+  // afterwards doesn't re-show the message.
+  if (mode === 'edit' && new URLSearchParams(window.location.search).get('saved') === '1') {
+    showSuccess('Product saved.');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+
+  // Live status badge / title -- pure UX polish, has no bearing on what
+  // actually gets saved (that always comes from reading the form fields).
+  if (statusCheckbox instanceof HTMLInputElement && statusBadge instanceof HTMLElement) {
+    statusCheckbox.addEventListener('change', () => {
+      statusBadge.textContent = statusCheckbox.checked ? 'Published' : 'Draft';
+      statusBadge.classList.toggle('admin-badge-published', statusCheckbox.checked);
+    });
+  }
+  if (nameViInput instanceof HTMLInputElement && titleEl instanceof HTMLElement && mode === 'edit') {
+    nameViInput.addEventListener('input', () => {
+      titleEl.textContent = nameViInput.value || 'Untitled product';
+    });
+  }
+
+  // --- Repeatable child records (benefits/warnings/certifications/
+  // gallery images) ----------------------------------------------------
+  // Each row's fields use [data-field], not `name` -- they're read
+  // directly here rather than through FormData(form), and sortOrder is
+  // never sent: the server recomputes it from array position (see
+  // parseAdminProductInput), so a row's position in the DOM is the only
+  // thing that has to be right, and "move up"/"move down" just reorder
+  // DOM nodes.
+  function fieldValue(row, field) {
+    const el = row.querySelector(`[data-field="${field}"]`);
+    if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+      return el.checked ? 'true' : 'false';
+    }
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+      return el.value;
+    }
+    return '';
+  }
+
+  function collectRows(listKey, fieldNames, extra) {
+    const list = document.querySelector(`[data-repeat-list="${listKey}"]`);
+    if (!(list instanceof HTMLElement)) return [];
+    return Array.from(list.querySelectorAll(':scope > [data-row]')).map((row) => {
+      const obj = { id: fieldValue(row, 'id') || null };
+      for (const f of fieldNames) obj[f] = fieldValue(row, f);
+      return extra ? Object.assign(obj, extra) : obj;
+    });
+  }
+
+  function refreshEmptyNote(listEl) {
+    const note = listEl.parentElement?.querySelector(':scope > [data-empty-note]');
+    if (note instanceof HTMLElement) {
+      note.hidden = listEl.querySelector('[data-row]') !== null;
+    }
+  }
+
+  function wireRepeatRow(row) {
+    row.querySelector('[data-remove-row]')?.addEventListener('click', () => {
+      const list = row.closest('[data-repeat-list]');
+      row.remove();
+      if (list instanceof HTMLElement) refreshEmptyNote(list);
+    });
+    row.querySelector('[data-move-up]')?.addEventListener('click', () => {
+      const prev = row.previousElementSibling;
+      if (prev) row.parentElement?.insertBefore(row, prev);
+    });
+    row.querySelector('[data-move-down]')?.addEventListener('click', () => {
+      const next = row.nextElementSibling;
+      if (next) row.parentElement?.insertBefore(next, row);
+    });
+    // Gallery-image rows only: keep the thumbnail preview in sync with
+    // the URL field as the operator types/pastes.
+    const urlField = row.querySelector('[data-field="url"]');
+    const preview = row.querySelector('[data-preview]');
+    if (urlField instanceof HTMLInputElement && preview instanceof HTMLImageElement) {
+      urlField.addEventListener('input', () => {
+        preview.src = urlField.value;
+      });
+    }
+    // Variant rows only: the DB allows at most one default variant per
+    // product (a partial unique index -- see idx_variants_one_default in
+    // src/db/schema.ts), so checking one row's "Default variant" box here
+    // unchecks every other row's -- the same "at most one" invariant, just
+    // enforced client-side before it can ever reach the server as a
+    // rejected 409.
+    const defaultField = row.querySelector('[data-field="isDefault"]');
+    if (defaultField instanceof HTMLInputElement && defaultField.type === 'checkbox') {
+      defaultField.addEventListener('change', () => {
+        if (!defaultField.checked) return;
+        const list = row.closest('[data-repeat-list]');
+        if (!(list instanceof HTMLElement)) return;
+        list.querySelectorAll('[data-field="isDefault"]').forEach((other) => {
+          if (other !== defaultField && other instanceof HTMLInputElement) other.checked = false;
+        });
+      });
+    }
+
+    // Variant rows only: "Remove price" is a distinct, reversible-until-
+    // save action -- separate from simply blanking the price inputs,
+    // which the server treats as "untouched" (see
+    // AdminProductVariantPriceInput's doc comment). No confirm() dialog
+    // here, deliberately: like every other repeatable-row removal in this
+    // form (benefit/warning/certification/image/variant rows), nothing
+    // actually happens to the database until Save is clicked, and
+    // "Cancel removal" undoes this instantly -- a confirm prompt on just
+    // this one action would be inconsistent with that "nothing persists
+    // until Save" model the rest of the form follows. Toggling sets/
+    // clears the hidden `clearPrice` flag the server actually keys off
+    // of, and disables the price inputs while a clear is pending so the
+    // operator can't type a new price without first cancelling.
+    const clearToggle = row.querySelector('[data-clear-price-toggle]');
+    const clearField = row.querySelector('[data-field="clearPrice"]');
+    const clearStatus = row.querySelector('[data-clear-price-status]');
+    const priceField = row.querySelector('[data-field="priceMinor"]');
+    const compareAtField = row.querySelector('[data-field="compareAtMinor"]');
+    if (
+      clearToggle instanceof HTMLButtonElement &&
+      clearField instanceof HTMLInputElement &&
+      priceField instanceof HTMLInputElement &&
+      compareAtField instanceof HTMLInputElement
+    ) {
+      clearToggle.addEventListener('click', () => {
+        const isClearing = clearField.value !== 'true';
+        if (isClearing) {
+          clearToggle.dataset.restorePrice = priceField.value;
+          clearToggle.dataset.restoreCompareAt = compareAtField.value;
+          priceField.value = '';
+          compareAtField.value = '';
+          priceField.disabled = true;
+          compareAtField.disabled = true;
+          clearField.value = 'true';
+          clearToggle.textContent = 'Cancel removal';
+        } else {
+          priceField.value = clearToggle.dataset.restorePrice ?? '';
+          compareAtField.value = clearToggle.dataset.restoreCompareAt ?? '';
+          priceField.disabled = false;
+          compareAtField.disabled = false;
+          clearField.value = 'false';
+          clearToggle.textContent = 'Remove price';
+        }
+        if (clearStatus instanceof HTMLElement) clearStatus.hidden = !isClearing;
+      });
+    }
+  }
+
+  document.querySelectorAll('[data-repeat-list] [data-row]').forEach((row) => {
+    if (row instanceof HTMLElement) wireRepeatRow(row);
+  });
+  document.querySelectorAll('[data-repeat-list]').forEach((list) => {
+    if (list instanceof HTMLElement) refreshEmptyNote(list);
+  });
+
+  document.querySelectorAll('[data-add-row]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const listKey = button.getAttribute('data-add-row');
+      const templateName = button.getAttribute('data-template');
+      if (!listKey || !templateName) return;
+      const list = document.querySelector(`[data-repeat-list="${listKey}"]`);
+      const template = document.querySelector(`template[data-row-template="${templateName}"]`);
+      if (!(list instanceof HTMLElement) || !(template instanceof HTMLTemplateElement)) return;
+      const fragment = template.content.cloneNode(true);
+      const row = fragment.firstElementChild;
+      if (!(row instanceof HTMLElement)) return;
+      wireRepeatRow(row);
+      list.appendChild(row);
+      refreshEmptyNote(list);
+      const firstField = row.querySelector('textarea, input:not([type="hidden"])');
+      if (firstField instanceof HTMLElement) firstField.focus();
+    });
+  });
+
+  function readForm() {
+    if (!(form instanceof HTMLFormElement)) return null;
+    const data = new FormData(form);
+    return {
+      slug: String(data.get('slug') ?? ''),
+      categoryId: String(data.get('categoryId') ?? ''),
+      sortOrder: Number(data.get('sortOrder') ?? 0),
+      isFeatured: data.get('isFeatured') === 'on',
+      isPublished: data.get('isPublished') === 'on',
+      nameVi: String(data.get('nameVi') ?? ''),
+      nameZh: String(data.get('nameZh') ?? ''),
+      shortDescriptionVi: String(data.get('shortDescriptionVi') ?? ''),
+      shortDescriptionZh: String(data.get('shortDescriptionZh') ?? ''),
+      descriptionVi: String(data.get('descriptionVi') ?? ''),
+      descriptionZh: String(data.get('descriptionZh') ?? ''),
+      ingredientsVi: String(data.get('ingredientsVi') ?? ''),
+      ingredientsZh: String(data.get('ingredientsZh') ?? ''),
+      usageVi: String(data.get('usageVi') ?? ''),
+      usageZh: String(data.get('usageZh') ?? ''),
+      botanicalName: String(data.get('botanicalName') ?? ''),
+      countryOfOriginCode: String(data.get('countryOfOriginCode') ?? ''),
+      extractionMethod: String(data.get('extractionMethod') ?? ''),
+      manufacturerName: String(data.get('manufacturerName') ?? ''),
+      imageUrl: String(data.get('imageUrl') ?? ''),
+      imageAltVi: String(data.get('imageAltVi') ?? ''),
+      imageAltZh: String(data.get('imageAltZh') ?? ''),
+      benefits: [
+        ...collectRows('benefits-vi', ['text', 'claimType'], { locale: 'vi' }),
+        ...collectRows('benefits-zh', ['text', 'claimType'], { locale: 'zh' }),
+      ],
+      warnings: [
+        ...collectRows('warnings-vi', ['text'], { locale: 'vi' }),
+        ...collectRows('warnings-zh', ['text'], { locale: 'zh' }),
+      ],
+      certifications: collectRows('certifications', ['certType', 'issuingBody', 'certificateNumber', 'validFrom', 'validTo']),
+      galleryImages: collectRows('galleryImages', ['url', 'altVi', 'altZh']),
+      variants: collectRows('variants', [
+        'sku', 'isDefault', 'labelVi', 'labelZh',
+        'netQuantityValue', 'netQuantityUnit', 'containerType', 'gtin',
+        'priceMinor', 'compareAtMinor', 'clearPrice', 'inventoryQuantity', 'lowStockThreshold',
+      ]),
+    };
+  }
+
+  let submitting = false;
+  // Set right before any `window.location.href = ...` this script issues
+  // (successful save, successful delete) so the beforeunload guard below
+  // never misfires a "you have unsaved changes" warning for a navigation
+  // this script itself intentionally triggered.
+  let leavingIntentionally = false;
+
+  if (form instanceof HTMLFormElement && errorEl instanceof HTMLElement && saveButton instanceof HTMLButtonElement) {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (submitting) return; // guards against a duplicate submission (e.g. double Enter/click)
+      submitting = true;
+
+      errorEl.hidden = true;
+      if (successEl instanceof HTMLElement) successEl.hidden = true;
+
+      const submitter = event.submitter;
+      const intent = submitter instanceof HTMLElement ? submitter.dataset.submitIntent : 'list';
+
+      const saveButtonOriginalText = saveButton.textContent;
+      const saveContinueButtonOriginalText =
+        saveContinueButton instanceof HTMLButtonElement ? saveContinueButton.textContent : null;
+
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving…';
+      if (saveContinueButton instanceof HTMLButtonElement) {
+        saveContinueButton.disabled = true;
+        saveContinueButton.textContent = 'Saving…';
+      }
+
+      const payload = readForm();
+
+      try {
+        const res = await fetch(submitUrl, {
+          method: submitMethod,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          leavingIntentionally = true;
+          if (intent === 'continue') {
+            if (mode === 'create') {
+              const body = await res.json().catch(() => null);
+              if (body && body.id) {
+                window.location.href = `/admin/products/${body.id}/edit`;
+                return;
+              }
+              window.location.href = '/admin/products';
+              return;
+            }
+            // Reload so read-only sections (metadata, status badge source
+            // of truth) reflect what the server actually persisted. The
+            // `saved=1` marker is read once below to show a success
+            // message, then stripped from the URL so refreshing the page
+            // doesn't re-show it.
+            window.location.href = `${editBasePath || window.location.pathname}?saved=1`;
+            return;
+          }
+          window.location.href = '/admin/products';
+          return;
+        }
+
+        const body = await res.json().catch(() => null);
+        showError(body?.error || `Request failed (${res.status}).`);
+      } catch {
+        showError('Something went wrong. Please try again.');
+      } finally {
+        submitting = false;
+        saveButton.disabled = false;
+        saveButton.textContent = saveButtonOriginalText;
+        if (saveContinueButton instanceof HTMLButtonElement) {
+          saveContinueButton.disabled = false;
+          saveContinueButton.textContent = saveContinueButtonOriginalText;
+        }
+      }
+    });
+  }
+
+  if (deleteButton instanceof HTMLButtonElement) {
+    const deleteButtonOriginalText = deleteButton.textContent;
+    deleteButton.addEventListener('click', async () => {
+      const url = deleteButton.dataset.deleteUrl;
+      if (!url) return;
+      if (!window.confirm('Delete this product? This also removes its images, variants, pricing, inventory, benefits, warnings, and certifications. This cannot be undone.')) return;
+
+      deleteButton.disabled = true;
+      deleteButton.textContent = 'Deleting…';
+      try {
+        const res = await fetch(url, { method: 'DELETE' });
+        if (res.ok) {
+          leavingIntentionally = true;
+          window.location.href = '/admin/products';
+          return;
+        }
+        const body = await res.json().catch(() => null);
+        showError(body?.error || `Delete failed (${res.status}).`);
+      } catch {
+        showError('Something went wrong. Please try again.');
+      } finally {
+        deleteButton.disabled = false;
+        deleteButton.textContent = deleteButtonOriginalText;
+      }
+    });
+  }
+
+  // Warn on navigating away with unsaved changes -- lightweight, no
+  // framework/state-tracking library. Compares the form's current
+  // FormData against a snapshot taken on load; suppressed for any
+  // navigation this script itself triggered (successful save/delete),
+  // via `leavingIntentionally`. The repeatable-record sections
+  // (benefits/warnings/certifications/gallery images) use [data-field]
+  // instead of `name` (see readForm()), so FormData(form) alone can't
+  // see edits/adds/removes/reorders there -- repeatRowsSnapshot() covers
+  // that half separately; row ORDER is included on purpose since
+  // reordering changes what gets saved (sortOrder is derived from it).
+  function repeatRowsSnapshot() {
+    return Array.from(document.querySelectorAll('[data-repeat-list]'))
+      .map((list) => {
+        const key = list.getAttribute('data-repeat-list') || '';
+        const rows = Array.from(list.querySelectorAll(':scope > [data-row]')).map((row) =>
+          Array.from(row.querySelectorAll('[data-field]'))
+            .map((el) => {
+              if (el instanceof HTMLInputElement && el.type === 'checkbox') return el.checked ? 'true' : 'false';
+              return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
+                ? el.value
+                : '';
+            })
+            .join('~')
+        );
+        return `${key}:[${rows.join(';')}]`;
+      })
+      .join('|');
+  }
+
+  if (form instanceof HTMLFormElement) {
+    const initialFormSnapshot = new FormData(form);
+    const initialRepeatSnapshot = repeatRowsSnapshot();
+    function snapshotsDiffer() {
+      const current = new FormData(form);
+      const a = Array.from(initialFormSnapshot.entries()).map((e) => e.join('=')).sort();
+      const b = Array.from(current.entries()).map((e) => e.join('=')).sort();
+      if (a.join('|') !== b.join('|')) return true;
+      return initialRepeatSnapshot !== repeatRowsSnapshot();
+    }
+    window.addEventListener('beforeunload', (event) => {
+      if (leavingIntentionally) return;
+      if (!snapshotsDiffer()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
+  }
+</script>

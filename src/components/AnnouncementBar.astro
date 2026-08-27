@@ -121,6 +121,7 @@ const options = locales.map((locale) => ({
                 role="menuitemradio"
                 aria-checked={option.active}
                 href={option.href}
+                data-astro-reload
                 class:list={['locale-switcher-option', { 'is-active': option.active }]}
                 data-locale-switcher-option
               >

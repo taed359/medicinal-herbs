@@ -1,122 +1,158 @@
 ---
-// Minimal protected shell — Phase 1. Actual auth/redirect enforcement
-// happens in src/middleware.ts; this page can assume Astro.locals.adminUser
-// is set (middleware would have redirected otherwise), but falls back
-// safely rather than assuming it.
+/**
+ * Admin dashboard. Reuses adminProductRepository.list()/getInventorySummary()
+ * exactly as the Products Grid does -- no duplicated SQL here. "Total" and
+ * "recent products" come from a single list() call (pageSize: 5, sorted by
+ * updatedAt desc); published/draft counts come from two more list() calls
+ * with pageSize: 1, since the repository's own status filter already knows
+ * how to compute `total` for a status -- this page never re-implements
+ * that filtering logic. Low-stock is only shown if at least one variant
+ * actually has both quantity and a threshold set (see
+ * AdminInventorySummary's doc comment) -- otherwise showing "0 low stock"
+ * would misleadingly imply inventory tracking is in use when it isn't.
+ */
 export const prerender = false;
+
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { adminProductRepository } from '../../server/repositories/admin';
 
 const adminUser = Astro.locals.adminUser;
 if (!adminUser) {
   return Astro.redirect('/admin/login');
 }
+
+const baseParams = {
+  page: 1,
+  search: '',
+  categoryId: null,
+  featured: 'all' as const,
+  sort: 'updatedAt' as const,
+  direction: 'desc' as const,
+};
+
+const [recent, published, draft, inventorySummary] = await Promise.all([
+  adminProductRepository.list({ ...baseParams, pageSize: 5, status: 'all' }),
+  adminProductRepository.list({ ...baseParams, pageSize: 1, status: 'published' }),
+  adminProductRepository.list({ ...baseParams, pageSize: 1, status: 'draft' }),
+  adminProductRepository.getInventorySummary(),
+]);
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('vi-VN');
+}
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin — Medicinal Herbs</title>
-    <meta name="robots" content="noindex, nofollow" />
-  </head>
-  <body>
-    <div class="admin-shell">
-      <aside class="admin-sidebar">
-        <p class="admin-sidebar-brand">Medicinal Herbs Admin</p>
-        <nav>
-          <ul>
-            <li><a href="/admin" aria-current="page">Dashboard</a></li>
-            <li class="admin-nav-placeholder">Products (Phase 2)</li>
-          </ul>
-        </nav>
-      </aside>
+<AdminLayout title="Dashboard" activeNav="dashboard" adminUser={adminUser}>
+  <div class="dashboard-stats">
+    <section class="admin-card dashboard-stat">
+      <p class="dashboard-stat-label">Total products</p>
+      <p class="dashboard-stat-value">{recent.total}</p>
+    </section>
+    <section class="admin-card dashboard-stat">
+      <p class="dashboard-stat-label">Published</p>
+      <p class="dashboard-stat-value">{published.total}</p>
+    </section>
+    <section class="admin-card dashboard-stat">
+      <p class="dashboard-stat-label">Draft</p>
+      <p class="dashboard-stat-value">{draft.total}</p>
+    </section>
+    {inventorySummary.hasTrackedVariants && (
+      <section class="admin-card dashboard-stat">
+        <p class="dashboard-stat-label">Low stock</p>
+        <p class="dashboard-stat-value">{inventorySummary.lowStockCount}</p>
+      </section>
+    )}
+  </div>
 
-      <div class="admin-main">
-        <header class="admin-topbar">
-          <span class="admin-user">Logged in as {adminUser.email}</span>
-          <button id="logout-button" type="button">Log out</button>
-        </header>
+  <section class="admin-card">
+    <h3 class="admin-card-title">Recent products</h3>
+    <p class="admin-card-subtitle">The 5 most recently updated products.</p>
+    {recent.items.length === 0 ? (
+      <p class="admin-empty-note">No products yet. <a href="/admin/products/new">Create your first product</a>.</p>
+    ) : (
+      <ul class="dashboard-recent-list">
+        {recent.items.map((item) => (
+          <li class="dashboard-recent-row">
+            <a href={`/admin/products/${item.id}/edit`} class="dashboard-recent-name">{item.displayName}</a>
+            <span class:list={['admin-badge', { 'admin-badge-published': item.isPublished }]}>
+              {item.isPublished ? 'Published' : 'Draft'}
+            </span>
+            <span class="dashboard-recent-date">{formatDate(item.updatedAt)}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+    <a href="/admin/products" class="dashboard-view-all">View all products &rarr;</a>
+  </section>
+</AdminLayout>
 
-        <main class="admin-content">
-          <h1>Admin foundation</h1>
-          <p>Phase 1 complete — Product CRUD lands in Phase 2.</p>
-        </main>
-      </div>
-    </div>
+<style>
+  .dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .dashboard-stat {
+    padding: 1.1rem 1.25rem;
+  }
+  .dashboard-stat-label {
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-muted);
+  }
+  .dashboard-stat-value {
+    margin: 0;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--admin-text);
+  }
 
-    <style>
-      /* Same reasoning as src/pages/admin/login.astro's <style> block:
-         Astro never scopes `body`/`html` selectors, so keep `body` here
-         to a harmless reset only and put real layout (and `color`) on the
-         `.admin-shell` wrapper, which Astro does scope per-page. */
-      body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-      }
-      .admin-shell {
-        display: grid;
-        grid-template-columns: 14rem 1fr;
-        min-height: 100vh;
-        color: #1f2421;
-      }
-      .admin-sidebar {
-        padding: 1.25rem 1rem;
-        background: #1f2421;
-        color: #fff;
-      }
-      .admin-sidebar-brand {
-        margin: 0 0 1.25rem;
-        font-weight: 700;
-        font-size: 0.95rem;
-      }
-      .admin-sidebar nav ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 0.4rem;
-      }
-      .admin-sidebar nav a {
-        color: #fff;
-        text-decoration: none;
-        opacity: 0.9;
-      }
-      .admin-nav-placeholder {
-        opacity: 0.5;
-        font-size: 0.85rem;
-      }
-      .admin-topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.9rem 1.5rem;
-        border-bottom: 1px solid #e3e1dc;
-      }
-      .admin-user {
-        font-size: 0.9rem;
-      }
-      #logout-button {
-        padding: 0.45rem 0.9rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        background: #fff;
-        cursor: pointer;
-      }
-      .admin-content {
-        padding: 1.5rem;
-      }
-    </style>
-
-    <script>
-      // Properly ends the Better Auth session server-side (deletes the DB
-      // session row — see api/routes/sign-out.mjs's `deleteSession` call),
-      // not just a client-side cookie clear.
-      const logoutButton = document.querySelector('#logout-button');
-      if (logoutButton instanceof HTMLButtonElement) {
-        logoutButton.addEventListener('click', async () => {
-          await fetch('/api/auth/sign-out', { method: 'POST' });
-          window.location.href = '/admin/login';
-        });
-      }
-    </script>
-  </body>
-</html>
+  .dashboard-recent-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .dashboard-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--admin-border);
+  }
+  .dashboard-recent-row:last-child {
+    border-bottom: none;
+  }
+  .dashboard-recent-name {
+    flex: 1;
+    min-width: 0;
+    color: var(--admin-text);
+    font-weight: 600;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dashboard-recent-name:hover {
+    color: var(--admin-brand);
+    text-decoration: underline;
+  }
+  .dashboard-recent-date {
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    white-space: nowrap;
+  }
+  .dashboard-view-all {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--admin-brand);
+    text-decoration: none;
+  }
+  .dashboard-view-all:hover {
+    text-decoration: underline;
+  }
+</style>
