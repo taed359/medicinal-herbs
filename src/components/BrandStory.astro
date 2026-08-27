@@ -1,0 +1,37 @@
+---
+import { getTranslations, type Locale } from '../i18n/utils';
+
+interface Props {
+  lang?: Locale;
+  image?: string;
+}
+const { lang = 'vi', image = '/favicon.svg' } = Astro.props;
+
+const t = getTranslations(lang);
+---
+<section class="container-page py-8 sm:py-10">
+  <div class="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 sm:gap-10">
+    <!-- Image first on mobile -->
+    <div class="order-1 lg:order-2 group rounded-card overflow-hidden border border-border bg-cream" style="aspect-ratio: 4 / 3;">
+      <img src={image} alt={t.brandStory.imageAlt} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
+    </div>
+    <!-- Text -->
+    <div class="order-2 lg:order-1">
+      <div class="mb-4 sm:mb-5">
+        <p class="bs-eyebrow m-0 mb-1">{t.brandStory.eyebrow}</p>
+        <h2 class="bs-heading m-0">{t.brandStory.heading}</h2>
+      </div>
+      <p class="m-0 text-body leading-relaxed max-w-prose">{t.brandStory.body}</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .bs-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
+  @media (min-width: 640px) { .bs-eyebrow { font-size: 1.375rem; } }
+  .bs-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+  @media (min-width: 640px) { .bs-heading { font-size: 2.25rem; } }
+  @media (prefers-reduced-motion: reduce) {
+    .group:hover img { transform: none !important; }
+  }
+</style>

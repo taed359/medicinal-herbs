@@ -1,0 +1,178 @@
+---
+interface Props {
+  name: string;
+  href: string; // required: product detail URL
+  image?: string;
+  alt?: string; // recommended explicit alt; falls back to "{name} product image"
+  benefit?: string; // short line under name -- only rendered when it truly exists
+  badge?: string; // optional small pill badge over image
+  price?: string | number; // optional current price (no fake values)
+  originalPrice?: string | number; // optional original price for strike-through
+  cta?: string; // optional localized CTA label (arrow is appended by this component)
+  fit?: 'cover' | 'contain'; // defaults to 'contain' -- product packshots should never be cropped
+}
+
+const { name, href, image, alt, benefit, badge, price, originalPrice, cta, fit = 'contain' } = Astro.props;
+const src = image ?? '/favicon.svg';
+const computedAlt = (alt && alt.trim().length > 0) ? alt : `${name} product image`;
+const formattedPrice = typeof price === 'number' ? price.toLocaleString() : price;
+const formattedOriginalPrice = typeof originalPrice === 'number' ? originalPrice.toLocaleString() : originalPrice;
+---
+<a href={href} class="pc-card group flex h-full flex-col" aria-label={name}>
+  <!-- Image: the hero of the card. Cream backdrop + generous internal padding
+       so a transparent-PNG bottle packshot sits naturally, never cropped. -->
+  <div class="pc-image relative aspect-square overflow-hidden bg-cream">
+    {badge && (
+      <span class="pc-badge absolute left-3 top-3 z-10">{badge}</span>
+    )}
+    <img
+      src={src}
+      alt={computedAlt}
+      class:list={[
+        'pc-img h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.02]',
+        fit === 'contain' ? 'object-contain p-6 sm:p-8' : 'object-cover',
+      ]}
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+
+  <!-- Information: name -> optional benefit -> optional price -> single CTA.
+       Only fields that actually exist are rendered -- no reserved empty
+       lines for a missing price or benefit. mt-auto keeps the CTA anchored
+       to the bottom of the card even when a sibling card is taller. -->
+  <div class="flex flex-1 flex-col p-4 sm:p-5">
+    <h3 class="pc-title m-0 font-serif text-heading">{name}</h3>
+
+    {benefit && (
+      <p class="pc-benefit m-0 mt-1">{benefit}</p>
+    )}
+
+    {price && (
+      <div class="mt-3 flex items-baseline gap-2">
+        <span class="pc-price">{formattedPrice}</span>
+        {originalPrice && (
+          <span class="pc-price-original">{formattedOriginalPrice}</span>
+        )}
+      </div>
+    )}
+
+    {cta && (
+      <p class="pc-cta m-0 mt-3 sm:mt-4">
+        <span>{cta}</span>
+        <span class="pc-cta-arrow inline-block" aria-hidden="true"> →</span>
+      </p>
+    )}
+  </div>
+</a>
+
+<style>
+  /* Calm editorial product tile -- not a "border + shadow + hover-lift" card.
+     Warm surface, a near-invisible border, a barely-there shadow. No translateY. */
+  .pc-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .pc-card:hover,
+  .pc-card:focus-visible {
+    border-color: color-mix(in srgb, var(--color-gold) 45%, var(--color-border));
+    box-shadow: var(--shadow-card-hover);
+  }
+  .pc-card:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .pc-img {
+    display: block;
+  }
+
+  /* Subtle, premium product label -- not a marketplace sale sticker. */
+  .pc-badge {
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-gold-light);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Title: refined, not oversized. Serif for brand character, but restrained. */
+  .pc-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  @media (min-width: 640px) {
+    .pc-title {
+      font-size: 1.1875rem;
+    }
+  }
+  /* Chinese: no artificial letter-spacing, no uppercase, slightly more
+     generous line-height so characters don't feel vertically cramped. */
+  html[lang="zh"] .pc-title {
+    letter-spacing: 0;
+    line-height: 1.6;
+  }
+
+  .pc-benefit {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .pc-price {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-heading);
+  }
+  @media (min-width: 640px) {
+    .pc-price {
+      font-size: 1.1875rem;
+    }
+  }
+
+  .pc-price-original {
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    text-decoration: line-through;
+  }
+
+  /* CTA: a text affordance, not a competing button. */
+  .pc-cta {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-brand);
+    transition: color 0.2s ease;
+  }
+  .pc-card:hover .pc-cta,
+  .pc-card:focus-visible .pc-cta {
+    color: var(--color-brand-hover);
+  }
+  .pc-cta-arrow {
+    transition: transform 0.2s ease;
+  }
+  .pc-card:hover .pc-cta-arrow,
+  .pc-card:focus-visible .pc-cta-arrow {
+    transform: translateX(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pc-card,
+    .pc-img,
+    .pc-cta,
+    .pc-cta-arrow {
+      transition: none !important;
+    }
+    .pc-img {
+      transform: none !important;
+    }
+  }
+</style>

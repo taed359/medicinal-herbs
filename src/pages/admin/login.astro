@@ -1,0 +1,164 @@
+---
+// Minimal server-rendered login form. Left un-namespaced (not under
+// /vi or /zh) — the admin area is not part of the localized storefront.
+export const prerender = false;
+
+import { auth } from '../../server/auth/auth';
+
+// If there's already a valid session, there's nothing to do here —
+// send the operator straight to the shell instead of showing the form.
+const existingSession = await auth.api.getSession({ headers: Astro.request.headers });
+if (existingSession) {
+  return Astro.redirect('/admin');
+}
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin sign in — Medicinal Herbs</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <form id="login-form" class="login-form" novalidate>
+        <h1>Admin sign in</h1>
+        <p id="login-error" class="login-error" role="alert" hidden></p>
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+        <button type="submit">Sign in</button>
+      </form>
+    </main>
+
+    <style>
+      /* Astro does not scope `body`/`html` selectors in a component's
+         <style> block (they sit outside the component's own render root),
+         so anything set directly on `body` here is genuinely GLOBAL CSS —
+         not isolated to this page. Keep only a harmless, idempotent reset
+         on `body` (margin/font — matches what the storefront's own
+         global.css already sets) and put every layout-affecting rule
+         (display:grid, place-items, min-height, background) on the
+         page's own `.login-shell` wrapper instead, which Astro DOES scope
+         via a `[data-astro-cid-*]` attribute. This isn't just cleanliness:
+         Astro's dev server has a known quirk on hybrid (static + on-demand)
+         projects where a page's <style> block can end up injected into an
+         unrelated page's dev-mode HTML (harmless in the real `astro build`
+         output — confirmed empty via grep — but ugly locally). An unscoped
+         `body { display: grid }` from this page previously broke the
+         storefront header's layout in dev when that happened; a scoped
+         `.login-shell` rule simply won't match anything on another page. */
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+      }
+      .login-shell {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        background: #f5f4f1;
+      }
+      .login-form {
+        display: grid;
+        gap: 0.75rem;
+        width: min(22rem, 90vw);
+        padding: 2rem;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .login-form h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+      }
+      .login-form label {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .login-form input {
+        padding: 0.55rem 0.65rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+      .login-form button {
+        margin-top: 0.5rem;
+        padding: 0.65rem;
+        border: 0;
+        border-radius: 4px;
+        background: #1f6f4a;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .login-form button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .login-error {
+        margin: 0;
+        padding: 0.6rem 0.75rem;
+        border-radius: 4px;
+        background: #fdecea;
+        color: #9b1c1c;
+        font-size: 0.85rem;
+      }
+    </style>
+
+    <script>
+      // Calls Better Auth's own REST endpoint directly (no framework
+      // client SDK needed — Better Auth is plain HTTP under the hood).
+      // The session cookie Better Auth sets on success is same-origin,
+      // so a plain same-origin fetch already carries/receives it.
+      const form = document.querySelector('#login-form');
+      const errorEl = document.querySelector('#login-error');
+      const emailInput = document.querySelector('#email');
+      const passwordInput = document.querySelector('#password');
+      const submitButton = document.querySelector('#login-form button[type="submit"]');
+
+      if (
+        form instanceof HTMLFormElement &&
+        errorEl instanceof HTMLElement &&
+        emailInput instanceof HTMLInputElement &&
+        passwordInput instanceof HTMLInputElement &&
+        submitButton instanceof HTMLButtonElement
+      ) {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          errorEl.hidden = true;
+          submitButton.disabled = true;
+
+          const email = emailInput.value;
+          const password = passwordInput.value;
+
+          try {
+            const res = await fetch('/api/auth/sign-in/email', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
+
+            if (res.ok) {
+              window.location.href = '/admin';
+              return;
+            }
+
+            const body = await res.json().catch(() => null);
+            errorEl.textContent = body?.message || 'Invalid email or password.';
+            errorEl.hidden = false;
+          } catch {
+            errorEl.textContent = 'Something went wrong. Please try again.';
+            errorEl.hidden = false;
+          } finally {
+            submitButton.disabled = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

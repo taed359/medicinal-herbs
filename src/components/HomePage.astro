@@ -1,0 +1,34 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Hero from "./Hero.astro";
+import TrustMarquee from "./TrustMarquee.astro";
+import HealthGoals from "./HealthGoals.astro";
+import TrustCertifications from "./TrustCertifications.astro";
+import BrandStory from "./BrandStory.astro";
+import HealthReads from "./HealthReads.astro";
+import ExpertConsultation from "./ExpertConsultation.astro";
+import NaturalOils from "./NaturalOils.astro";
+import { getTranslations, type Locale } from "../i18n/utils";
+import type { ProductSummaryView } from "../domain/types";
+
+interface Props {
+    lang: Locale;
+    naturalOils: ProductSummaryView[];
+}
+
+const { lang, naturalOils } = Astro.props;
+
+const t = getTranslations(lang);
+---
+
+<Layout lang={lang} title={t.home.title}>
+    <Hero lang={lang} />
+
+    <TrustMarquee lang={lang} />
+    <TrustCertifications lang={lang} />
+    <HealthGoals lang={lang} />
+    <NaturalOils lang={lang} items={naturalOils} />
+    <HealthReads lang={lang} />
+    <BrandStory lang={lang} />
+    <ExpertConsultation lang={lang} />
+</Layout>

@@ -1,0 +1,63 @@
+---
+import ProductCard from './ProductCard.astro';
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+import type { ProductSummaryView } from '../domain/types';
+import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
+
+interface Props {
+  lang: Locale;
+  items: ProductSummaryView[];
+}
+const { lang, items } = Astro.props;
+const t = getTranslations(lang);
+---
+<section class="py-8 sm:py-10" aria-labelledby="natural-oils-heading">
+  <div class="container-page">
+    <div class="text-center mb-7 sm:mb-9">
+      <p class="no-eyebrow m-0 mb-1">{t.naturalOils.eyebrow}</p>
+      <h2 id="natural-oils-heading" class="no-heading m-0">{t.naturalOils.heading}</h2>
+    </div>
+
+    <!-- Products only: mobile horizontal scroll, grid from sm+ (2 cols), 4 cols on lg -->
+    <ul
+      class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible lg:grid-cols-4 lg:gap-6"
+      role="list"
+      tabindex="0"
+    >
+      {items.map((p) => {
+        const href = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
+        const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
+        const alt = p.primaryImage?.alt || p.name;
+        return (
+          <li class="no-slide h-full">
+            <ProductCard name={p.name} href={href} cta={t.product.ctaViewDetails} image={image} alt={alt} />
+          </li>
+        );
+      })}
+    </ul>
+
+    <div class="mt-7 sm:mt-8 text-center">
+      <a href={localePath(lang, t.naturalOils.collectionPath)} class="btn btn-secondary">{t.naturalOils.ctaViewAll}</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Match HealthGoals/Reads heading language */
+  .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
+  @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }
+  .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+  @media (min-width: 640px) { .no-heading { font-size: 2.25rem; } }
+
+  /* Mobile horizontal carousel for products */
+  .no-track { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .no-track::-webkit-scrollbar { display: none; }
+  .no-slide { flex: 0 0 82%; scroll-snap-align: start; }
+  @media (min-width: 480px) { .no-slide { flex-basis: 68%; } }
+  @media (min-width: 640px) { .no-slide { flex: unset; scroll-snap-align: unset; } }
+
+  /* ZH locale micro-typography: avoid Latin‑style casing/letterspacing */
+  html[lang="zh"] .no-eyebrow { letter-spacing: 0; text-transform: none; }
+  @media (max-width: 360px) { html[lang="zh"] .no-heading { font-size: 1.625rem; } }
+</style>

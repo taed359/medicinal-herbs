@@ -1,0 +1,575 @@
+---
+import AnnouncementBar from './AnnouncementBar.astro';
+import { getTranslations, localeHomePath, localePath, type Locale } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+
+const t = getTranslations(lang);
+const homeHref = localeHomePath(lang);
+---
+<AnnouncementBar lang={lang} message={t.header.announcement} />
+
+<header class="sticky top-0 z-40 bg-surface">
+  <!-- Main navbar -->
+  <div class="bg-surface border-b border-border">
+    <div class="container-page relative h-[80px] flex items-center justify-between gap-4">
+      <button
+        type="button"
+        data-mobile-menu-open
+        class="md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-heading hover:text-brand transition-colors"
+        aria-label={t.header.menuLabel}
+        aria-expanded="false"
+        aria-controls="mobile-navigation-drawer"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      <!-- Logo -->
+      <a href={homeHref} class="absolute left-1/2 -translate-x-1/2 flex flex-col leading-tight no-underline shrink-0 md:static md:translate-x-0">
+        <span class="font-sans text-2xl text-heading">{t.common.siteName}</span>
+        <span class="header-meta-text text-caption hidden sm:block">{t.common.tagline}</span>
+      </a>
+
+      <!-- Center nav (desktop) -->
+      <nav aria-label="primary" class="hidden md:flex items-center gap-8">
+        <a href="#" class="relative flex items-center gap-1.5 font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
+          {t.header.navSale}
+          <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
+        </a>
+        <a href="#" class="relative flex items-center gap-1 font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
+          {t.header.navShopBy}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <a href="#" class="relative font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
+        <a href="#" class="relative font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navHealthReads}</a>
+      </nav>
+
+      <!-- Search + icons -->
+      <div class="flex items-center gap-4">
+        <div class="hidden lg:block">
+          <form action={localePath(lang, 'search')} method="get" role="search" class="relative" onsubmit="return false">
+            <label for="header-search" class="sr-only">{t.header.searchLabel}</label>
+            <input
+              id="header-search"
+              name="q"
+              type="search"
+              placeholder={t.header.searchPlaceholder}
+              class="w-56 xl:w-64 rounded-pill border border-border bg-surface pl-4 pr-9 py-2 text-sm text-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/50"
+            />
+            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+              <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+            </svg>
+          </form>
+        </div>
+
+        <a href="#" aria-label={t.header.accountLabel} class="hidden md:inline-flex text-heading hover:text-brand transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </a>
+
+        <!-- Mobile search toggle -->
+        <button
+          type="button"
+          class="mobile-search-trigger md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-heading hover:text-brand transition-colors"
+          aria-label={t.header.searchLabel}
+          aria-expanded="false"
+          aria-controls="mobile-search-popup"
+          data-mobile-search-trigger
+        >
+          <svg data-search-open-icon width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+            <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+          </svg>
+          <svg data-search-close-icon width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <a href="#" aria-label={t.header.cartLabel} class="relative text-heading hover:text-brand transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16l-1.5 10.5a2 2 0 0 1-2 1.5H7.5a2 2 0 0 1-2-1.5L4 7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-sale text-white text-[10px] leading-none">0</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile floating search popup -->
+  <div
+    id="mobile-search-popup"
+    class="mobile-search-popup md:hidden"
+    data-mobile-search-popup
+    data-state="closed"
+    aria-hidden="true"
+  >
+    <form action={localePath(lang, 'search')} method="get" role="search" class="mobile-search-form" onsubmit="return false">
+      <label for="mobile-search-popup-input" class="sr-only">{t.header.searchLabel}</label>
+      <input
+        id="mobile-search-popup-input"
+        name="q"
+        type="search"
+        placeholder={t.header.searchPlaceholder}
+        class="mobile-search-input"
+      />
+      <svg class="mobile-search-field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+        <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+      </svg>
+    </form>
+  </div>
+
+  <!-- Mobile navigation drawer -->
+  <div
+    id="mobile-navigation-drawer"
+    class="mobile-drawer md:hidden"
+    data-mobile-drawer
+    data-state="closed"
+    aria-hidden="true"
+  >
+    <div class="mobile-drawer-backdrop" data-mobile-menu-backdrop aria-hidden="true"></div>
+
+    <aside
+      class="mobile-drawer-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.header.menuLabel}
+      tabindex="-1"
+      data-mobile-menu-panel
+    >
+      <div class="mobile-drawer-topbar">
+        <a href={homeHref} class="font-sans text-lg text-heading no-underline">{t.common.siteName}</a>
+        <button
+          type="button"
+          class="mobile-drawer-icon-button"
+          aria-label={t.header.menuLabel}
+          data-mobile-menu-close
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="mobile-profile-row">
+        <span class="mobile-profile-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="font-sans text-sm font-semibold text-heading">{t.header.accountLabel}</span>
+      </div>
+
+      <div class="mobile-menu-viewport">
+        <div class="mobile-menu-track" data-mobile-menu-track>
+          <section class="mobile-menu-view" aria-label={t.header.menuLabel}>
+            <nav class="mobile-menu-list">
+              <a href="#" class="mobile-menu-row">
+                <span class="inline-flex items-center gap-2">
+                  {t.header.navSale}
+                  <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
+                </span>
+              </a>
+              <button type="button" class="mobile-menu-row" data-mobile-submenu-open aria-controls="mobile-shop-submenu">
+                <span>{t.header.navShopBy}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <a href="#" class="mobile-menu-row">{t.header.navOurStory}</a>
+              <a href="#" class="mobile-menu-row">{t.header.navHealthReads}</a>
+            </nav>
+          </section>
+
+          <section id="mobile-shop-submenu" class="mobile-menu-view" aria-label={t.header.navShopBy}>
+            <button type="button" class="mobile-submenu-back" data-mobile-submenu-back>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m15 6-6 6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>{t.header.navShopBy}</span>
+            </button>
+            <nav class="mobile-menu-list">
+              <a href={localePath(lang, t.naturalOils.collectionPath)} class="mobile-menu-row">
+                {t.naturalOils.eyebrow}
+              </a>
+            </nav>
+          </section>
+        </div>
+      </div>
+    </aside>
+  </div>
+</header>
+
+<style>
+  .header-meta-text { color: var(--color-body); }
+
+  .mobile-search-trigger [data-search-close-icon] { display: none; }
+  .mobile-search-trigger[aria-expanded='true'] [data-search-open-icon] { display: none; }
+  .mobile-search-trigger[aria-expanded='true'] [data-search-close-icon] { display: block; }
+
+  .mobile-search-popup {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0.75rem;
+    left: 0.75rem;
+    z-index: 60;
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-0.4rem);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 0s linear 180ms;
+  }
+
+  .mobile-search-popup[data-state='open'] {
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0s;
+  }
+
+  .mobile-search-form {
+    position: relative;
+    max-width: 34rem;
+    margin-left: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .mobile-search-input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.7rem 2.75rem 0.7rem 1rem;
+    color: var(--color-body);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    font: inherit;
+    font-size: 0.875rem;
+  }
+
+  .mobile-search-input::placeholder { color: var(--color-muted); }
+
+  .mobile-search-input:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .mobile-search-field-icon {
+    position: absolute;
+    top: 50%;
+    right: 1.4rem;
+    color: var(--color-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .mobile-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+    visibility: hidden;
+    transition: visibility 0s linear 280ms;
+  }
+
+  .mobile-drawer[data-state='open'] {
+    pointer-events: auto;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .mobile-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in oklab, var(--color-heading) 42%, transparent);
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+
+  .mobile-drawer-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(90vw, 24rem);
+    height: 100%;
+    overflow: hidden;
+    color: var(--color-body);
+    background: var(--color-surface);
+    transform: translateX(-100%);
+    transition: transform 280ms ease;
+  }
+
+  .mobile-drawer[data-state='open'] .mobile-drawer-backdrop { opacity: 1; }
+  .mobile-drawer[data-state='open'] .mobile-drawer-panel { transform: translateX(0); }
+
+  .mobile-drawer-topbar {
+    display: flex;
+    min-height: 4.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-drawer-icon-button {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: var(--color-heading);
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .mobile-profile-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-cream);
+  }
+
+  .mobile-profile-icon {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: var(--color-brand);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+  }
+
+  .mobile-menu-viewport {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden auto;
+  }
+
+  .mobile-menu-track {
+    display: flex;
+    width: 200%;
+    min-height: 100%;
+    transform: translateX(0);
+    transition: transform 260ms ease;
+  }
+
+  .mobile-menu-track[data-view='submenu'] { transform: translateX(-50%); }
+
+  .mobile-menu-view {
+    width: 50%;
+    flex: 0 0 50%;
+    padding: 0.75rem 1.25rem 1.5rem;
+  }
+
+  .mobile-menu-list { display: grid; }
+
+  .mobile-menu-row,
+  .mobile-submenu-back {
+    display: flex;
+    width: 100%;
+    min-height: 3.25rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    color: var(--color-heading);
+    border: 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
+    background: transparent;
+    font: inherit;
+    font-size: 0.95rem;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 180ms ease;
+  }
+
+  .mobile-menu-row:hover,
+  .mobile-submenu-back:hover { color: var(--color-brand); }
+
+  .mobile-submenu-back {
+    justify-content: flex-start;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .mobile-drawer button:focus-visible,
+  .mobile-drawer a:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-search-popup,
+    .mobile-drawer-backdrop,
+    .mobile-drawer,
+    .mobile-drawer-panel,
+    .mobile-menu-track,
+    .mobile-menu-row,
+    .mobile-submenu-back { transition: none; }
+  }
+</style>
+
+<script>
+  function initMobileSearchPopup() {
+    const trigger = document.querySelector('[data-mobile-search-trigger]');
+    const popup = document.querySelector('[data-mobile-search-popup]');
+    if (!(trigger instanceof HTMLButtonElement) || !(popup instanceof HTMLElement)) return;
+    if (popup.dataset.initialized === 'true') return;
+    popup.dataset.initialized = 'true';
+
+    const input = popup.querySelector('input[type="search"]');
+
+    const closeSearch = (restoreFocus = false) => {
+      popup.dataset.state = 'closed';
+      popup.setAttribute('aria-hidden', 'true');
+      trigger.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) trigger.focus();
+    };
+
+    const openSearch = () => {
+      popup.dataset.state = 'open';
+      popup.setAttribute('aria-hidden', 'false');
+      trigger.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => {
+        if (input instanceof HTMLInputElement) input.focus();
+      });
+    };
+
+    trigger.addEventListener('click', () => {
+      popup.dataset.state === 'open' ? closeSearch(true) : openSearch();
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (popup.dataset.state !== 'open') return;
+      if (!(event.target instanceof Node)) return;
+      if (!popup.contains(event.target) && !trigger.contains(event.target)) closeSearch();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && popup.dataset.state === 'open') {
+        event.preventDefault();
+        closeSearch(true);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768 && popup.dataset.state === 'open') closeSearch();
+    });
+  }
+
+  initMobileSearchPopup();
+  document.addEventListener('astro:page-load', initMobileSearchPopup);
+</script>
+
+<script>
+  function initMobileDrawer() {
+    const drawer = document.querySelector('[data-mobile-drawer]');
+    const openButton = document.querySelector('[data-mobile-menu-open]');
+    if (!(drawer instanceof HTMLElement) || !(openButton instanceof HTMLButtonElement)) return;
+    if (drawer.dataset.initialized === 'true') return;
+    drawer.dataset.initialized = 'true';
+
+    const panel = drawer.querySelector('[data-mobile-menu-panel]');
+    const closeButton = drawer.querySelector('[data-mobile-menu-close]');
+    const backdrop = drawer.querySelector('[data-mobile-menu-backdrop]');
+    const track = drawer.querySelector('[data-mobile-menu-track]');
+    const submenuOpen = drawer.querySelector('[data-mobile-submenu-open]');
+    const submenuBack = drawer.querySelector('[data-mobile-submenu-back]');
+    let previousFocus: Element | null = null;
+
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const closeDrawer = () => {
+      drawer.dataset.state = 'closed';
+      drawer.setAttribute('aria-hidden', 'true');
+      openButton.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+      if (track instanceof HTMLElement) delete track.dataset.view;
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+
+    const openDrawer = () => {
+      previousFocus = document.activeElement;
+      drawer.dataset.state = 'open';
+      drawer.setAttribute('aria-hidden', 'false');
+      openButton.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        if (panel instanceof HTMLElement) panel.focus();
+      });
+    };
+
+    openButton.addEventListener('click', openDrawer);
+    closeButton?.addEventListener('click', closeDrawer);
+    backdrop?.addEventListener('click', closeDrawer);
+    submenuOpen?.addEventListener('click', () => {
+      if (track instanceof HTMLElement) track.dataset.view = 'submenu';
+      if (submenuBack instanceof HTMLButtonElement) submenuBack.focus();
+    });
+    submenuBack?.addEventListener('click', () => {
+      if (track instanceof HTMLElement) delete track.dataset.view;
+      if (submenuOpen instanceof HTMLButtonElement) submenuOpen.focus();
+    });
+
+    drawer.querySelectorAll('a[href]').forEach((link) => link.addEventListener('click', closeDrawer));
+
+    document.addEventListener('keydown', (event) => {
+      if (drawer.dataset.state !== 'open') return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDrawer();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = Array.from(drawer.querySelectorAll(focusableSelector)).filter(
+        (element) => element instanceof HTMLElement && element.offsetParent !== null,
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!(first instanceof HTMLElement) || !(last instanceof HTMLElement)) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768 && drawer.dataset.state === 'open') closeDrawer();
+    });
+  }
+
+  initMobileDrawer();
+  document.addEventListener('astro:page-load', initMobileDrawer);
+</script>

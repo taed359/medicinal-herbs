@@ -1,0 +1,32 @@
+---
+interface Props {
+  items?: string[];
+}
+const { items = [
+  'Tinh hoa thảo dược',
+  'Chọn lọc tự nhiên',
+  'Đảm bảo chất lượng',
+  'Sức khỏe bền vững',
+] } = Astro.props;
+---
+<section class="w-full bg-cream-alt py-2 text-caption" aria-label="Ticker">
+  <div class="overflow-hidden">
+    <div class="track">
+      {items.map((t, i) => (
+        <span class="item" aria-hidden="true">{t}</span>
+      ))}
+      {items.map((t, i) => (
+        <span class="item" aria-hidden="true">{t}</span>
+      ))}
+    </div>
+  </div>
+
+  <style>
+    .track{ display:flex; gap:1.5rem; padding-inline:1rem; width:max-content; animation: ticker 20s linear infinite; }
+    .item{ white-space:nowrap; color: var(--color-body); position: relative; padding-left: 1.25rem; }
+    .item::before{ content: '•'; position:absolute; left:0; color: var(--color-muted); }
+    @keyframes ticker{ from{ transform: translateX(0); } to{ transform: translateX(-50%); } }
+    @media (prefers-reduced-motion: reduce){ .track{ animation-duration: 0.001s; } }
+  </style>
+</section>
+

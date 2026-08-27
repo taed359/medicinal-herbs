@@ -1,0 +1,261 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import { defaultLocale, getTranslations, isLocale, localePath, type Locale, type RouteLocale, type TranslationSchema } from '../i18n/utils';
+
+interface Props {
+  lang: RouteLocale;
+  uiLang?: Locale;
+  contact?: TranslationSchema['contact'];
+}
+
+const { lang, uiLang: requestedUiLang, contact } = Astro.props;
+const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
+const homeHref = localePath(lang, '');
+const translations = getTranslations(uiLang);
+const t = contact ? { ...translations, contact } : translations;
+const questions = Object.values(t.contact.questionOptions);
+---
+<Layout lang={lang} uiLang={uiLang} title={`${t.contact.title} — ${t.common.siteName}`}>
+  <section class="contact-page py-8 sm:py-10" aria-labelledby="contact-page-title">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={uiLang}
+        class="mb-6"
+        items={[
+          { label: t.contact.home, href: homeHref },
+          { label: t.contact.breadcrumb, current: true },
+        ]}
+      />
+
+      <header class="contact-title text-center">
+        <h1 id="contact-page-title" class="m-0">{t.contact.title}</h1>
+      </header>
+
+      <div class="contact-grid mt-8 sm:mt-10 lg:mt-12">
+        <section aria-labelledby="contact-form-heading">
+          <h2 id="contact-form-heading" class="contact-heading m-0">{t.contact.formHeading}</h2>
+          <p class="contact-intro m-0 mt-3">{t.contact.intro}</p>
+
+          <form action="#" method="post" onsubmit="return false" class="contact-form mt-7">
+            <div class="contact-field">
+              <label for="contact-name">{t.contact.nameLabel} <span aria-hidden="true">*</span></label>
+              <input id="contact-name" name="name" type="text" autocomplete="name" required />
+            </div>
+
+            <div class="contact-field">
+              <label for="contact-email">{t.contact.emailLabel} <span aria-hidden="true">*</span></label>
+              <input id="contact-email" name="email" type="email" autocomplete="email" required />
+            </div>
+
+            <div class="contact-field">
+              <label for="contact-phone">{t.contact.phoneLabel}</label>
+              <input id="contact-phone" name="phone" type="tel" autocomplete="tel" />
+            </div>
+
+            <div class="contact-field">
+              <label for="contact-question">{t.contact.questionLabel} <span aria-hidden="true">*</span></label>
+              <select id="contact-question" name="question" required>
+                <option value="" selected disabled>{t.contact.questionPlaceholder}</option>
+                {questions.map((question) => <option value={question}>{question}</option>)}
+              </select>
+            </div>
+
+            <div class="contact-field">
+              <label for="contact-order-number">{t.contact.orderNumberLabel}</label>
+              <input id="contact-order-number" name="orderNumber" type="text" />
+            </div>
+
+            <div class="contact-field">
+              <label for="contact-message">{t.contact.messageLabel}</label>
+              <textarea id="contact-message" name="message" rows="6" placeholder={t.contact.messagePlaceholder}></textarea>
+            </div>
+
+            <div class="contact-consent">
+              <input id="contact-privacy" class="cursor-pointer" name="privacy" type="checkbox" required />
+              <label for="contact-privacy">
+                {t.contact.privacyAgreementPrefix}
+                <a href={localePath(lang, 'policies/privacy-policy')}>{t.contact.privacyPolicy}</a>
+                {t.contact.privacyAgreementSuffix}
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary contact-submit">{t.contact.send}</button>
+          </form>
+        </section>
+
+        <aside class="contact-support" aria-labelledby="contact-support-heading">
+          <h2 id="contact-support-heading" class="contact-heading m-0">{t.contact.supportHeading}</h2>
+          <p class="contact-intro m-0 mt-3">{t.contact.supportIntro}</p>
+
+          <div class="support-block mt-7">
+            <h3 class="m-0">{t.contact.customerCare}</h3>
+            <p class="m-0 mt-3">
+              <span>{t.contact.email}:</span>
+              <a href="mailto:estore@euyansang.com">estore@euyansang.com</a>
+            </p>
+          </div>
+
+          <div class="support-block mt-7">
+            <h3 class="m-0">{t.contact.openingHours}</h3>
+            <p class="m-0 mt-3">{t.contact.weekdays}<br />{t.contact.hours}</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .contact-title h1 {
+    color: var(--color-heading);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.12;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .contact-heading {
+    color: var(--color-heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .contact-intro {
+    max-width: 54ch;
+    color: var(--color-body);
+  }
+
+  .contact-form {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .contact-field {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .contact-field label,
+  .contact-consent label {
+    color: var(--color-heading);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .contact-field input,
+  .contact-field select,
+  .contact-field textarea {
+    width: 100%;
+    min-width: 0;
+    color: var(--color-body);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-thumb);
+    background: var(--color-surface);
+    font: inherit;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .contact-field input,
+  .contact-field select {
+    min-height: 3rem;
+    padding: 0.7rem 0.875rem;
+  }
+
+  .contact-field textarea {
+    resize: vertical;
+    min-height: 9rem;
+    padding: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .contact-field textarea::placeholder {
+    color: var(--color-muted);
+  }
+
+  .contact-field input:focus-visible,
+  .contact-field select:focus-visible,
+  .contact-field textarea:focus-visible,
+  .contact-consent input:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-color: var(--color-brand);
+  }
+
+  .contact-consent {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.7rem;
+  }
+
+  .contact-consent input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0.15rem 0 0;
+    accent-color: var(--color-brand);
+  }
+
+  .contact-consent a {
+    margin-inline: 0.2em;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .contact-submit {
+    justify-self: start;
+    min-height: 3rem;
+    cursor: pointer;
+  }
+
+  .contact-support {
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .support-block h3 {
+    color: var(--color-heading);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .support-block p {
+    color: var(--color-body);
+  }
+
+  .support-block p > span {
+    color: var(--color-body);
+  }
+
+  @media (min-width: 1024px) {
+    .contact-grid {
+      grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+      gap: clamp(4rem, 5vw, 8rem);
+      max-width: 72rem;
+      margin-inline: auto;
+    }
+
+    .contact-support {
+      padding-top: 0;
+      padding-left: clamp(2rem, 4vw, 4rem);
+      border-top: 0;
+      border-left: 1px solid var(--color-border);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contact-field input,
+    .contact-field select,
+    .contact-field textarea {
+      transition: none;
+    }
+  }
+</style>

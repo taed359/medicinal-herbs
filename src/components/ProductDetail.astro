@@ -1,0 +1,686 @@
+---
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+import Breadcrumbs from './Breadcrumbs.astro';
+import type { ProductDetailView } from '../domain/types';
+import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
+import { Image } from 'astro:assets';
+import { formatExtractionMethod, formatCountryOfOrigin, formatCertType } from '../lib/product-metadata-labels';
+
+interface Props {
+  lang: Locale;
+  product: ProductDetailView;
+}
+const { lang, product } = Astro.props;
+const t = getTranslations(lang);
+
+const name = product.name;
+const catLabel = t.naturalOils.eyebrow;
+const backHref = localePath(lang, t.naturalOils.collectionPath);
+
+const primaryImage = product.images.find((img) => img.role === 'primary') ?? product.images[0] ?? null;
+
+// No variant/pricing/inventory data exists yet for any product (nothing
+// was invented during the DB migration — see seed-natural-oils.ts). The
+// purchase/SKU/price block below stays hidden until a real variant with
+// real pricing is entered; this is intentional, not a bug. The repository
+// (product-repository.ts) already tolerates a product with zero variant
+// rows — `variants` is simply an empty array, never a hard requirement —
+// so this page renders a complete, valid product page either way.
+const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0] ?? null;
+const hasPrice = defaultVariant?.priceMinor != null;
+
+function formatPrice(minorUnits: number, currency: string, locale: Locale): string {
+  // priceMinor is stored as a whole VND amount (VND has no minor/fractional
+  // unit in practice), so it's formatted directly, not divided by 100.
+  return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'vi-VN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(minorUnits);
+}
+
+---
+<section
+  class:list={['py-8 sm:py-10', { 'pd-zh': lang === 'zh' }]}
+  aria-labelledby="product-name"
+>
+  <div class="container-page">
+    <Breadcrumbs
+      lang={lang}
+      class="mb-6 sm:mb-8"
+      items={[
+        { label: t.productDetail.breadcrumbHome, href: localePath(lang, '') },
+        { label: catLabel, href: backHref },
+        { label: name, current: true },
+      ]}
+    />
+
+    <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+      <div class="pd-gallery lg:sticky lg:top-28">
+        <div class="pd-gallery-stage">
+          <div class="pd-gallery-media">
+            {
+              primaryImage ? (
+                <img
+                  src={primaryImage.url}
+                  alt={primaryImage.alt || name}
+                  width={primaryImage.width}
+                  height={primaryImage.height}
+                  class="h-full w-full object-contain"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              ) : (
+                <Image
+                  src={naturalOilsPlaceholderImage}
+                  alt={name}
+                  width={960}
+                  height={960}
+                  class="h-full w-full object-contain"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              )
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-info">
+        <p class="pd-eyebrow text-caption m-0">{catLabel}</p>
+        <h1 id="product-name" class="pd-title m-0 mt-3">{name}</h1>
+
+        {hasPrice && defaultVariant && (
+          <div class="pd-price-row mt-7">
+            <span class="pd-price">{formatPrice(defaultVariant.priceMinor!, defaultVariant.currency ?? 'VND', lang)}</span>
+            {defaultVariant.compareAtMinor != null && (
+              <del class="pd-original-price">{formatPrice(defaultVariant.compareAtMinor, defaultVariant.currency ?? 'VND', lang)}</del>
+            )}
+          </div>
+        )}
+
+        {product.shortDescription && (
+          <p class="pd-summary m-0 mt-7">{product.shortDescription}</p>
+        )}
+
+        {product.benefits.length > 0 && (
+          <section class="mt-8" aria-labelledby="product-benefits">
+            <h2 id="product-benefits" class="pd-section-title m-0">{t.productDetail.benefitsHeading}</h2>
+            <ul class="pd-benefits m-0 mt-3 p-0 list-none">
+              {product.benefits.map((benefit) => (
+                <li>
+                  <span class="pd-check" aria-hidden="true">✓</span>
+                  <span>{benefit.text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {(product.botanicalName || product.countryOfOriginCode || product.extractionMethod || product.manufacturerName) && (
+          <dl class="pd-origin mt-7">
+            {product.botanicalName && (
+              <div>
+                <dt>{t.productDetail.botanicalNameLabel}</dt>
+                <dd class="pd-botanical-name">{product.botanicalName}</dd>
+              </div>
+            )}
+            {product.countryOfOriginCode && (
+              <div>
+                <dt>{t.productDetail.originLabel}</dt>
+                <dd>{formatCountryOfOrigin(product.countryOfOriginCode, lang)}</dd>
+              </div>
+            )}
+            {product.extractionMethod && (
+              <div>
+                <dt>{t.productDetail.extractionMethodLabel}</dt>
+                <dd>{formatExtractionMethod(product.extractionMethod, lang)}</dd>
+              </div>
+            )}
+            {product.manufacturerName && (
+              <div>
+                <dt>{t.productDetail.manufacturerLabel}</dt>
+                <dd>{product.manufacturerName}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+
+        {product.certifications.length > 0 && (
+          <section class="mt-8" aria-labelledby="product-certifications">
+            <h2 id="product-certifications" class="pd-section-title m-0">{t.productDetail.certificationsHeading}</h2>
+            <ul class="pd-certifications m-0 mt-3 p-0 list-none">
+              {product.certifications.map((cert) => (
+                <li>
+                  <span class="pd-cert-type">{formatCertType(cert.certType)}</span>
+                  {cert.issuingBody && <span class="pd-cert-issuer"> · {cert.issuingBody}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {defaultVariant && (
+          <>
+            <dl class="pd-meta mt-6">
+              {defaultVariant.label && (
+                <div>
+                  <dt>{t.productDetail.packSizeLabel}</dt>
+                  <dd>{defaultVariant.label}</dd>
+                </div>
+              )}
+              <div>
+                <dt>{t.productDetail.skuLabel}</dt>
+                <dd>{defaultVariant.sku}</dd>
+              </div>
+            </dl>
+
+            <form class="pd-purchase mt-8" onsubmit="return false">
+              <label for="pdp-quantity" class="pd-quantity-label text-caption">
+                {t.productDetail.quantityLabel}
+              </label>
+              <div class="pd-purchase-row">
+                <div class="pd-quantity-control" data-quantity-control>
+                  <button
+                    type="button"
+                    class="pd-quantity-button"
+                    data-quantity-action="decrease"
+                    aria-label={`${t.productDetail.quantityLabel} −`}
+                  >−</button>
+                  <input
+                    id="pdp-quantity"
+                    name="quantity"
+                    type="number"
+                    value="1"
+                    min="1"
+                    inputmode="numeric"
+                    class="pd-quantity"
+                  />
+                  <button
+                    type="button"
+                    class="pd-quantity-button"
+                    data-quantity-action="increase"
+                    aria-label={`${t.productDetail.quantityLabel} +`}
+                  >+</button>
+                </div>
+                <button type="submit" class="btn btn-primary pd-add-to-cart cursor-pointer">
+                  {t.productDetail.addToCartLabel}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+
+        {(product.ingredients || product.usage || product.description || product.warnings.length > 0) && (
+          <div class="pd-details mt-7">
+            {product.ingredients && (
+              <details open>
+                <summary>{t.productDetail.ingredientsLabel}</summary>
+                <div class="pd-details-content">
+                  <div class="pd-details-content-inner">
+                    <p>{product.ingredients}</p>
+                  </div>
+                </div>
+              </details>
+            )}
+            {product.usage && (
+              <details>
+                <summary>{t.productDetail.usageLabel}</summary>
+                <div class="pd-details-content">
+                  <div class="pd-details-content-inner">
+                    <p>{product.usage}</p>
+                  </div>
+                </div>
+              </details>
+            )}
+            {product.description && (
+              <details>
+                <summary>{t.productDetail.descriptionLabel}</summary>
+                <div class="pd-details-content">
+                  <div class="pd-details-content-inner">
+                    <p>{product.description}</p>
+                  </div>
+                </div>
+              </details>
+            )}
+            {product.warnings.length > 0 && (
+              <details>
+                <summary>{t.productDetail.warningsLabel}</summary>
+                <div class="pd-details-content">
+                  <div class="pd-details-content-inner">
+                    {product.warnings.map((warning) => (
+                      <p>{warning}</p>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
+        <div class="mt-9">
+          <a href={backHref} class="pd-back inline-flex items-center gap-2 no-underline text-caption">
+            <span aria-hidden="true">←</span>
+            <span>{t.productDetail.backToCollection}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pd-gallery-stage {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: clamp(1.25rem, 5vw, 3.5rem);
+    border: 1px solid color-mix(in oklab, var(--color-border) 62%, transparent);
+    border-radius: var(--radius-card);
+    background: var(--color-cream);
+  }
+
+  .pd-gallery-media {
+    width: min(100%, 36rem);
+    height: min(100%, 36rem);
+  }
+
+  .pd-info {
+    min-width: 0;
+    max-width: 35rem;
+  }
+
+  .pd-eyebrow {
+    color: var(--color-brand);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .pd-title {
+    color: var(--color-heading);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.12;
+  }
+
+  .pd-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0.15rem 0.6rem;
+    color: var(--color-brand);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font-weight: 600;
+  }
+
+  .pd-price-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.9rem;
+  }
+
+  .pd-price {
+    color: var(--color-brand);
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .pd-original-price {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  .pd-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--color-border);
+  }
+
+  .pd-summary {
+    max-width: 52ch;
+    color: var(--color-body);
+    line-height: 1.75;
+  }
+
+  .pd-section-title,
+  .pd-shipping-title {
+    color: var(--color-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .pd-benefits {
+    display: grid;
+    gap: 0;
+    color: var(--color-body);
+    font-size: 0.925rem;
+    line-height: 1.55;
+  }
+
+  .pd-benefits li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.85rem 0;
+  }
+
+  .pd-benefits li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-border) 68%, transparent);
+  }
+
+  .pd-check {
+    color: var(--color-brand);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.9;
+  }
+
+  .pd-origin {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 1.5rem;
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  .pd-origin div {
+    min-width: 0;
+  }
+
+  .pd-origin dt {
+    color: var(--color-body);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .pd-origin dd {
+    margin: 0.35rem 0 0;
+    color: var(--color-heading);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .pd-botanical-name {
+    font-style: italic;
+    font-weight: 500 !important;
+  }
+
+  .pd-certifications {
+    display: grid;
+    gap: 0;
+    color: var(--color-body);
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .pd-certifications li {
+    padding: 0.6rem 0;
+  }
+
+  .pd-certifications li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-border) 68%, transparent);
+  }
+
+  .pd-cert-type {
+    color: var(--color-heading);
+    font-weight: 600;
+  }
+
+  .pd-cert-issuer {
+    color: var(--color-muted);
+  }
+
+  .pd-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  .pd-meta div {
+    min-width: 0;
+  }
+
+  .pd-meta dt {
+    color: var(--color-body);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .pd-meta dd {
+    margin: 0.35rem 0 0;
+    color: var(--color-heading);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .pd-purchase {
+    display: block;
+  }
+
+  .pd-quantity-label {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: var(--color-body);
+    font-weight: 600;
+  }
+
+  .pd-purchase-row {
+    display: grid;
+    grid-template-columns: 6.25rem minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+
+  .pd-quantity-control {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+    min-height: 3.375rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+  }
+
+  .pd-quantity {
+    min-width: 0;
+    width: 100%;
+    padding: 0;
+    color: var(--color-heading);
+    text-align: center;
+    border: 0;
+    background: transparent;
+    appearance: textfield;
+  }
+
+  .pd-quantity::-webkit-inner-spin-button,
+  .pd-quantity::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .pd-quantity-button {
+    padding: 0;
+    color: var(--color-muted);
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: color 180ms ease;
+  }
+
+  .pd-quantity-button:hover {
+    color: var(--color-brand);
+  }
+
+  .pd-quantity-control:focus-within {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .pd-add-to-cart {
+    width: 100%;
+    min-height: 3.375rem;
+    font-weight: 600;
+  }
+
+  .pd-shipping {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 1rem 0;
+    color: var(--color-muted);
+    border-top: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+
+  .pd-shipping > svg {
+    flex: 0 0 auto;
+    color: var(--color-muted);
+  }
+
+  .pd-details {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .pd-details details {
+    border-bottom: 1px solid var(--color-border);
+    interpolate-size: allow-keywords;
+  }
+
+  .pd-details summary {
+    position: relative;
+    padding: 1.15rem 1.5rem 1.15rem 0;
+    color: var(--color-heading);
+    font-size: 0.925rem;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .pd-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pd-details summary::after {
+    content: '+';
+    position: absolute;
+    right: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    font-weight: 400;
+    transform: rotate(0deg);
+    transform-origin: center;
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .pd-details details[open] summary::after {
+    transform: rotate(45deg);
+  }
+
+  .pd-details details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 280ms cubic-bezier(0.4, 0, 0.2, 1),
+      content-visibility 280ms allow-discrete;
+  }
+
+  .pd-details details[open]::details-content {
+    block-size: auto;
+  }
+
+  .pd-details-content-inner {
+    overflow: clip;
+  }
+
+  .pd-details p {
+    margin: 0;
+    padding: 0 0 1rem;
+    color: var(--color-body);
+    font-size: 0.875rem;
+    line-height: 1.7;
+  }
+
+  .pd-back {
+    color: var(--color-body);
+    transition: color 180ms ease;
+  }
+
+  .pd-back:hover {
+    color: var(--color-brand);
+  }
+
+  .pd-back:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 4px;
+    border-radius: var(--radius-badge);
+  }
+
+  .pd-zh .pd-eyebrow {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .pd-zh .pd-summary,
+  .pd-zh .pd-benefits,
+  .pd-zh .pd-details p {
+    line-height: 1.8;
+  }
+
+  @media (min-width: 640px) {
+    .pd-title { font-size: 2.5rem; }
+
+    .pd-purchase-row {
+      grid-template-columns: 8rem minmax(0, 1fr);
+      gap: 0.85rem;
+    }
+
+    .pd-quantity-control {
+      grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .pd-title { font-size: 2.75rem; }
+  }
+
+  @media (max-width: 360px) {
+    .pd-zh .pd-title { font-size: 1.75rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pd-back,
+    .pd-quantity-button,
+    .pd-details summary::after { transition: none; }
+
+    .pd-details details::details-content { transition: none; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll('[data-quantity-control]').forEach((control) => {
+    const input = control.querySelector('input[type="number"]');
+    if (!(input instanceof HTMLInputElement)) return;
+
+    control.querySelectorAll('[data-quantity-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.getAttribute('data-quantity-action');
+        action === 'increase' ? input.stepUp() : input.stepDown();
+      });
+    });
+  });
+</script>

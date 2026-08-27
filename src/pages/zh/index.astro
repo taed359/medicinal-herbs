@@ -1,0 +1,7 @@
+---
+import HomePage from '../../components/HomePage.astro';
+import { productRepository } from '../../server/repositories';
+
+const naturalOils = await productRepository.listFeatured(4, 'zh');
+---
+<HomePage lang="zh" naturalOils={naturalOils} />

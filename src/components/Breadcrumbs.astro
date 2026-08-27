@@ -1,0 +1,44 @@
+---
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+  current?: boolean;
+}
+
+interface Props {
+  lang: Locale;
+  items: BreadcrumbItem[];
+  class?: string;
+}
+
+const { lang, items, class: cls = '' } = Astro.props as Props;
+const t = getTranslations(lang);
+const ariaLabel = t.productDetail.breadcrumbLabel;
+---
+<nav aria-label={ariaLabel} class:list={['breadcrumbs', cls]}>
+  <ol class="bc-list">
+    {items.map((it, i) => (
+      <li class:list={["bc-item", { 'bc-current': it.current }]}
+          aria-current={it.current ? 'page' : undefined}>
+        {it.href && !it.current ? (
+          <a href={it.href} class="bc-link">{it.label}</a>
+        ) : (
+          <span class="bc-current-label">{it.label}</span>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .bc-list { list-style: none; padding: 0; margin: 0; display: flex; align-items: center; font-size: 0.875rem; /* text-sm */ }
+  .bc-item { color: var(--color-body); }
+  .bc-item + .bc-item::before { content: '›'; color: var(--color-muted); margin: 0 0.5rem; }
+  .breadcrumbs .bc-link,
+  .breadcrumbs .bc-link:visited { color: var(--color-heading); text-decoration: none; transition: color 0.2s ease; }
+  .breadcrumbs .bc-link:hover { color: var(--color-brand); }
+  .bc-current-label, .bc-item.bc-current { color: var(--color-heading); }
+</style>

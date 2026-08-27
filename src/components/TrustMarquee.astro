@@ -1,0 +1,123 @@
+---
+import { getTranslations, type Locale } from '../i18n/utils';
+
+interface Props {
+    lang?: Locale;
+}
+const { lang = "vi" } = Astro.props;
+
+const t = getTranslations(lang);
+
+// How many times the sequence (all items + trailing separator, once through)
+// is repeated back-to-back in the track. This must be large enough that even
+// on a wide desktop viewport, at LEAST one full extra sequence is still
+// off-screen to the right at all times — otherwise, once the visible portion
+// of the track scrolls past the viewport's right edge, blank background shows
+// through until the loop resets (this was the actual bug: 2 copies is only
+// enough to cover viewports narrower than ~1x the sequence width; wider
+// viewports, or languages whose sequence renders more compactly like Chinese,
+// exposed a large blank gap for most of the animation).
+//
+// Reasoned sizing, not arbitrary: the most compact real rendering of this
+// content (Chinese, desktop breakpoint) measures ~430px per sequence. To keep
+// (REPEAT_COUNT - 1) sequence-widths >= ~3000px (comfortably covers the vast
+// majority of real desktop/ultrawide viewports) we need at least
+// 3000 / 430 + 1 ≈ 8 copies.
+const REPEAT_COUNT = 8;
+const sequences = Array.from({ length: REPEAT_COUNT });
+---
+
+<section class="w-full overflow-hidden" aria-label={t.trust.label}>
+    <div
+        class="marquee-viewport flex min-h-10 items-center overflow-hidden sm:min-h-12 md:min-h-14"
+    >
+        <div
+            class="marquee-track flex w-max shrink-0 items-center"
+            style={`--marquee-repeat: ${REPEAT_COUNT}`}
+        >
+            {
+                sequences.map((_, seqIndex) => (
+                    <ul
+                        class="marquee-group m-0 flex shrink-0 list-none items-center p-0"
+                        role="list"
+                        aria-hidden={seqIndex === 0 ? undefined : "true"}
+                    >
+                        {t.trust.items.map((item) => (
+                            <li class="flex items-center">
+                                <span class="tm-label whitespace-nowrap font-sans text-[11px] font-semibold tracking-[0.12em] text-brand uppercase sm:text-xs">
+                                    {item}
+                                </span>
+                                <span
+                                    class="mx-4 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-gold/60 sm:mx-6"
+                                    aria-hidden="true"
+                                />
+                            </li>
+                        ))}
+                    </ul>
+                ))
+            }
+        </div>
+    </div>
+</section>
+
+<style>
+    /*
+   * Seamless AND gap-free, spelled out:
+   *
+   * .marquee-track is `display:flex; width:max-content` with REPEAT_COUNT
+   * identical `.marquee-group` <ul> children (same items, same order, same
+   * classes -> pixel-identical widths, verified empirically). No `gap`, no
+   * `justify-content`, no margin between groups, so track width is exactly
+   * REPEAT_COUNT x one-group-width.
+   *
+   * The track is translated by exactly ONE group-width per cycle, expressed
+   * as `-100% / var(--marquee-repeat)` -- a fraction of the track's own width
+   * that is mathematically exactly one group, however many groups there are
+   * (this generalizes the old "-50%" trick, which was just this formula's
+   * REPEAT_COUNT = 2 case). Because REPEAT_COUNT groups remain in the track
+   * at all times and only one group-width of translation ever happens before
+   * the instant reset, there are always (REPEAT_COUNT - 1) full groups'
+   * worth of content still ahead, off-screen to the right -- enough to keep
+   * covering the viewport for the entire animation as long as
+   * (REPEAT_COUNT - 1) x groupWidth >= the widest supported viewport.
+   *
+   * `flex-shrink: 0` on the track and on every group prevents an ancestor
+   * flex container from ever compressing them below natural content width,
+   * which would silently break the coverage guarantee above.
+   */
+    .marquee-track {
+        --marquee-duration: 28s;
+        --marquee-repeat: 8;
+        animation-name: trust-marquee;
+        animation-duration: var(--marquee-duration);
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        will-change: transform;
+    }
+
+    .marquee-group {
+        /* Prevents the browser from ever wrapping the single-line content. */
+        flex-wrap: nowrap;
+    }
+
+    @keyframes trust-marquee {
+        from {
+            transform: translateX(0);
+        }
+        to {
+            transform: translateX(calc(-100% / var(--marquee-repeat)));
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .marquee-track {
+            animation: none;
+            transform: none;
+        }
+        /* Static strip: only the first (accessible) sequence stays visible;
+       the viewport's overflow-hidden clips the rest, no page overflow. */
+        .marquee-track > ul[aria-hidden="true"] {
+            display: none;
+        }
+    }
+</style>

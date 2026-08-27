@@ -1,0 +1,344 @@
+---
+import { Image } from 'astro:assets';
+import { getTranslations, localePath, type Locale } from '../i18n/utils';
+
+import beauty from '../assets/images/health-goals/beauty.webp';
+import energy from '../assets/images/health-goals/energy.webp';
+import generalWellness from '../assets/images/health-goals/general-wellness.webp';
+import immunity from '../assets/images/health-goals/immunity.webp';
+import mensWellness from '../assets/images/health-goals/mens-wellness.webp';
+import jointHeart from '../assets/images/health-goals/joint-heart.webp';
+import mindFocus from '../assets/images/health-goals/mind-focus.webp';
+import sleepStress from '../assets/images/health-goals/sleep-stress.webp';
+import womensHealth from '../assets/images/health-goals/womens-health.webp';
+
+interface Props {
+  lang?: Locale;
+}
+
+const { lang = 'vi' } = Astro.props;
+
+const GOALS = [
+  { slug: 'beauty', key: 'beauty', image: beauty },
+  { slug: 'energy', key: 'energy', image: energy },
+  { slug: 'general-wellness', key: 'generalWellness', image: generalWellness },
+  { slug: 'immunity', key: 'immunity', image: immunity },
+  { slug: 'mens-wellness', key: 'mensWellness', image: mensWellness },
+  { slug: 'joint-heart', key: 'jointHeart', image: jointHeart },
+  { slug: 'mind-focus', key: 'mindFocus', image: mindFocus },
+  { slug: 'sleep-stress', key: 'sleepStress', image: sleepStress },
+  { slug: 'womens-health', key: 'womensHealth', image: womensHealth },
+] as const;
+
+const t = getTranslations(lang);
+---
+
+<section class="py-8 sm:py-10" aria-label={t.healthGoals.sectionLabel}>
+  <div class="container-page">
+    <div class="text-center mb-7 sm:mb-9">
+      <p class="hg-eyebrow m-0 mb-1">{t.healthGoals.eyebrow}</p>
+      <h2 class="hg-heading m-0">{t.healthGoals.heading}</h2>
+    </div>
+  </div>
+
+  <div class="container-page" data-health-goals-root>
+    <div class="hg-carousel">
+      <div class="swiper health-goals-swiper" data-health-goals-swiper>
+        <div class="swiper-wrapper">
+          {GOALS.map((goal) => {
+            const label = t.healthGoals.items[goal.key];
+            return (
+              <div class="swiper-slide">
+                <a
+                  href={localePath(lang, `health-goals/${goal.slug}`)}
+                  class="hg-card group relative block aspect-square overflow-hidden rounded-card"
+                >
+                  <Image
+                    src={goal.image}
+                    alt=""
+                    width={480}
+                    height={480}
+                    loading="lazy"
+                    decoding="async"
+                    class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+                  <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+                  <div class="absolute inset-x-0 bottom-4 flex justify-center px-4">
+                    <span class="hg-pill">
+                      {label}
+                    </span>
+                  </div>
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <button type="button" class="hg-nav hg-nav-prev swiper-button-prev" aria-label={t.healthGoals.prev}></button>
+      <button type="button" class="hg-nav hg-nav-next swiper-button-next" aria-label={t.healthGoals.next}></button>
+    </div>
+
+    <div class="hg-pagination-row">
+      <div class="hg-pagination"></div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hg-eyebrow {
+    color: var(--color-brand);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  @media (min-width: 640px) {
+    .hg-eyebrow {
+      font-size: 1.375rem;
+    }
+  }
+
+  .hg-heading {
+    color: var(--color-heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  @media (min-width: 640px) {
+    .hg-heading {
+      font-size: 2.25rem;
+    }
+  }
+
+  /* Wraps the Swiper instance + nav arrows only. Its box height equals the
+     card row's height exactly (nav buttons are position:absolute and don't
+     contribute to flow height), so arrows centered against it are centered
+     against the CARD AREA specifically -- not the pagination below. */
+  .hg-carousel {
+    position: relative;
+    /* Official Swiper navigation custom properties: setting these instead of
+       fighting `left`/`right`/`width`/`height`/`margin-top` with !important
+       keeps our sizing, inset and Swiper's internal centering math in sync. */
+    --swiper-navigation-size: 42px;
+    --swiper-navigation-sides-offset: 0.75rem;
+    --swiper-navigation-color: var(--color-brand);
+  }
+
+  /* Reserve Swiper's final geometry before its client bundle initializes.
+     Lazy images can leave this below-the-fold section visible while the
+     bundle is still loading; without this fallback, slides are full-width
+     blocks and the square cards temporarily stack at container width. */
+  .health-goals-swiper {
+    overflow: hidden;
+  }
+  .health-goals-swiper .swiper-wrapper {
+    display: flex;
+    gap: 15px;
+  }
+  .health-goals-swiper:not(.swiper-initialized) .swiper-slide {
+    flex: 0 0 calc((100% - 7.5px) / 1.5);
+  }
+  @media (min-width: 640px) {
+    .health-goals-swiper .swiper-wrapper {
+      gap: 20px;
+    }
+    .health-goals-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: calc((100% - 40px) / 3);
+    }
+  }
+  @media (min-width: 1024px) {
+    .health-goals-swiper .swiper-wrapper {
+      gap: 30px;
+    }
+    .health-goals-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: calc((100% - 90px) / 4);
+    }
+  }
+  .health-goals-swiper.swiper-initialized .swiper-wrapper {
+    gap: 0;
+  }
+
+  .hg-pill {
+    background: var(--color-surface);
+    color: var(--color-heading);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.2;
+    padding: 0.5rem 1.1rem;
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    max-width: calc(100% - 1.5rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .hg-card:hover .hg-pill,
+  .hg-card:focus-visible .hg-pill {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    transform: translateY(-2px);
+  }
+  .hg-card:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+
+  /* Dedicated pagination area BELOW the carousel, in normal document flow.
+     `.hg-pagination` deliberately does NOT carry Swiper's own
+     `swiper-pagination` class (that class is what makes Swiper apply
+     `position: absolute` -- see component-level notes), so it always
+     participates in normal flow and can never overlap the cards above it. */
+  .hg-pagination-row {
+    margin-top: 1.75rem;
+    padding-block: 0.25rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hg-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 28rem;
+    min-height: 44px;
+  }
+
+  /* Accessible target with a restrained visual dot. */
+  .hg-pagination :global(.swiper-pagination-bullet) {
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    opacity: 1;
+    margin: 0 !important;
+  }
+
+  .hg-pagination :global(.swiper-pagination-bullet)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-border-dark);
+    opacity: 0.45;
+    transform: translate(-50%, -50%);
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+  }
+
+  .hg-pagination :global(.swiper-pagination-bullet-active)::after {
+    background: var(--color-brand);
+    opacity: 1;
+  }
+
+  .hg-pagination :global(.swiper-pagination-bullet):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -8px;
+  }
+
+  /* Navigation arrows: premium circular buttons that feel part of the
+     carousel, not default oversized Swiper controls. Hidden on mobile/tablet
+     -- touch/swipe is the primary interaction there. */
+  .hg-nav {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(42, 22, 22, 0.14);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .hg-nav:hover {
+    background: var(--color-surface);
+    box-shadow: 0 6px 18px rgba(42, 22, 22, 0.2);
+    transform: translateY(-1px);
+  }
+  .hg-nav:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .hg-nav :global(.swiper-navigation-icon) {
+    width: 13px;
+    height: 13px;
+  }
+  @media (min-width: 1024px) {
+    .hg-nav {
+      display: flex;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hg-card img {
+      transition: none !important;
+    }
+    .hg-pill {
+      transition: none !important;
+    }
+    .hg-nav {
+      transition: none !important;
+    }
+    .hg-pagination :global(.swiper-pagination-bullet)::after {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script>
+  import { Swiper } from 'swiper';
+  import { Pagination, Navigation, Keyboard, A11y } from 'swiper/modules';
+  import 'swiper/css';
+  import 'swiper/css/pagination';
+  import 'swiper/css/navigation';
+
+  function initHealthGoalsSwipers() {
+    // Query from the shared root (not the `.swiper` element itself), since
+    // the pagination row now lives outside the `.swiper` container for
+    // layout reasons -- see the component's <style> notes.
+    const roots = document.querySelectorAll<HTMLElement>('[data-health-goals-root]');
+    roots.forEach((root) => {
+      const el = root.querySelector<HTMLElement>('[data-health-goals-swiper]');
+      if (!el || (el as any).swiper) return;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      new Swiper(el, {
+        modules: [Pagination, Navigation, Keyboard, A11y],
+        loop: true,
+        slidesPerView: 1.5,
+        spaceBetween: 15,
+        speed: prefersReducedMotion ? 0 : 450,
+        grabCursor: true,
+        touchEventsTarget: 'container',
+        keyboard: { enabled: true, onlyInViewport: true },
+        a11y: { enabled: true },
+        pagination: {
+          el: root.querySelector('.hg-pagination'),
+          clickable: true,
+        },
+        navigation: {
+          nextEl: root.querySelector('.hg-nav-next'),
+          prevEl: root.querySelector('.hg-nav-prev'),
+        },
+        breakpoints: {
+          640: { slidesPerView: 3, spaceBetween: 20 },
+          1024: { slidesPerView: 4, spaceBetween: 30 },
+        },
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHealthGoalsSwipers);
+  } else {
+    initHealthGoalsSwipers();
+  }
+  document.addEventListener('astro:page-load', initHealthGoalsSwipers);
+</script>

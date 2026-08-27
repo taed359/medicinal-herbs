@@ -1,0 +1,26 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import ProductDetail from '../../../../components/ProductDetail.astro';
+import { productRepository } from '../../../../server/repositories';
+import { getTranslations } from '../../../../i18n/utils';
+
+export async function getStaticPaths() {
+  const slugs = await productRepository.listAllSlugs();
+  return slugs.map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const lang = 'vi' as const;
+const product = await productRepository.getBySlug(slug!, lang);
+if (!product) throw new Error('Not found');
+
+const t = getTranslations(lang);
+const title = `${product.name} — ${t.common.siteName}`;
+// Product-specific meta description once real short_description content
+// exists (see seed-coconut-oil-content.ts); Layout.astro falls back to the
+// generic site-wide description when a product has none yet.
+const description = product.shortDescription ?? undefined;
+---
+<Layout lang={lang} title={title} description={description}>
+  <ProductDetail lang={lang} product={product} />
+</Layout>

@@ -1,0 +1,122 @@
+---
+// Minimal protected shell — Phase 1. Actual auth/redirect enforcement
+// happens in src/middleware.ts; this page can assume Astro.locals.adminUser
+// is set (middleware would have redirected otherwise), but falls back
+// safely rather than assuming it.
+export const prerender = false;
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — Medicinal Herbs</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <p class="admin-sidebar-brand">Medicinal Herbs Admin</p>
+        <nav>
+          <ul>
+            <li><a href="/admin" aria-current="page">Dashboard</a></li>
+            <li class="admin-nav-placeholder">Products (Phase 2)</li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="admin-main">
+        <header class="admin-topbar">
+          <span class="admin-user">Logged in as {adminUser.email}</span>
+          <button id="logout-button" type="button">Log out</button>
+        </header>
+
+        <main class="admin-content">
+          <h1>Admin foundation</h1>
+          <p>Phase 1 complete — Product CRUD lands in Phase 2.</p>
+        </main>
+      </div>
+    </div>
+
+    <style>
+      /* Same reasoning as src/pages/admin/login.astro's <style> block:
+         Astro never scopes `body`/`html` selectors, so keep `body` here
+         to a harmless reset only and put real layout (and `color`) on the
+         `.admin-shell` wrapper, which Astro does scope per-page. */
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+      }
+      .admin-shell {
+        display: grid;
+        grid-template-columns: 14rem 1fr;
+        min-height: 100vh;
+        color: #1f2421;
+      }
+      .admin-sidebar {
+        padding: 1.25rem 1rem;
+        background: #1f2421;
+        color: #fff;
+      }
+      .admin-sidebar-brand {
+        margin: 0 0 1.25rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .admin-sidebar nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.4rem;
+      }
+      .admin-sidebar nav a {
+        color: #fff;
+        text-decoration: none;
+        opacity: 0.9;
+      }
+      .admin-nav-placeholder {
+        opacity: 0.5;
+        font-size: 0.85rem;
+      }
+      .admin-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 1.5rem;
+        border-bottom: 1px solid #e3e1dc;
+      }
+      .admin-user {
+        font-size: 0.9rem;
+      }
+      #logout-button {
+        padding: 0.45rem 0.9rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .admin-content {
+        padding: 1.5rem;
+      }
+    </style>
+
+    <script>
+      // Properly ends the Better Auth session server-side (deletes the DB
+      // session row — see api/routes/sign-out.mjs's `deleteSession` call),
+      // not just a client-side cookie clear.
+      const logoutButton = document.querySelector('#logout-button');
+      if (logoutButton instanceof HTMLButtonElement) {
+        logoutButton.addEventListener('click', async () => {
+          await fetch('/api/auth/sign-out', { method: 'POST' });
+          window.location.href = '/admin/login';
+        });
+      }
+    </script>
+  </body>
+</html>

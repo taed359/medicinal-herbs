@@ -1,0 +1,12 @@
+---
+import PrivacyPolicyPage from '../components/PrivacyPolicyPage.astro';
+import { privacyPolicyEn } from '../i18n/privacy-policy-en';
+---
+<PrivacyPolicyPage
+  lang="en"
+  uiLang="vi"
+  homeHref="/"
+  title={privacyPolicyEn.title}
+  breadcrumb={privacyPolicyEn.breadcrumb}
+  content={privacyPolicyEn}
+/>

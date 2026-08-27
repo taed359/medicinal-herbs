@@ -1,0 +1,109 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import type { Locale, RouteLocale } from '../i18n/utils';
+import type { PrivacyPolicyContent } from '../i18n/privacy-policy-en';
+
+interface Props {
+  lang: RouteLocale;
+  uiLang: Locale;
+  homeHref: string;
+  title: string;
+  breadcrumb: string;
+  content: PrivacyPolicyContent;
+}
+
+const { lang, uiLang, homeHref, title, breadcrumb, content } = Astro.props;
+---
+<Layout lang={lang} uiLang={uiLang} htmlLang={lang} title={`${title} — Eu Yan Sang`}>
+  <section class="privacy-page py-8 sm:py-10" aria-labelledby="privacy-page-title">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={uiLang}
+        class="mb-6"
+        items={[
+          { label: content.home, href: homeHref },
+          { label: breadcrumb, current: true },
+        ]}
+      />
+
+      <header class="privacy-title text-center">
+        <h1 id="privacy-page-title" class="m-0">{title}</h1>
+      </header>
+
+      <article class="privacy-document mt-8 sm:mt-10" set:html={content.bodyHtml} />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .privacy-title h1 {
+    color: var(--color-heading);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.12;
+  }
+
+  .privacy-document {
+    max-width: 52rem;
+    margin-inline: auto;
+    color: var(--color-body);
+    font-size: 1rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .privacy-document :global(h2) {
+    margin: 2.75rem 0 1.25rem;
+    color: var(--color-heading);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .privacy-document :global(p) {
+    margin: 0 0 1.15rem;
+  }
+
+  .privacy-document :global(strong) {
+    color: var(--color-heading);
+    font-weight: 700;
+  }
+
+  .privacy-document :global(ul),
+  .privacy-document :global(ol) {
+    margin: 0 0 1.25rem;
+    padding-inline-start: 1.5rem;
+  }
+
+  .privacy-document :global(li + li) {
+    margin-top: 0.55rem;
+  }
+
+  .privacy-document :global(a) {
+    color: var(--color-brand);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+
+  .privacy-document :global(a:hover) {
+    color: var(--color-brand-hover);
+  }
+
+  .privacy-document :global(a:focus-visible) {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 639px) {
+    .privacy-document {
+      line-height: 1.7;
+    }
+    .privacy-document :global(h2) {
+      margin-top: 2.25rem;
+    }
+  }
+</style>

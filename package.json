@@ -9,12 +9,31 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "tsx src/server/db/migrate.ts",
+    "db:seed": "tsx src/server/seed/seed-natural-oils.ts",
+    "db:seed:coconut-oil-content": "tsx src/server/seed/seed-coconut-oil-content.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
-    "astro": "^7.2.7"
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.2.7",
+    "sharp": "^0.35.3",
+    "swiper": "^14.1.0",
+    "tailwindcss": "^4.3.3",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.16.3",
+    "better-auth": "1.7.2",
+    "@node-rs/argon2": "2.1.0",
+    "@astrojs/vercel": "11.0.8"
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.5",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2"
   }
 }

@@ -1,0 +1,40 @@
+---
+import { Image } from 'astro:assets';
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+import expertImg from '../assets/images/expert-contact.webp';
+
+interface Props { lang: Locale }
+const { lang } = Astro.props;
+const t = getTranslations(lang);
+const contactHref = localePath(lang, 'contact');
+---
+<section class="py-10 sm:py-12 bg-cream" aria-labelledby="expert-cta-heading">
+  <div class="container-page">
+    <div class="mx-auto max-w-[68rem] overflow-hidden rounded-card">
+      <div class="group grid grid-cols-1 lg:grid-cols-[2fr_1fr]">
+        <!-- Left: Content -->
+        <div class="bg-brand p-7 sm:p-9 lg:p-10 text-white">
+          <p class="m-0 mb-2 text-[22px] sm:text-2xl font-semibold tracking-wide">{t.expertCta.eyebrow}</p>
+          <h2 id="expert-cta-heading" class="m-0 text-white font-serif text-[30px] sm:text-[36px] leading-tight font-bold">{t.expertCta.heading}</h2>
+          <p class="m-0 mt-3 max-w-prose text-[15px] sm:text-[16px] leading-relaxed text-white/90">{t.expertCta.description}</p>
+          <div class="mt-6">
+            <a href={contactHref} class="inline-flex items-center justify-center rounded-pill bg-cream px-6 py-3 text-sm font-semibold text-brand transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
+              {t.expertCta.ctaLabel}
+            </a>
+          </div>
+        </div>
+        <!-- Right: Image -->
+        <div class="relative h-64 lg:h-auto overflow-hidden">
+          <Image src={expertImg} alt={t.expertCta.imageAlt} width={900} height={900} loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-[500ms] ease-out group-hover:scale-105" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    .group:hover img { transform: none !important; }
+  }
+</style>

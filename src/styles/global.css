@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* Design tokens (Tailwind v4 @theme) */
+@theme {
+  --color-brand: #3F5B45;         /* Deep Herbal Green */
+  --color-brand-hover: #294333;   /* Forest Green */
+
+  --color-gold: #B27652;          /* Warm Earth / Terracotta (accent) */
+  --color-gold-light: #806A52;    /* Natural Wood Brown */
+
+  --color-cream: #F6F1E8;         /* Natural Cream (background) */
+  --color-cream-alt: #F6F1E8;     /* Alt cream */
+
+  --color-surface: #FCFAF5;       /* Soft Ivory (surface) */
+  --color-surface-muted: #F6F1E8;
+
+  --color-heading: #292D27;       /* Earth Black */
+  --color-body: #5F625B;          /* Warm Gray */
+  --color-muted: #777970;         /* Muted */
+
+  --color-border: #DDD5C7;        /* Natural Beige */
+  --color-border-dark: #292D27;   /* Dark border when needed */
+
+  --color-sale: #D9381E;
+
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Noto Sans CJK SC", "Noto Sans CJK TC", "Helvetica Neue", Arial, sans-serif;
+
+  --radius-card: 12px;
+  --radius-pill: 24px;
+  --radius-badge: 4px;
+  --radius-thumb: 8px;
+
+  --shadow-card: 0px 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0px 6px 16px rgba(0, 0, 0, 0.08);
+  /* Layout */
+  --max-container: 90rem; /* 1440px target desktop width */
+}
+
+/* Base resets */
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* Base typography and colors */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--color-surface);
+    color: var(--color-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 { @apply font-sans; color: var(--color-heading); }
+  h1 { @apply text-3xl sm:text-4xl md:text-5xl leading-tight; }
+  h2 { @apply text-2xl sm:text-3xl md:text-4xl leading-snug; }
+  h3 { @apply text-xl sm:text-2xl leading-snug; }
+  p { @apply leading-relaxed; }
+  a { @apply text-brand underline-offset-4 hover:underline; }
+  ::selection { @apply bg-gold/30; }
+}
+
+/* Layout helpers */
+.container-page {
+  width: 100%;
+  max-width: var(--max-container);
+  margin-left: auto;
+  margin-right: auto;
+  @apply px-4 sm:px-6 lg:px-8;
+}
+.eyebrow { @apply uppercase tracking-wider text-sm text-brand; }
+.hr-soft { @apply border-t border-gold/20; }
+
+/* Locale-aware micro-typography for Simplified Chinese */
+/* Neutralize Latin-centric uppercase/tracking for zh */
+html[lang="zh"] .tm-label { text-transform: none !important; letter-spacing: normal !important; }
+html[lang="zh"] .hg-eyebrow,
+html[lang="zh"] .hr-eyebrow,
+html[lang="zh"] .tc-eyebrow,
+html[lang="zh"] .bs-eyebrow { letter-spacing: 0; text-transform: none; }
+
+/* Slight downscale for very narrow Chinese headings to avoid heavy wraps */
+@media (max-width: 360px) {
+  html[lang="zh"] .hg-heading,
+  html[lang="zh"] .hr-heading,
+  html[lang="zh"] .tc-heading,
+  html[lang="zh"] .bs-heading { font-size: 1.625rem; }
+}
+
+/* (Auto-generated color/border/bg/rounded/shadow utilities from @theme are used directly.) */
+
+/* Text scales */
+.text-h3{ font-family: var(--font-sans); font-size: 1.25rem; line-height: 1.5; color: var(--color-heading); }
+.text-caption{ font-size: 0.75rem; line-height: 1.4; }
+
+/* Buttons */
+.btn{ display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; user-select:none; }
+.btn-primary{ background-color: var(--color-brand); color: var(--color-surface); border: 1px solid var(--color-brand); border-radius: var(--radius-pill); padding: 12px 28px; font-weight: 600; }
+.btn-primary:hover{ background-color: var(--color-brand-hover); }
+.btn-secondary{ background-color: transparent; border: 1px solid var(--color-brand); color: var(--color-brand); border-radius: var(--radius-pill); padding: 10px 24px; font-weight: 600; }
+.btn-secondary:hover{ background-color: var(--color-brand); color: var(--color-surface); }
