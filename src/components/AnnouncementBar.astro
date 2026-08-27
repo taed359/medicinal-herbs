@@ -10,13 +10,19 @@ import {
 
 interface Props {
   lang: Locale;
-  message?: string;
+  /** Short phrases that rotate every 3s in the announcement bar (auto-
+   *  advance + manual prev/next arrows) — see the markup/script below.
+   *  A single-item (or empty) array renders as plain static text instead,
+   *  with no arrows and no rotation wired up for nothing. */
+  messages?: string[];
 }
 
 const {
   lang,
-  message = 'Traditional Wisdom • Natural Ingredients • Quality Assured',
+  messages = ['Traditional Wisdom', 'Natural Ingredients', 'Quality Assured'],
 } = Astro.props;
+
+const hasMultipleMessages = messages.length > 1;
 
 const current = localeMeta[lang];
 
@@ -38,10 +44,53 @@ const options = locales.map((locale) => ({
 ---
 <div class="w-full bg-brand text-white">
   <div class="container-page h-11 flex items-center justify-between gap-4">
-    <!-- Left spacer keeps the message visually centered while the switcher sits on the right -->
-    <div class="flex-1 hidden sm:block" aria-hidden="true"></div>
-    <p class="m-0 flex-1 text-center text-caption truncate">{message}</p>
-    <div class="flex-1 flex items-center justify-end">
+    <!-- Arrows + rotating text live together as one left-aligned group (not
+         centered) so the text gets as much width as possible on narrow
+         screens (e.g. iPhone SE) instead of splitting space three ways
+         with a symmetry spacer. -->
+    {hasMultipleMessages ? (
+      <div class="announcement-group flex items-center gap-2 min-w-0 flex-1" data-announcement-rotator>
+        <div class="announcement-arrows flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-white/80 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 rounded-sm cursor-pointer transition-colors"
+            aria-label="Previous message"
+            aria-controls="announcement-track"
+            data-announcement-prev
+          >
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-white/80 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 rounded-sm cursor-pointer transition-colors"
+            aria-label="Next message"
+            aria-controls="announcement-track"
+            data-announcement-next
+          >
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div id="announcement-track" class="relative flex-1 min-w-0 h-5 overflow-hidden" aria-live="polite">
+          {messages.map((msg, i) => (
+            <p
+              class="announcement-slide m-0 absolute inset-0 flex items-center"
+              data-announcement-slide
+              data-active={i === 0 ? 'true' : undefined}
+            >
+              <span class="block w-full min-w-0 truncate text-left text-caption">{msg}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <p class="m-0 min-w-0 flex-1 text-left text-caption truncate">{messages[0] ?? ''}</p>
+    )}
+    <div class="flex items-center justify-end shrink-0">
       <div class="locale-switcher relative" data-locale-switcher>
         <button
           type="button"
@@ -141,11 +190,25 @@ const options = locales.map((locale) => ({
     color: var(--color-brand);
   }
 
+  .announcement-slide {
+    opacity: 0;
+    transform: translateY(0);
+    transition: transform 0.4s ease, opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .announcement-slide[data-active] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .locale-switcher-caret {
       transition: none;
     }
     .locale-switcher-option {
+      transition: none;
+    }
+    .announcement-slide {
       transition: none;
     }
   }
@@ -230,4 +293,104 @@ const options = locales.map((locale) => ({
     initLocaleSwitchers();
   }
   document.addEventListener('astro:page-load', initLocaleSwitchers);
+</script>
+
+<script>
+  // Rotates the announcement bar's messages every 3s (pausing on hover/
+  // focus and when `prefers-reduced-motion: reduce` is set), with manual
+  // prev/next arrows. No-ops entirely when there's only one message (see
+  // `hasMultipleMessages` above — the rotator markup isn't even rendered
+  // in that case, so `roots` below is simply empty).
+  function initAnnouncementRotators() {
+    const roots = document.querySelectorAll<HTMLElement>('[data-announcement-rotator]');
+
+    roots.forEach((root) => {
+      if ((root as HTMLElement & { __announcementInit?: boolean }).__announcementInit) return;
+      (root as HTMLElement & { __announcementInit?: boolean }).__announcementInit = true;
+
+      const slides = Array.from(root.querySelectorAll<HTMLElement>('[data-announcement-slide]'));
+      const prevButton = root.querySelector<HTMLButtonElement>('[data-announcement-prev]');
+      const nextButton = root.querySelector<HTMLButtonElement>('[data-announcement-next]');
+      if (slides.length < 2 || !prevButton || !nextButton) return;
+
+      let index = slides.findIndex((slide) => slide.hasAttribute('data-active'));
+      if (index < 0) index = 0;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // "next" enters from above and slides down into place; "prev" enters
+      // from below and slides up into place. The outgoing slide keeps
+      // moving the SAME way past its exit edge (rather than just fading),
+      // so the two read as one continuous vertical motion instead of an
+      // unrelated cross-fade.
+      const show = (rawNextIndex: number, direction: 'next' | 'prev') => {
+        const nextIndex = (rawNextIndex + slides.length) % slides.length;
+        if (nextIndex === index) return;
+
+        const oldSlide = slides[index];
+        const newSlide = slides[nextIndex];
+        index = nextIndex;
+        if (!oldSlide || !newSlide) return;
+
+        oldSlide.removeAttribute('data-active');
+        newSlide.setAttribute('data-active', 'true');
+
+        // Reduced motion: let the [data-active] CSS rule swap opacity only
+        // (its transition is disabled entirely under the media query below)
+        // -- no transform/slide at all.
+        if (prefersReducedMotion) return;
+
+        const enterFrom = direction === 'next' ? '-100%' : '100%';
+        const exitTo = direction === 'next' ? '100%' : '-100%';
+
+        // Snap the incoming slide to its off-screen starting position
+        // instantly (no transition), so it doesn't visibly fly in from
+        // wherever it was last left sitting.
+        newSlide.style.transition = 'none';
+        newSlide.style.transform = `translateY(${enterFrom})`;
+        newSlide.getBoundingClientRect(); // force layout: commit the instant position before re-enabling transitions
+        newSlide.style.transition = '';
+
+        oldSlide.style.transform = `translateY(${exitTo})`;
+        newSlide.style.transform = 'translateY(0)';
+      };
+
+      let timer: ReturnType<typeof setInterval> | null = null;
+      const stop = () => {
+        if (timer !== null) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+      const start = () => {
+        if (prefersReducedMotion || timer !== null) return;
+        timer = setInterval(() => show(index + 1, 'next'), 3000);
+      };
+
+      prevButton.addEventListener('click', () => {
+        stop();
+        show(index - 1, 'prev');
+        start();
+      });
+      nextButton.addEventListener('click', () => {
+        stop();
+        show(index + 1, 'next');
+        start();
+      });
+
+      root.addEventListener('mouseenter', stop);
+      root.addEventListener('mouseleave', start);
+      root.addEventListener('focusin', stop);
+      root.addEventListener('focusout', start);
+
+      start();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAnnouncementRotators);
+  } else {
+    initAnnouncementRotators();
+  }
+  document.addEventListener('astro:page-load', initAnnouncementRotators);
 </script>

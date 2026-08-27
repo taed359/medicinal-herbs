@@ -12,7 +12,7 @@ export const zh: TranslationSchema = {
     tagline: '传统健康呵护',
   },
   header: {
-    announcement: '传统智慧 • 天然原料 • 品质保证',
+    announcement: ['传统智慧', '天然原料', '品质保证'],
     navSale: '特惠',
     navShopBy: '按分类选购',
     navOurStory: '品牌故事',
@@ -170,6 +170,11 @@ export const zh: TranslationSchema = {
     heading: '精选天然植物油',
     ctaViewAll: '查看全部天然植物油',
     collectionPath: 'products/natural-oils',
+  },
+  pager: {
+    prevLabel: '上一页',
+    nextLabel: '下一页',
+    pageLabel: '第 {page} 页',
   },
   product: {
     ctaViewDetails: '查看详情',

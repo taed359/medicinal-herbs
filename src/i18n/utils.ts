@@ -42,7 +42,10 @@ export interface TranslationSchema {
     certificationsHeading: string;
   };
   header: {
-    announcement: string;
+    /** Rotates through each phrase (3s auto-advance, manual prev/next
+     *  arrows) in the top announcement bar instead of a single string that
+     *  truncates on narrow screens — see AnnouncementBar.astro. */
+    announcement: string[];
     navSale: string;
     navShopBy: string;
     navOurStory: string;
@@ -156,6 +159,15 @@ export interface TranslationSchema {
     heading: string;
     ctaViewAll: string;
     collectionPath: string; // e.g., "products/natural-oils"
+  };
+  // Generic labels for the reusable `Pager.astro` component -- shared by
+  // any paginated listing page (natural-oils today, more collections
+  // later), so these live at the top level rather than nested under one
+  // specific collection's translation key.
+  pager: {
+    prevLabel: string;
+    nextLabel: string;
+    pageLabel: string; // e.g., "Trang {page}" -- used with a page number
   };
   product: {
     ctaViewDetails: string;

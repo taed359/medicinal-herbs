@@ -1,0 +1,232 @@
+---
+import type { Page } from 'astro';
+
+/**
+ * Reusable pagination UI for any Astro `paginate()`-generated listing page.
+ *
+ * Usage:
+ *   export const getStaticPaths = (async ({ paginate }) => {
+ *     const items = await someRepository.listSomething();
+ *     return paginate(items, { pageSize: 12 });
+ *   }) satisfies GetStaticPaths;
+ *
+ *   const { page } = Astro.props;
+ *   ...
+ *   <Pager page={page} basePath={localePath(lang, t.someCollection.collectionPath)} />
+ *
+ * `basePath` must be the locale-aware base URL of the listing page WITHOUT
+ * a trailing slash (e.g. `/vi/products/natural-oils`) -- it's used to build
+ * the numbered page links (`${basePath}/` for page 1, `${basePath}/2/` for
+ * page 2, ...), matching Astro's own `[...page].astro` convention where
+ * page 1 has no `/N/` suffix. `page.url.prev` / `page.url.next` come
+ * straight from Astro and are used as-is for the prev/next links.
+ *
+ * Renders nothing when there's only one page, so it's always safe to drop
+ * into a listing page regardless of how many items that collection
+ * currently has.
+ */
+interface Props {
+  page: Page<unknown>;
+  basePath: string;
+  prevLabel: string;
+  nextLabel: string;
+  pageLabel: string; // e.g. "Trang {page}" -- "{page}" is replaced with the page number
+}
+
+const { page, basePath, prevLabel, nextLabel, pageLabel } = Astro.props;
+
+// `basePath` commonly comes from `localePath()`, which -- under this
+// project's `trailingSlash: 'ignore'` + default `directory` build format
+// -- already returns a path WITH a trailing slash (e.g.
+// "/vi/products/natural-oils/"). Stripping any trailing slash here first
+// (rather than assuming callers pass a bare path) means this works
+// whether basePath arrives with or without one, and avoids doubling up
+// into "...natural-oils//2/".
+const cleanBasePath = basePath.replace(/\/+$/, '');
+const pageHref = (n: number) => (n <= 1 ? `${cleanBasePath}/` : `${cleanBasePath}/${n}/`);
+const ariaLabelFor = (n: number) => pageLabel.replace('{page}', String(n));
+
+// Compact ellipsis-based page list: always show first, last, current, and
+// one neighbour on each side of the current page; collapse any gap into a
+// single "…" marker. Cheap enough to always compute, even when the page
+// list below won't be rendered (single-page collections).
+const pageNumbers: (number | 'ellipsis')[] = [];
+for (let n = 1; n <= page.lastPage; n += 1) {
+  const isEdge = n === 1 || n === page.lastPage;
+  const isNearCurrent = Math.abs(n - page.currentPage) <= 1;
+  if (isEdge || isNearCurrent) {
+    pageNumbers.push(n);
+  } else if (pageNumbers[pageNumbers.length - 1] !== 'ellipsis') {
+    pageNumbers.push('ellipsis');
+  }
+}
+---
+
+{page.lastPage > 1 && (
+  <nav class="pager" aria-label="Pagination">
+    {page.url.prev ? (
+      <a class="pager-arrow" href={page.url.prev} aria-label={prevLabel}>
+        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+          <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+    ) : (
+      // No previous page: rendered as a disabled <button>, not an <a>
+      // without an href. An anchor with no href resolves to the ARIA
+      // "generic" role, which -- per the ARIA spec -- prohibits aria-label
+      // (axe/Lighthouse flag this as "prohibited ARIA attributes"). A
+      // disabled <button> keeps the "button" role, which does support
+      // aria-label, and `disabled` already removes it from the tab order
+      // and from screen-reader interaction, so no separate aria-disabled/
+      // tabindex is needed here.
+      <button type="button" class="pager-arrow" disabled aria-label={prevLabel}>
+        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+          <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    )}
+
+    <ul class="pager-list">
+      {pageNumbers.map((n) =>
+        n === 'ellipsis' ? (
+          <li class="pager-ellipsis" aria-hidden="true">&hellip;</li>
+        ) : (
+          <li>
+            <a
+              class="pager-link"
+              href={pageHref(n)}
+              aria-label={ariaLabelFor(n)}
+              aria-current={n === page.currentPage ? 'page' : undefined}
+            >
+              {n}
+            </a>
+          </li>
+        )
+      )}
+    </ul>
+
+    {page.url.next ? (
+      <a class="pager-arrow" href={page.url.next} aria-label={nextLabel}>
+        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+          <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+    ) : (
+      <button type="button" class="pager-arrow" disabled aria-label={nextLabel}>
+        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+          <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    )}
+  </nav>
+)}
+
+<style>
+  .pager {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  /* Override the site-wide `a { hover:underline }` rule (src/styles/global.css)
+     -- pill-shaped icon/number buttons should never show a text underline. */
+  .pager-arrow,
+  .pager-link {
+    text-decoration: none;
+  }
+  .pager-arrow:hover,
+  .pager-link:hover {
+    text-decoration: none;
+  }
+
+  .pager-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    /* Reset <button> user-agent defaults so the disabled variant matches
+       the <a> variant exactly. */
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    color: var(--color-heading);
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+  .pager-arrow:hover {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+  }
+  .pager-arrow:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .pager-arrow:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .pager-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .pager-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    color: var(--color-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .pager-link:hover {
+    background-color: var(--color-border);
+    color: var(--color-heading);
+  }
+  .pager-link:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .pager-link[aria-current='page'] {
+    background-color: var(--color-brand);
+    color: var(--color-surface);
+  }
+
+  .pager-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    height: 32px;
+    color: var(--color-body);
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 379px) {
+    .pager-arrow,
+    .pager-link {
+      flex-basis: 28px;
+      width: 28px;
+      height: 28px;
+    }
+    .pager-ellipsis {
+      flex-basis: 24px;
+      height: 28px;
+    }
+  }
+</style>

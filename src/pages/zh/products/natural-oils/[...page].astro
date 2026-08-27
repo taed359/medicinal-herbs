@@ -1,14 +1,22 @@
 ---
+import type { GetStaticPaths } from 'astro';
 import Layout from '../../../../layouts/Layout.astro';
 import ProductCard from '../../../../components/ProductCard.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import Pager from '../../../../components/Pager.astro';
 import { productRepository } from '../../../../server/repositories';
 import { getTranslations, localePath } from '../../../../i18n/utils';
 import { naturalOilsPlaceholderImage } from '../../../../lib/product-image-fallback';
 
 const lang = 'zh' as const;
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const items = await productRepository.listByCategory('natural-oils', 'zh');
+  return paginate(items, { pageSize: 12 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
 const t = getTranslations(lang);
-const items = await productRepository.listByCategory('natural-oils', lang);
 ---
 <Layout lang={lang} title={`${t.naturalOils.eyebrow} — ${t.common.siteName}`}>
   <section class="py-8 sm:py-10" aria-labelledby="collection-heading">
@@ -26,8 +34,8 @@ const items = await productRepository.listByCategory('natural-oils', lang);
         <h2 id="collection-heading" class="no-heading m-0">{t.naturalOils.heading}</h2>
       </div>
 
-      <ul class="m-0 grid list-none grid-cols-2 gap-4 p-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-5 lg:gap-6">
-        {items.map((p) => {
+      <ul class="m-0 grid list-none grid-cols-2 max-[379px]:grid-cols-1 gap-4 p-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-5 lg:gap-6">
+        {page.data.map((p) => {
           const href = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
           const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
           const alt = p.primaryImage?.alt || p.name;
@@ -38,6 +46,14 @@ const items = await productRepository.listByCategory('natural-oils', lang);
           );
         })}
       </ul>
+
+      <Pager
+        page={page}
+        basePath={localePath(lang, t.naturalOils.collectionPath)}
+        prevLabel={t.pager.prevLabel}
+        nextLabel={t.pager.nextLabel}
+        pageLabel={t.pager.pageLabel}
+      />
     </div>
   </section>
 </Layout>

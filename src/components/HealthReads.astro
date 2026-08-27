@@ -45,7 +45,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
                   <Image src={it.image} alt="" width={640} height={640} loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
                 <div class="p-4">
-                  <h3 class="m-0 font-serif text-[18px] sm:text-[19px] leading-snug text-heading">{d.title}</h3>
+                  <h3 class="m-0 font-serif text-[18px] sm:text-[19px] leading-snug text-heading truncate">{d.title}</h3>
                   <p class="hr-description m-0 mt-2">{d.description}</p>
                 </div>
               </a>
@@ -57,7 +57,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
 
     <!-- CTA -->
     <div class="mt-7 sm:mt-8 text-center">
-      <a href={localePath(lang, 'health-reads')} class="btn btn-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
+      <a href={localePath(lang, 'health-reads')} class="btn btn-secondary no-underline transition-colors duration-300 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
         {t.healthReads.ctaViewAll}
       </a>
     </div>
@@ -117,6 +117,19 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    min-height: calc(0.875rem * 1.6 * 2);
+    /* `height`, not `min-height`: on a `-webkit-box` (the box model
+       `-webkit-line-clamp` requires), `min-height` is not reliably honored
+       by the browser -- a 1-line-worth description just renders at its
+       natural 1-line content height regardless of min-height, so shorter
+       cards end up shorter than their siblings. An explicit `height`
+       forces the box itself, so a shorter description simply leaves blank
+       space below it instead of shrinking the box.
+
+       The title above (`<h3>`) doesn't need this same treatment: it's
+       clamped to exactly 1 line via the `truncate` utility class in the
+       markup instead of a 2-line reservation here, so its box is always
+       naturally the same height on every card -- no dead gap between a
+       short title and the description that follows it. */
+    height: calc(0.875rem * 1.6 * 2);
   }
 </style>

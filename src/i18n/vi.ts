@@ -12,7 +12,7 @@ export const vi: TranslationSchema = {
     tagline: 'Chăm sóc sức khỏe truyền thống',
   },
   header: {
-    announcement: 'Trí tuệ truyền thống • Nguyên liệu tự nhiên • Chất lượng đảm bảo',
+    announcement: ['Trí tuệ truyền thống', 'Nguyên liệu tự nhiên', 'Chất lượng đảm bảo'],
     navSale: 'Khuyến Mãi',
     navShopBy: 'Mua theo',
     navOurStory: 'Câu chuyện',
@@ -183,6 +183,11 @@ export const vi: TranslationSchema = {
     heading: 'Tinh hoa từ thiên nhiên',
     ctaViewAll: 'Xem tất cả dầu thực vật',
     collectionPath: 'products/natural-oils',
+  },
+  pager: {
+    prevLabel: 'Trang trước',
+    nextLabel: 'Trang sau',
+    pageLabel: 'Trang {page}',
   },
   product: {
     ctaViewDetails: 'Xem chi tiết',

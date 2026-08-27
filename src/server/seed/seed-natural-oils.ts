@@ -47,6 +47,15 @@ const NATURAL_OILS_SEED = [
   { id: 'natural-oils:sesame-oil', slug: 'sesame-oil', featured: true, vi: 'Dầu mè', zh: '芝麻油' },
   { id: 'natural-oils:olive-oil', slug: 'olive-oil', featured: true, vi: 'Dầu olive', zh: '橄榄油' },
   { id: 'natural-oils:avocado-oil', slug: 'avocado-oil', featured: false, vi: 'Dầu avocado', zh: '牛油果油' },
+  { id: 'natural-oils:grapeseed-oil', slug: 'grapeseed-oil', featured: false, vi: 'Dầu hạt nho', zh: '葡萄籽油' },
+  { id: 'natural-oils:flaxseed-oil', slug: 'flaxseed-oil', featured: false, vi: 'Dầu hạt lanh', zh: '亚麻籽油' },
+  { id: 'natural-oils:hempseed-oil', slug: 'hempseed-oil', featured: false, vi: 'Dầu hạt gai dầu', zh: '大麻籽油' },
+  { id: 'natural-oils:walnut-oil', slug: 'walnut-oil', featured: false, vi: 'Dầu óc chó', zh: '核桃油' },
+  { id: 'natural-oils:macadamia-oil', slug: 'macadamia-oil', featured: false, vi: 'Dầu hạt mắc ca', zh: '澳洲坚果油' },
+  { id: 'natural-oils:coconut-milk-oil', slug: 'coconut-milk-oil', featured: false, vi: 'Dầu dừa nhỏ', zh: '椰奶油' },
+  { id: 'natural-oils:sesame-milk-oil', slug: 'sesame-milk-oil', featured: false, vi: 'Dầu mè nhỏ', zh: '芝麻奶油' },
+  { id: 'natural-oils:olive-milk-oil', slug: 'olive-milk-oil', featured: false, vi: 'Dầu olive nhỏ', zh: '橄榄奶油' },
+  { id: 'natural-oils:avocado-milk-oil', slug: 'avocado-milk-oil', featured: false, vi: 'Dầu avocado nhỏ', zh: '牛油果奶油' },
 ] as const;
 
 async function main() {

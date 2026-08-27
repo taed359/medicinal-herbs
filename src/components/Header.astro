@@ -10,7 +10,7 @@ const { lang } = Astro.props;
 const t = getTranslations(lang);
 const homeHref = localeHomePath(lang);
 ---
-<AnnouncementBar lang={lang} message={t.header.announcement} />
+<AnnouncementBar lang={lang} messages={t.header.announcement} />
 
 <header class="sticky top-0 z-40 bg-surface">
   <!-- Main navbar -->
