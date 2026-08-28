@@ -29,7 +29,7 @@ const questions = Object.values(t.contact.questionOptions);
       />
 
       <header class="contact-title text-center">
-        <h1 id="contact-page-title" class="m-0">{t.contact.title}</h1>
+        <h1 id="contact-page-title" class="font-serif m-0">{t.contact.title}</h1>
       </header>
 
       <div class="contact-grid mt-8 sm:mt-10 lg:mt-12">
@@ -107,11 +107,14 @@ const questions = Object.values(t.contact.questionOptions);
 </Layout>
 
 <style>
+  /* line-height 1.2, not 1.12 -- same reasoning as ProductDetail.astro's
+     .pd-title: a large Playfair Display heading needs more vertical room
+     than 1.12 gives if it ever wraps to 2 lines. */
   .contact-title h1 {
     color: var(--color-heading);
     font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 700;
-    line-height: 1.12;
+    line-height: 1.2;
   }
 
   .contact-grid {

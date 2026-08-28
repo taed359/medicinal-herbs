@@ -26,7 +26,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     <!-- Header -->
     <div class="text-center mb-7 sm:mb-9">
       <p class="hr-eyebrow m-0 mb-1">{t.healthReads.eyebrow}</p>
-      <h2 id="health-reads-heading" class="hr-heading m-0">{t.healthReads.heading}</h2>
+      <h2 id="health-reads-heading" class="hr-heading font-serif m-0">{t.healthReads.heading}</h2>
     </div>
 
     <!-- Responsive list: horizontal scroll on mobile, grid from sm+ -->
@@ -75,11 +75,14 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     .hr-eyebrow { font-size: 1.375rem; }
   }
 
+  /* 1.25, not the usual 1.15 -- see BrandStory.astro's .bs-heading comment
+     for why (Playfair Display's vertical metrics need more room than 1.15
+     gives if this heading wraps to 2 lines on narrow viewports). */
   .hr-heading {
     color: var(--color-heading);
     font-size: 1.75rem;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.25;
   }
   @media (min-width: 640px) {
     .hr-heading { font-size: 2.25rem; }

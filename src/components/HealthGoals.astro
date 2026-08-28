@@ -37,7 +37,7 @@ const t = getTranslations(lang);
   <div class="container-page">
     <div class="text-center mb-7 sm:mb-9">
       <p class="hg-eyebrow m-0 mb-1">{t.healthGoals.eyebrow}</p>
-      <h2 class="hg-heading m-0">{t.healthGoals.heading}</h2>
+      <h2 class="hg-heading font-serif m-0">{t.healthGoals.heading}</h2>
     </div>
   </div>
 
@@ -99,11 +99,17 @@ const t = getTranslations(lang);
     }
   }
 
+  /* 1.25, not the usual 1.15 -- Playfair Display's own vertical metrics
+     (hhea ascent+|descent| ~1.33em) need more room on narrow viewports
+     where this VI heading can wrap to 2 lines, or the lines visually
+     crowd each other. Same fix applied to every other font-serif section
+     heading on the storefront (BrandStory, NaturalOils, TrustCertifications,
+     HealthReads). */
   .hg-heading {
     color: var(--color-heading);
     font-size: 1.75rem;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.25;
   }
   @media (min-width: 640px) {
     .hg-heading {

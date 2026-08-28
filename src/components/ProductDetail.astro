@@ -91,7 +91,7 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
 
       <div class="pd-info">
         <p class="pd-eyebrow text-caption m-0">{catLabel}</p>
-        <h1 id="product-name" class="pd-title m-0 mt-3">{name}</h1>
+        <h1 id="product-name" class="pd-title font-serif m-0 mt-3">{name}</h1>
 
         {hasPrice && defaultVariant && (
           <div class="pd-price-row mt-7">
@@ -300,11 +300,16 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
     letter-spacing: 0.04em;
   }
 
+  /* line-height 1.2, not 1.12 -- this is the largest heading on the site
+     (up to 2.75rem) rendered in Playfair Display, whose own vertical
+     metrics (hhea ascent+|descent| ~1.33em) need more room than 1.12 gives
+     once a longer product name wraps to 2 lines; same reasoning as the
+     storefront section headings (see BrandStory.astro's .bs-heading). */
   .pd-title {
     color: var(--color-heading);
     font-size: 2rem;
     font-weight: 700;
-    line-height: 1.12;
+    line-height: 1.2;
   }
 
   .pd-badge {

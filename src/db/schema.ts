@@ -382,18 +382,31 @@ export const customerVerifications = pgTable('customer_verifications', {
 // customer_profiles — the auth/business-domain boundary. customer_users
 // (above) is entirely Better-Auth-owned; nothing app-specific belongs on it.
 // This table is where that ever grows (display name overrides, phone,
-// marketing preferences, etc.) — deliberately near-empty for Phase 1 (no
-// requirement exists yet for any of those fields), but created eagerly for
-// every customer at signup (see customer-auth.ts's databaseHooks.user.create
-// .after) so no backfill migration is ever needed once a real field shows
-// up. 1:1 via a shared primary key (customerId), not a separate id + unique
-// index — there is exactly one profile per customer, ever.
+// marketing preferences, etc.) — created eagerly for every customer at
+// signup (see customer-auth.ts's databaseHooks.user.create.after) so no
+// backfill migration is ever needed once a real field shows up. 1:1 via a
+// shared primary key (customerId), not a separate id + unique index —
+// there is exactly one profile per customer, ever.
+//
+// `locale` is the first such field: the customer's preferred language for
+// transactional email (verification/reset), deliberately NOT stored on
+// Better Auth's own customer_users -- that table stays entirely
+// Better-Auth-owned, and this app-domain preference lives with the rest of
+// the app-domain profile data. VI/ZH only (no English auth UI -- see the
+// customer auth i18n work), enforced by the same check-constraint pattern
+// already used for every other `locale` column in this file. Defaults to
+// 'vi' so the eager insert in customer-auth.ts never needs to know the
+// value up front; customer-auth.ts's sendVerificationEmail hook updates it
+// to the real value from the registration request in the same request.
 // ---------------------------------------------------------------------------
 export const customerProfiles = pgTable('customer_profiles', {
   customerId: text('customer_id').primaryKey().references(() => customerUsers.id, { onDelete: 'cascade' }),
+  locale: locale().notNull().default('vi'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  check('locale_check', sql`${table.locale} IN ('vi', 'zh')`),
+]);
 
 // ---------------------------------------------------------------------------
 // rateLimit — Better Auth's own canonical model for `rateLimit.storage:

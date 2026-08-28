@@ -19,7 +19,14 @@ const homeHref = localeHomePath(lang);
 // storefront into on-demand rendering. This read stays correct (and free)
 // on the day any page using this Header ever does become server-rendered.
 const customerUser = Astro.locals.customerUser;
-const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathname)}`;
+// `lang` here is already the site's fully-resolved storefront locale (see
+// Layout.astro: uiLang falls back to defaultLocale='vi' for unprefixed/
+// English pages, since Header's own Props type only ever accepts a real
+// Locale, never 'en') -- so it's also exactly the value the customer auth
+// pages' `?lang=` expects (see src/i18n/auth.ts's resolveAuthLocale,
+// vi/zh only, defaulting to 'vi'). No separate path-based parsing needed.
+const loginHref = `/customer/login?lang=${lang}&redirect=${encodeURIComponent(Astro.url.pathname)}`;
+const accountHref = `/customer/account?lang=${lang}`;
 ---
 <AnnouncementBar lang={lang} messages={t.header.announcement} />
 
@@ -99,31 +106,47 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
             </svg>
             <span class="font-sans text-sm">{t.header.accountLabel}</span>
           </a>
-          <a
-            href="/customer/account"
-            data-astro-reload
-            data-account-user
-            hidden={!customerUser}
-            class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
-              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-            <span class="font-sans text-sm" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
-          </a>
-          <button
-            type="button"
-            data-account-logout
-            hidden={!customerUser}
-            aria-label={t.header.logoutLabel}
-            class="inline-flex text-heading hover:text-brand transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
+          <div class="relative" data-account-menu>
+            <button
+              type="button"
+              data-account-user
+              data-account-menu-trigger
+              hidden={!customerUser}
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="account-menu"
+              class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors cursor-pointer"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+                <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              <span class="font-sans text-sm" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
+              <svg class="account-menu-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+
+            <ul
+              id="account-menu"
+              role="menu"
+              aria-label={t.header.accountMenuLabel}
+              class="account-menu"
+              data-account-menu-list
+              hidden
+            >
+              <li role="none"><a role="menuitem" href={accountHref} data-astro-reload class="account-menu-item">{t.header.myAccountLabel}</a></li>
+              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.profileLabel}</a></li>
+              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.ordersLabel}</a></li>
+              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.addressesLabel}</a></li>
+              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.wishlistLabel}</a></li>
+              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.settingsLabel}</a></li>
+              <li role="none" class="account-menu-divider" aria-hidden="true"></li>
+              <li role="none">
+                <button type="button" role="menuitem" data-account-logout class="account-menu-item account-menu-item-muted">{t.header.logoutLabel}</button>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <!-- Mobile search toggle -->
@@ -228,60 +251,61 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
           <span class="font-sans text-sm font-semibold text-heading">{t.header.accountLabel}</span>
         </a>
 
-        <div data-account-user hidden={!customerUser} class="mobile-profile-row mobile-profile-row-authed">
-          <span class="mobile-profile-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
-              <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        <div data-account-user hidden={!customerUser}>
+          <button
+            type="button"
+            class="mobile-profile-row"
+            data-mobile-account-toggle
+            aria-controls="mobile-account-panel"
+            aria-expanded="false"
+          >
+            <span class="mobile-profile-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
+                <path d="M4.5 20c1.5-3.5 5-5 7.5-5s6 1.5 7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </span>
+            <span class="font-sans text-sm font-semibold text-heading flex-1" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
+            <svg class="mobile-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </span>
-          <div class="mobile-profile-details">
-            <span class="font-sans text-sm font-semibold text-heading" data-account-name>{customerUser?.name || customerUser?.email || ''}</span>
-            <div class="mobile-profile-actions">
-              <a href="/customer/account" data-astro-reload class="mobile-profile-action-link">{t.header.myAccountLabel}</a>
-              <button type="button" data-account-logout class="mobile-profile-action-link mobile-profile-logout-button">
-                {t.header.logoutLabel}
-              </button>
-            </div>
+          </button>
+          <div id="mobile-account-panel" class="mobile-accordion-panel-customer" data-mobile-account-panel hidden>
+            <nav class="mobile-menu-list" aria-label={t.header.accountMenuLabel}>
+              <a href={accountHref} data-astro-reload class="mobile-menu-row">{t.header.myAccountLabel}</a>
+              <a href="#" class="mobile-menu-row">{t.header.profileLabel}</a>
+              <a href="#" class="mobile-menu-row">{t.header.ordersLabel}</a>
+              <a href="#" class="mobile-menu-row">{t.header.addressesLabel}</a>
+              <a href="#" class="mobile-menu-row">{t.header.wishlistLabel}</a>
+              <a href="#" class="mobile-menu-row">{t.header.settingsLabel}</a>
+              <button type="button" data-account-logout class="mobile-menu-row mobile-menu-row-muted">{t.header.logoutLabel}</button>
+            </nav>
           </div>
         </div>
       </div>
 
       <div class="mobile-menu-viewport">
-        <div class="mobile-menu-track" data-mobile-menu-track>
-          <section class="mobile-menu-view" aria-label={t.header.menuLabel}>
-            <nav class="mobile-menu-list">
-              <a href="#" class="mobile-menu-row">
-                <span class="inline-flex items-center gap-2">
-                  {t.header.navSale}
-                  <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
-                </span>
-              </a>
-              <button type="button" class="mobile-menu-row" data-mobile-submenu-open aria-controls="mobile-shop-submenu">
-                <span>{t.header.navShopBy}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </button>
-              <a href="#" class="mobile-menu-row">{t.header.navOurStory}</a>
-              <a href="#" class="mobile-menu-row">{t.header.navHealthReads}</a>
-            </nav>
-          </section>
-
-          <section id="mobile-shop-submenu" class="mobile-menu-view" aria-label={t.header.navShopBy}>
-            <button type="button" class="mobile-submenu-back" data-mobile-submenu-back>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="m15 6-6 6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <span>{t.header.navShopBy}</span>
-            </button>
-            <nav class="mobile-menu-list">
-              <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="mobile-menu-row">
-                {t.naturalOils.eyebrow}
-              </a>
-            </nav>
-          </section>
-        </div>
+        <nav class="mobile-menu-list" aria-label={t.header.menuLabel}>
+          <a href="#" class="mobile-menu-row">
+            <span class="inline-flex items-center gap-2">
+              {t.header.navSale}
+              <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
+            </span>
+          </a>
+          <button type="button" class="mobile-menu-row" data-mobile-shop-toggle aria-controls="mobile-shop-panel" aria-expanded="false">
+            <span>{t.header.navShopBy}</span>
+            <svg class="mobile-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <div id="mobile-shop-panel" class="mobile-accordion-panel" data-mobile-shop-panel hidden>
+            <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="mobile-menu-row mobile-menu-row-sub">
+              {t.naturalOils.eyebrow}
+            </a>
+          </div>
+          <a href="#" class="mobile-menu-row">{t.header.navOurStory}</a>
+          <a href="#" class="mobile-menu-row">{t.header.navHealthReads}</a>
+        </nav>
       </div>
     </aside>
   </div>
@@ -289,6 +313,66 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
 
 <style>
   .header-meta-text { color: var(--color-body); }
+
+  /* Desktop authenticated-account dropdown -- same visual language as
+     AnnouncementBar.astro's locale switcher (rounded card, border,
+     hover-tint items) so the two dropdown patterns already in this app
+     read as one system. */
+  .account-menu-caret { transition: transform 0.15s ease-out; }
+  [data-account-menu-trigger][aria-expanded='true'] .account-menu-caret { transform: rotate(180deg); }
+
+  .account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 60;
+    min-width: 12rem;
+    margin: 0;
+    padding: 0.375rem;
+    list-style: none;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .account-menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    font: inherit;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--color-heading);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease-out, color 0.15s ease-out;
+  }
+  .account-menu-item:hover,
+  .account-menu-item:focus-visible {
+    background: color-mix(in oklab, var(--color-brand) 10%, transparent);
+    outline: none;
+  }
+
+  /* Sign out -- muted, not the same brand-heading color as a real
+     navigation destination (matches .mobile-menu-row-muted below). */
+  .account-menu-item-muted { color: var(--color-muted); }
+  .account-menu-item-muted:hover,
+  .account-menu-item-muted:focus-visible { color: var(--color-heading); }
+
+  .account-menu-divider {
+    height: 1px;
+    margin: 0.375rem 0.25rem;
+    background: var(--color-border);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .account-menu-caret { transition: none; }
+  }
 
   .mobile-search-trigger [data-search-close-icon] { display: none; }
   .mobile-search-trigger[aria-expanded='true'] [data-search-open-icon] { display: none; }
@@ -418,46 +502,30 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     cursor: pointer;
   }
 
+  /* Shared by the guest link (<a>) and the authenticated disclosure
+     trigger (<button>, opens the account view below) -- the extra
+     reset properties (border/width/font/cursor/text-align) are no-ops for
+     the <a> and only matter for the <button> so it renders identically. */
   .mobile-profile-row {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
+    border: 0;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-cream);
-    text-decoration: none;
-  }
-
-  .mobile-profile-row-authed { align-items: flex-start; }
-
-  .mobile-profile-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 0;
-  }
-
-  .mobile-profile-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .mobile-profile-action-link {
-    padding: 0;
-    color: var(--color-brand);
-    border: 0;
-    background: transparent;
     font: inherit;
-    font-size: 0.85rem;
-    font-weight: 600;
+    text-align: left;
     text-decoration: none;
     cursor: pointer;
   }
 
-  .mobile-profile-action-link:hover { text-decoration: underline; }
-
-  .mobile-profile-logout-button { color: var(--color-muted); }
+  /* Sign out row within the authenticated mobile account list (reuses
+     .mobile-menu-row otherwise) -- muted, not the brand heading color, so
+     it doesn't read as just another navigation destination. */
+  .mobile-menu-row-muted { color: var(--color-muted); }
+  .mobile-menu-row-muted:hover { color: var(--color-heading); }
 
   .mobile-profile-icon {
     display: inline-flex;
@@ -476,28 +544,12 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     min-height: 0;
     flex: 1;
     overflow: hidden auto;
-  }
-
-  .mobile-menu-track {
-    display: flex;
-    width: 200%;
-    min-height: 100%;
-    transform: translateX(0);
-    transition: transform 260ms ease;
-  }
-
-  .mobile-menu-track[data-view='submenu'] { transform: translateX(-50%); }
-
-  .mobile-menu-view {
-    width: 50%;
-    flex: 0 0 50%;
     padding: 0.75rem 1.25rem 1.5rem;
   }
 
   .mobile-menu-list { display: grid; }
 
-  .mobile-menu-row,
-  .mobile-submenu-back {
+  .mobile-menu-row {
     display: flex;
     width: 100%;
     min-height: 3.25rem;
@@ -517,14 +569,31 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     transition: color 180ms ease;
   }
 
-  .mobile-menu-row:hover,
-  .mobile-submenu-back:hover { color: var(--color-brand); }
+  .mobile-menu-row:hover { color: var(--color-brand); }
 
-  .mobile-submenu-back {
-    justify-content: flex-start;
-    color: var(--color-muted);
-    font-weight: 600;
+  /* Accordion chevron rotates to reflect its trigger's own aria-expanded
+     -- same idiom as the desktop account dropdown's caret. Toggling
+     [hidden] on the panel below is the entire show/hide mechanism (no
+     slide/translate, no separate "view" state -- see the script). */
+  .mobile-accordion-chevron { transition: transform 0.15s ease-out; }
+  [aria-expanded='true'] > .mobile-accordion-chevron { transform: rotate(90deg); }
+
+  /* Shared by the Shop By panel (a single indented sub-link) and the
+     account panel (a full .mobile-menu-list of primary actions) -- same
+     horizontal inset .mobile-menu-viewport already gives top-level rows,
+     applied here directly since accordion panels sit at different nesting
+     depths (the account one lives outside .mobile-menu-viewport
+     entirely, next to the profile row it belongs to). */
+  .mobile-accordion-panel-customer {
+    padding: 0 1.25rem;
+    background: var(--color-cream);
   }
+
+  .mobile-accordion-panel {
+    padding: 0 1.25rem;
+  }
+
+  .mobile-menu-row-sub { padding-left: 1rem; }
 
   .mobile-drawer button:focus-visible,
   .mobile-drawer a:focus-visible {
@@ -537,9 +606,8 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     .mobile-drawer-backdrop,
     .mobile-drawer,
     .mobile-drawer-panel,
-    .mobile-menu-track,
     .mobile-menu-row,
-    .mobile-submenu-back { transition: none; }
+    .mobile-accordion-chevron { transition: none; }
   }
 </style>
 
@@ -606,19 +674,43 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     const panel = drawer.querySelector('[data-mobile-menu-panel]');
     const closeButton = drawer.querySelector('[data-mobile-menu-close]');
     const backdrop = drawer.querySelector('[data-mobile-menu-backdrop]');
-    const track = drawer.querySelector('[data-mobile-menu-track]');
-    const submenuOpen = drawer.querySelector('[data-mobile-submenu-open]');
-    const submenuBack = drawer.querySelector('[data-mobile-submenu-back]');
+    const shopToggle = drawer.querySelector('[data-mobile-shop-toggle]');
+    const shopPanel = drawer.querySelector('[data-mobile-shop-panel]');
+    const accountToggle = drawer.querySelector('[data-mobile-account-toggle]');
+    const accountPanel = drawer.querySelector('[data-mobile-account-panel]');
     let previousFocus: Element | null = null;
 
     const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    // Simple accordion: at most one of 'shop' | 'account' is open at a
+    // time, tracked in this one variable. setOpenSection is the ONLY
+    // place that ever writes it or touches either trigger's aria-expanded
+    // or either panel's [hidden] -- both toggle buttons call the exact
+    // same function (just with their own section name), so neither can
+    // touch the other's state directly and there is nothing to get out of
+    // sync. No slide/translate/track -- opening a section just reveals
+    // its panel in place; closing the drawer always resets this to null.
+    type MobileSection = 'shop' | 'account' | null;
+    let openSection: MobileSection = null;
+
+    const setOpenSection = (section: MobileSection) => {
+      openSection = section;
+      if (shopToggle instanceof HTMLButtonElement) shopToggle.setAttribute('aria-expanded', section === 'shop' ? 'true' : 'false');
+      if (shopPanel instanceof HTMLElement) shopPanel.hidden = section !== 'shop';
+      if (accountToggle instanceof HTMLButtonElement) accountToggle.setAttribute('aria-expanded', section === 'account' ? 'true' : 'false');
+      if (accountPanel instanceof HTMLElement) accountPanel.hidden = section !== 'account';
+    };
+
+    const toggleSection = (section: 'shop' | 'account') => {
+      setOpenSection(openSection === section ? null : section);
+    };
 
     const closeDrawer = () => {
       drawer.dataset.state = 'closed';
       drawer.setAttribute('aria-hidden', 'true');
       openButton.setAttribute('aria-expanded', 'false');
       document.body.style.overflow = '';
-      if (track instanceof HTMLElement) delete track.dataset.view;
+      setOpenSection(null);
       if (previousFocus instanceof HTMLElement) previousFocus.focus();
     };
 
@@ -636,14 +728,8 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
     openButton.addEventListener('click', openDrawer);
     closeButton?.addEventListener('click', closeDrawer);
     backdrop?.addEventListener('click', closeDrawer);
-    submenuOpen?.addEventListener('click', () => {
-      if (track instanceof HTMLElement) track.dataset.view = 'submenu';
-      if (submenuBack instanceof HTMLButtonElement) submenuBack.focus();
-    });
-    submenuBack?.addEventListener('click', () => {
-      if (track instanceof HTMLElement) delete track.dataset.view;
-      if (submenuOpen instanceof HTMLButtonElement) submenuOpen.focus();
-    });
+    shopToggle?.addEventListener('click', () => toggleSection('shop'));
+    accountToggle?.addEventListener('click', () => toggleSection('account'));
 
     drawer.querySelectorAll('a[href]').forEach((link) => link.addEventListener('click', closeDrawer));
 
@@ -770,4 +856,99 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(Astro.url.pathn
 
   initAccountWidgets();
   document.addEventListener('astro:page-load', initAccountWidgets);
+</script>
+
+<script>
+  // Desktop authenticated-account dropdown -- same interaction pattern as
+  // AnnouncementBar.astro's locale switcher (open/close, arrow-key nav,
+  // outside click, Escape), scoped to [data-account-menu] instead. The
+  // trigger button itself is the existing account icon + name
+  // (data-account-user, toggled by initAccountWidgets above); this script
+  // only owns opening/closing the menu, never the guest/authed state.
+  function initAccountMenus() {
+    const roots = document.querySelectorAll<HTMLElement>('[data-account-menu]');
+
+    roots.forEach((root) => {
+      if ((root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit) return;
+      (root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit = true;
+
+      const trigger = root.querySelector<HTMLButtonElement>('[data-account-menu-trigger]');
+      const menu = root.querySelector<HTMLElement>('[data-account-menu-list]');
+      if (!trigger || !menu) return;
+
+      const isOpen = () => !menu.hidden;
+
+      const open = () => {
+        menu.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+      };
+
+      const close = (opts: { focusTrigger?: boolean } = {}) => {
+        if (!isOpen()) return;
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        if (opts.focusTrigger) trigger.focus();
+      };
+
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (isOpen()) {
+          close();
+        } else {
+          open();
+        }
+      });
+
+      trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown' && !isOpen()) {
+          event.preventDefault();
+          open();
+          const first = menu.querySelector<HTMLElement>('[role="menuitem"]');
+          first?.focus();
+        }
+      });
+
+      menu.addEventListener('keydown', (event) => {
+        const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+        const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const next = items[(currentIndex + 1 + items.length) % items.length];
+          next?.focus();
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const prev = items[(currentIndex - 1 + items.length) % items.length];
+          prev?.focus();
+        }
+      });
+
+      // Any menu item activation (a real link, a "#" placeholder, or the
+      // Sign out button) dismisses the menu -- same pattern the mobile
+      // drawer already uses for its own nav links.
+      menu.querySelectorAll('[role="menuitem"]').forEach((item) => {
+        item.addEventListener('click', () => close());
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!isOpen()) return;
+        if (!(event.target instanceof Node)) return;
+        if (!root.contains(event.target)) close();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && isOpen()) {
+          event.preventDefault();
+          close({ focusTrigger: true });
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAccountMenus);
+  } else {
+    initAccountMenus();
+  }
+  document.addEventListener('astro:page-load', initAccountMenus);
 </script>

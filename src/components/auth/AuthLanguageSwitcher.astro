@@ -1,0 +1,135 @@
+---
+// Dropdown language switcher for the 5 customer auth pages (VI/ZH only --
+// no English auth UI). Deliberately a separate, minimal component from
+// AnnouncementBar.astro's storefront switcher -- that one is styled with
+// Tailwind utility classes tied to global.css's design tokens, which
+// doesn't fit these plain/dependency-free auth pages (see
+// public/customer.css, which uses its own --auth-* tokens). The dropdown
+// interaction (open/close, arrow-key nav, outside click, Escape) is the
+// same pattern, adapted to plain `is:inline` JS to match these pages'
+// existing inline-script convention (no Vite/tsc processing needed).
+import { authLocales, authLocaleMeta, type AuthLocale } from '../../i18n/auth';
+
+interface Props {
+  lang: AuthLocale;
+  label: string;
+  hrefs: Record<AuthLocale, string>;
+}
+
+const { lang, label, hrefs } = Astro.props;
+const current = authLocaleMeta[lang];
+const options = authLocales.map((locale) => ({
+  locale,
+  meta: authLocaleMeta[locale],
+  href: hrefs[locale],
+  active: locale === lang,
+}));
+---
+<div class="auth-lang-switcher" data-auth-lang-switcher>
+  <button
+    type="button"
+    class="auth-lang-switcher-trigger"
+    aria-haspopup="menu"
+    aria-expanded="false"
+    aria-controls="auth-lang-switcher-menu"
+    data-auth-lang-switcher-trigger
+  >
+    <span aria-hidden="true">{current.flag}</span>
+    <span>{current.label}</span>
+    <svg class="auth-lang-switcher-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+
+  <ul
+    id="auth-lang-switcher-menu"
+    role="menu"
+    aria-label={label}
+    class="auth-lang-switcher-menu"
+    data-auth-lang-switcher-menu
+    hidden
+  >
+    {options.map((option) => (
+      <li role="none">
+        <a
+          role="menuitemradio"
+          aria-checked={option.active}
+          href={option.href}
+          class:list={['auth-lang-switcher-option', { 'is-active': option.active }]}
+          data-auth-lang-switcher-option
+        >
+          <span class="auth-lang-switcher-check" aria-hidden="true">{option.active ? '✓' : ''}</span>
+          <span aria-hidden="true">{option.meta.flag}</span>
+          <span>{option.meta.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.querySelector('[data-auth-lang-switcher]');
+    if (!(root instanceof HTMLElement)) return;
+    var trigger = root.querySelector('[data-auth-lang-switcher-trigger]');
+    var menu = root.querySelector('[data-auth-lang-switcher-menu]');
+    if (!(trigger instanceof HTMLButtonElement) || !(menu instanceof HTMLElement)) return;
+
+    function isOpen() {
+      return !menu.hidden;
+    }
+    function open() {
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+    function close(focusTrigger) {
+      if (!isOpen()) return;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      if (focusTrigger) trigger.focus();
+    }
+
+    trigger.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (isOpen()) {
+        close(false);
+      } else {
+        open();
+      }
+    });
+
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' && !isOpen()) {
+        event.preventDefault();
+        open();
+        var first = menu.querySelector('[data-auth-lang-switcher-option]');
+        if (first instanceof HTMLElement) first.focus();
+      }
+    });
+
+    menu.addEventListener('keydown', function (event) {
+      var options = Array.prototype.slice.call(menu.querySelectorAll('[data-auth-lang-switcher-option]'));
+      var currentIndex = options.indexOf(document.activeElement);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        var next = options[(currentIndex + 1 + options.length) % options.length];
+        if (next instanceof HTMLElement) next.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        var prev = options[(currentIndex - 1 + options.length) % options.length];
+        if (prev instanceof HTMLElement) prev.focus();
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (isOpen() && !root.contains(event.target)) close(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && isOpen()) {
+        event.preventDefault();
+        close(true);
+      }
+    });
+  })();
+</script>

@@ -33,7 +33,7 @@
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware, APIError } from 'better-auth/api';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import {
   customerUsers,
@@ -46,6 +46,80 @@ import {
 } from '../../db/schema';
 import { hashPassword, verifyPassword } from './argon2';
 import { sendCustomerVerificationEmail, sendCustomerPasswordResetEmail } from '../email/customer-email';
+import type { Locale } from '../../i18n/utils';
+
+/** The ONLY place an untrusted, client-supplied locale value is validated
+ *  down to exactly 'vi' | 'zh' (no English auth UI -- see the customer
+ *  auth i18n work) before it's trusted anywhere else in this file or
+ *  passed into customer-email.ts. Anything else -- missing, malformed,
+ *  'en', or an arbitrary string -- silently becomes 'vi'; this never
+ *  throws, since a bad locale value must never fail registration. */
+function toSupportedLocale(value: unknown): Locale {
+  return value === 'vi' || value === 'zh' ? value : 'vi';
+}
+
+/** Reads the customer's stored locale preference (src/db/schema.ts's
+ *  customer_profiles.locale, defaulted + check-constrained to 'vi' | 'zh'
+ *  at the DB layer already) -- used for password-reset emails, which must
+ *  use the locale the customer registered with, never a client-supplied
+ *  value at reset-request time (there is no reliable "current UI locale"
+ *  at that point anyway: the forgot-password page's own `?lang=` reflects
+ *  whatever language the *visitor* currently has it open in, which may not
+ *  be the account owner). Falls back to 'vi' if the row is somehow missing
+ *  (should not happen -- the profile is created eagerly at signup, see
+ *  databaseHooks.user.create.after below) rather than throwing. */
+async function getCustomerLocale(customerId: string): Promise<Locale> {
+  const [profile] = await db
+    .select({ locale: customerProfiles.locale })
+    .from(customerProfiles)
+    .where(eq(customerProfiles.customerId, customerId));
+  return toSupportedLocale(profile?.locale);
+}
+
+/** Registration is the one point where a client-supplied locale is
+ *  trusted (validated) and persisted: the register.astro page already
+ *  resolves its own `?lang=` down to 'vi' | 'zh' server-side and sends it
+ *  as a plain `locale` field in the sign-up JSON body -- NOT a Better Auth
+ *  `user.additionalFields` (that would write to customer_users, which must
+ *  stay entirely Better-Auth-owned; see customer_profiles's doc comment in
+ *  src/db/schema.ts). Better Auth's own sign-up endpoint has no concept of
+ *  this field, so it's read directly off the raw request here, the same
+ *  way Better Auth itself passes a cloned Request into this exact hook for
+ *  exactly this kind of use (verified in the installed
+ *  better-auth@1.7.2 source: dist/api/routes/sign-up.mjs calls
+ *  `sendVerificationEmail({user, url, token}, safeCloneRequest(ctx.request))`
+ *  -- a fresh, never-yet-read clone, safe to call .json() on once here).
+ *  Never trusted beyond `toSupportedLocale`'s strict vi/zh allow-list.
+ *
+ *  UPSERT, not a plain UPDATE: verified directly against the installed
+ *  better-auth@1.7.2 source (dist/db/with-hooks.mjs's `createWithHooks`)
+ *  that `databaseHooks.user.create.after` (below, the hook that inserts
+ *  this same customer_profiles row) runs via `queueAfterTransactionHook`
+ *  -- deferred, NOT awaited inline before `createUser()` returns. This
+ *  hook (sendVerificationEmail) reliably fires AFTER createUser() returns
+ *  but there is no guarantee it fires after the queued after-hook's INSERT
+ *  has actually run -- empirically, it usually runs first. A plain UPDATE
+ *  would then silently affect zero rows (the profile doesn't exist yet),
+ *  leaving locale stuck on the column default. INSERT ... ON CONFLICT DO
+ *  UPDATE is correct regardless of which of the two writes lands first. */
+async function resolveAndPersistRegistrationLocale(customerId: string, request: Request | undefined): Promise<Locale> {
+  let requestedLocale: unknown;
+  if (request) {
+    try {
+      const body: unknown = await request.json();
+      requestedLocale = body && typeof body === 'object' ? (body as { locale?: unknown }).locale : undefined;
+    } catch {
+      // Missing/unreadable/malformed body -- fall through to the 'vi'
+      // default below; a bad locale value must never fail registration.
+    }
+  }
+  const locale = toSupportedLocale(requestedLocale);
+  await db
+    .insert(customerProfiles)
+    .values({ customerId, locale })
+    .onConflictDoUpdate({ target: customerProfiles.customerId, set: { locale, updatedAt: new Date() } });
+  return locale;
+}
 
 try {
   process.loadEnvFile();
@@ -156,17 +230,21 @@ export const customerAuth = betterAuth({
       verify: ({ hash, password }) => verifyPassword(hash, password),
     },
     sendResetPassword: async ({ user, token }) => {
+      // Stored profile locale, NEVER a client-supplied value at reset
+      // time -- see getCustomerLocale's own doc comment above for why.
+      const locale = await getCustomerLocale(user.id);
       const url = `${process.env.BETTER_AUTH_URL}/customer/reset-password?token=${encodeURIComponent(token)}`;
-      await sendCustomerPasswordResetEmail(user.email, url);
+      await sendCustomerPasswordResetEmail(user.email, url, locale);
     },
   },
 
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, token }) => {
+    sendVerificationEmail: async ({ user, token }, request) => {
+      const locale = await resolveAndPersistRegistrationLocale(user.id, request);
       const url = `${process.env.BETTER_AUTH_URL}/customer/verify-email?token=${encodeURIComponent(token)}`;
-      await sendCustomerVerificationEmail(user.email, url);
+      await sendCustomerVerificationEmail(user.email, url, locale);
     },
   },
 

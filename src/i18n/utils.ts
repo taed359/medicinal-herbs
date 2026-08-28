@@ -54,6 +54,12 @@ export interface TranslationSchema {
     searchLabel: string;
     accountLabel: string;
     myAccountLabel: string;
+    profileLabel: string;
+    ordersLabel: string;
+    addressesLabel: string;
+    wishlistLabel: string;
+    settingsLabel: string;
+    accountMenuLabel: string;
     logoutLabel: string;
     cartLabel: string;
     menuLabel: string;
@@ -214,6 +220,133 @@ export interface TranslationSchema {
   };
   seo: {
     description: string;
+  };
+  // Customer auth pages (src/pages/customer/*.astro). These pages are
+  // localized by a `?lang=` query param, NOT by a /vi//zh/ path prefix like
+  // the rest of the site -- src/middleware.ts's session gate matches on the
+  // literal `/customer/*` prefix, and the password-reset/verify-email links
+  // Better Auth emails (src/server/auth/customer-auth.ts) are hardcoded to
+  // the unprefixed path, so introducing locale path segments here would
+  // silently break both. See src/i18n/auth.ts.
+  auth: {
+    common: {
+      logoAriaLabel: string;
+      languageSwitcherLabel: string;
+      orDivider: string;
+      socialGoogle: string;
+      socialFacebook: string;
+      socialShop: string;
+      socialComingSoon: string;
+      privacyPolicy: string;
+      showPassword: string;
+      hidePassword: string;
+      passwordHint: string;
+      rateLimitError: string;
+      serverError: string;
+      genericError: string;
+      emailRequired: string;
+      emailInvalid: string;
+      passwordRequired: string;
+    };
+    login: {
+      title: string;
+      metaDescription: string;
+      heading: string;
+      subtitle: string;
+      emailLabel: string;
+      passwordLabel: string;
+      forgotPasswordLink: string;
+      submit: string;
+      submitLoading: string;
+      invalidCredentials: string;
+      noAccount: string;
+      createAccount: string;
+    };
+    register: {
+      title: string;
+      metaDescription: string;
+      heading: string;
+      subtitle: string;
+      nameLabel: string;
+      emailLabel: string;
+      passwordLabel: string;
+      confirmPasswordLabel: string;
+      submit: string;
+      submitLoading: string;
+      nameRequired: string;
+      passwordTooShort: string;
+      passwordMismatch: string;
+      genericFailure: string;
+      haveAccount: string;
+      signIn: string;
+    };
+    forgotPassword: {
+      title: string;
+      metaDescription: string;
+      heading: string;
+      subtitle: string;
+      emailLabel: string;
+      submit: string;
+      submitLoading: string;
+      successMessage: string;
+      backToSignIn: string;
+    };
+    resetPassword: {
+      title: string;
+      metaDescription: string;
+      heading: string;
+      subtitle: string;
+      newPasswordLabel: string;
+      confirmPasswordLabel: string;
+      submit: string;
+      submitLoading: string;
+      passwordTooShort: string;
+      passwordMismatch: string;
+      missingToken: string;
+      invalidOrExpired: string;
+      successMessage: string;
+      backToSignIn: string;
+    };
+    verifyEmail: {
+      title: string;
+      metaDescription: string;
+      verifyingHeading: string;
+      verifyingSubtitle: string;
+      successHeading: string;
+      successSubtitle: string;
+      failedHeading: string;
+      missingToken: string;
+      invalidOrExpired: string;
+      continueLabel: string;
+      backToSignIn: string;
+    };
+    // Transactional email COPY (subject/heading/paragraph/CTA/ignore-note),
+    // sent via src/server/email/customer-email.ts -- distinct from the
+    // *.title/*.metaDescription strings above, which describe the web page
+    // the email link lands on, not the email itself. `{siteName}` is a
+    // plain string token substituted at send time (see customer-email.ts),
+    // not a template-engine placeholder -- keeps the brand name defined
+    // once (common.siteName) instead of baked into every locale's copy.
+    emails: {
+      common: {
+        expiryNote: string;
+        fallbackLinkNote: string;
+      };
+      verification: {
+        subject: string;
+        heading: string;
+        paragraph: string;
+        ctaLabel: string;
+        ignoreNote: string;
+      };
+      passwordReset: {
+        subject: string;
+        heading: string;
+        paragraph: string;
+        ctaLabel: string;
+        ignoreNote: string;
+      };
+    };
   };
 }
 

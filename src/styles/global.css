@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 /* Design tokens (Tailwind v4 @theme) */
 @theme {
@@ -23,7 +24,13 @@
 
   --color-sale: #D9381E;
 
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Noto Sans CJK SC", "Noto Sans CJK TC", "Helvetica Neue", Arial, sans-serif;
+  /* Base/bootstrap values -- always overridden per-locale below by the
+   * :lang(vi) / :lang(zh) rules (every page on this site sets a real
+   * <html lang="vi|zh">, see src/layouts/Layout.astro and the 5 customer
+   * auth pages), so these only matter before that scoping engages (e.g.
+   * a not-yet-styled flash) or if `lang` is ever missing. */
+  --font-sans: "Be Vietnam Pro", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Playfair Display", "Noto Serif SC", Georgia, "Times New Roman", serif;
 
   --radius-card: 12px;
   --radius-pill: 24px;
@@ -34,6 +41,35 @@
   --shadow-card-hover: 0px 6px 16px rgba(0, 0, 0, 0.08);
   /* Layout */
   --max-container: 90rem; /* 1440px target desktop width */
+}
+
+/* Typography system, part 2: per-locale font stacks -----------------------
+ * `--font-sans` / `--font-serif` are real CSS custom properties (Tailwind
+ * v4 emits @theme values onto :root, not just build-time constants), so
+ * redeclaring them inside :lang() rules makes every existing/future
+ * `font-sans` / `font-serif` utility class site-wide automatically pick
+ * up the right family for the active document language -- no component
+ * needs to know or care which locale it's rendering in.
+ *
+ * :lang() (not the [lang="zh"] attribute-selector pattern used elsewhere
+ * in this file for unrelated micro-typography tweaks) is used deliberately
+ * per the approved typography redesign: it matches on the computed/
+ * inherited language the same way regardless of exactly how `lang` was
+ * set, and -- the actual reason it matters here -- each locale's rule
+ * lists ONLY that locale's own display/body families before the generic
+ * system fallback, with no cross-locale family in between. That keeps a
+ * Chinese heading from ever attempting Playfair Display's Latin-only
+ * glyphs (which have zero CJK coverage and would otherwise just fall
+ * through silently) and keeps mixed Latin+CJK runs within zh-tagged
+ * content visually consistent (one type family's metrics, not a
+ * per-character font swap). */
+:lang(vi) {
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+}
+:lang(zh) {
+  --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Noto Serif SC", Georgia, "Times New Roman", serif;
 }
 
 /* Base resets */

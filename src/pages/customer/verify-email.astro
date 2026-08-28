@@ -8,52 +8,83 @@
 // other customer auth page does.
 export const prerender = false;
 
+import { localePath, getTranslations } from '../../i18n/utils';
+import {
+  resolveAuthLocale,
+  getAuthTranslations,
+  buildAuthLangHref,
+  authPageHref,
+  privacyPolicyHref,
+  type AuthLocale,
+} from '../../i18n/auth';
+import AuthLanguageSwitcher from '../../components/auth/AuthLanguageSwitcher.astro';
+
 const token = Astro.url.searchParams.get('token') ?? '';
+
+// This URL carries the verification token in its query string -- suppress
+// the Referer header entirely on outbound navigation from this page (the
+// "Continue"/homepage link, the "Back to sign in" link) so the token can
+// never leak via Referer to any destination, present or future.
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+
+const lang = resolveAuthLocale(Astro.url.searchParams);
+const t = getAuthTranslations(lang);
+
+const loginHref = authPageHref('login', lang);
+const homeHref = localePath(lang, '');
+const siteName = getTranslations(lang).common.siteName;
+const langHrefs: Record<AuthLocale, string> = {
+  vi: buildAuthLangHref(Astro.url, 'vi'),
+  zh: buildAuthLangHref(Astro.url, 'zh'),
+};
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Verify your email — Medicinal Herbs</title>
+    <meta name="description" content={t.verifyEmail.metaDescription} />
+    <title>{t.verifyEmail.title}</title>
     <link rel="stylesheet" href="/customer.css" />
   </head>
   <body>
     <div class="auth-shell">
-      <div class="auth-form-panel">
+      <section class="auth-form-panel">
+        <AuthLanguageSwitcher lang={lang} label={t.common.languageSwitcherLabel} hrefs={langHrefs} />
+
         <div class="auth-logo-area">
-          <a href="/" class="auth-logo" aria-label="Medicinal Herbs — back to storefront">Medicinal Herbs</a>
+          <a href={homeHref} class="auth-logo" aria-label={t.common.logoAriaLabel}>{siteName}</a>
         </div>
 
-        <div class="auth-form-content">
+        <main class="auth-form-content">
         <div class="auth-content auth-content--centered">
           <span id="verify-icon" class="auth-status-icon" aria-hidden="true">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
           </span>
 
-          <h1 id="verify-heading" class="auth-heading">Verifying your email…</h1>
-          <p id="verify-subtitle" class="auth-subtitle">This will only take a moment.</p>
+          <h1 id="verify-heading" class="auth-heading">{t.verifyEmail.verifyingHeading}</h1>
+          <p id="verify-subtitle" class="auth-subtitle">{t.verifyEmail.verifyingSubtitle}</p>
 
           <p id="verify-error" class="auth-error" role="alert" hidden></p>
 
           <div id="verify-actions" hidden style="width: 100%; display: flex; flex-direction: column; gap: 0.75rem;">
-            <a id="verify-continue" href="/" class="auth-submit" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Continue</a>
+            <a id="verify-continue" href={homeHref} class="auth-submit" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">{t.verifyEmail.continueLabel}</a>
           </div>
 
-          <p id="verify-back-link" class="auth-bottom-line" hidden><a href="/customer/login">Back to sign in</a></p>
+          <p id="verify-back-link" class="auth-bottom-line" hidden><a href={loginHref}>{t.verifyEmail.backToSignIn}</a></p>
         </div>
 
-        <p class="auth-legal"><a href="/privacy-policy/">Privacy policy</a></p>
-        </div>
-      </div>
+        <p class="auth-legal"><a href={privacyPolicyHref(lang)}>{t.common.privacyPolicy}</a></p>
+        </main>
+      </section>
 
-      <div class="auth-image-panel">
+      <aside class="auth-image-panel">
         <img src="/images/customer-auth/Energy.webp" alt="" loading="lazy" />
-      </div>
+      </aside>
     </div>
 
-    <script is:inline define:vars={{ token }}>
+    <script is:inline define:vars={{ token, common: t.common, verifyEmail: t.verifyEmail }}>
       const iconEl = document.querySelector('#verify-icon');
       const headingEl = document.querySelector('#verify-heading');
       const subtitleEl = document.querySelector('#verify-subtitle');
@@ -66,7 +97,7 @@ const token = Astro.url.searchParams.get('token') ?? '';
           iconEl.dataset.variant = 'error';
           iconEl.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
         }
-        if (headingEl instanceof HTMLElement) headingEl.textContent = 'Verification failed';
+        if (headingEl instanceof HTMLElement) headingEl.textContent = verifyEmail.failedHeading;
         if (subtitleEl instanceof HTMLElement) subtitleEl.hidden = true;
         if (errorEl instanceof HTMLElement) {
           errorEl.textContent = message;
@@ -79,14 +110,14 @@ const token = Astro.url.searchParams.get('token') ?? '';
         if (iconEl instanceof HTMLElement) {
           iconEl.dataset.variant = 'success';
         }
-        if (headingEl instanceof HTMLElement) headingEl.textContent = 'Email verified';
-        if (subtitleEl instanceof HTMLElement) subtitleEl.textContent = 'Your account is ready to go.';
+        if (headingEl instanceof HTMLElement) headingEl.textContent = verifyEmail.successHeading;
+        if (subtitleEl instanceof HTMLElement) subtitleEl.textContent = verifyEmail.successSubtitle;
         if (actionsEl instanceof HTMLElement) actionsEl.hidden = false;
       }
 
       async function run() {
         if (!token) {
-          showError('This verification link is missing its token.');
+          showError(verifyEmail.missingToken);
           return;
         }
 
@@ -94,11 +125,15 @@ const token = Astro.url.searchParams.get('token') ?? '';
           const res = await fetch(`/api/customer-auth/verify-email?token=${encodeURIComponent(token)}`);
           if (res.ok) {
             showSuccess();
+          } else if (res.status === 429) {
+            showError(common.rateLimitError);
+          } else if (res.status >= 500) {
+            showError(common.serverError);
           } else {
-            showError('This verification link is invalid or has expired.');
+            showError(verifyEmail.invalidOrExpired);
           }
         } catch {
-          showError('Something went wrong. Please try again.');
+          showError(common.genericError);
         }
       }
 

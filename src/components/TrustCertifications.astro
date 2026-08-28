@@ -24,7 +24,7 @@ const items = ITEM_ORDER.map((key) => ({
     <!-- Header -->
     <div class="text-center mb-7 sm:mb-9">
       <p class="tc-eyebrow m-0 mb-1">{t.trustCertifications.eyebrow}</p>
-      <h2 id="trust-certifications-heading" class="tc-heading m-0">{t.trustCertifications.heading}</h2>
+      <h2 id="trust-certifications-heading" class="tc-heading font-serif m-0">{t.trustCertifications.heading}</h2>
     </div>
 
     <!-- Cards: horizontal scroll-snap on mobile, responsive grid from sm upward -->
@@ -89,7 +89,11 @@ const items = ITEM_ORDER.map((key) => ({
   .tc-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
   @media (min-width: 640px) { .tc-eyebrow { font-size: 1.375rem; } }
 
-  .tc-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+  /* line-height 1.25, not the usual 1.15 -- this heading's VI copy
+     measures ~366px at this font-size (Playfair Display Bold) against a
+     ~343px mobile column, so it reliably wraps to 2 lines; see
+     BrandStory.astro's .bs-heading comment for the full reasoning. */
+  .tc-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
   @media (min-width: 640px) { .tc-heading { font-size: 2.25rem; } }
 
   /* Mobile: horizontal scroll-snap track, ~1.2-1.4 cards visible.

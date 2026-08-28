@@ -3,35 +3,56 @@
 export const prerender = false;
 
 import { resolveSafeRedirect } from '../../server/lib/validate-redirect';
+import { localePath, getTranslations } from '../../i18n/utils';
+import {
+  resolveAuthLocale,
+  getAuthTranslations,
+  buildAuthLangHref,
+  authPageHref,
+  privacyPolicyHref,
+  type AuthLocale,
+} from '../../i18n/auth';
+import AuthLanguageSwitcher from '../../components/auth/AuthLanguageSwitcher.astro';
 
 const redirectTarget = resolveSafeRedirect(Astro.url.searchParams.get('redirect'), '/');
 if (Astro.locals.customerUser) {
   return Astro.redirect(redirectTarget);
 }
 
-const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)}`;
+const lang = resolveAuthLocale(Astro.url.searchParams);
+const t = getAuthTranslations(lang);
+
+const loginHref = authPageHref('login', lang, { redirect: redirectTarget });
+const homeHref = localePath(lang, '');
+const siteName = getTranslations(lang).common.siteName;
+const langHrefs: Record<AuthLocale, string> = {
+  vi: buildAuthLangHref(Astro.url, 'vi'),
+  zh: buildAuthLangHref(Astro.url, 'zh'),
+};
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="description" content="Create your Medicinal Herbs account to manage your profile, track orders, and enjoy a faster, personalized shopping experience." />
-    <title>Create an account — Medicinal Herbs</title>
+    <meta name="description" content={t.register.metaDescription} />
+    <title>{t.register.title}</title>
     <link rel="stylesheet" href="/customer.css" />
   </head>
   <body>
     <div class="auth-shell">
       <section class="auth-form-panel">
+        <AuthLanguageSwitcher lang={lang} label={t.common.languageSwitcherLabel} hrefs={langHrefs} />
+
         <div class="auth-logo-area">
-          <a href="/" class="auth-logo" aria-label="Medicinal Herbs — back to storefront">Medicinal Herbs</a>
+          <a href={homeHref} class="auth-logo" aria-label={t.common.logoAriaLabel}>{siteName}</a>
         </div>
 
         <main class="auth-form-content">
         <div class="auth-content">
-          <h1 class="auth-heading">Create account</h1>
-            <p class="auth-subtitle">Join to track orders and check out faster.</p>
+          <h1 class="auth-heading">{t.register.heading}</h1>
+            <p class="auth-subtitle">{t.register.subtitle}</p>
 
             <!-- UI prepared for future social authentication.
                  Not connected in Phase 1. Real, disabled <button>s --
@@ -41,70 +62,70 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)
                 <span class="auth-social-icon" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" /><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">G</text></svg>
                 </span>
-                <span class="auth-social-label">Continue with Google</span>
-                <span class="auth-social-soon">Soon</span>
+                <span class="auth-social-label">{t.common.socialGoogle}</span>
+                <span class="auth-social-soon">{t.common.socialComingSoon}</span>
               </button>
               <button type="button" class="auth-social-button" disabled aria-disabled="true">
                 <span class="auth-social-icon" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" /><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">f</text></svg>
                 </span>
-                <span class="auth-social-label">Continue with Facebook</span>
-                <span class="auth-social-soon">Soon</span>
+                <span class="auth-social-label">{t.common.socialFacebook}</span>
+                <span class="auth-social-soon">{t.common.socialComingSoon}</span>
               </button>
               <button type="button" class="auth-social-button" disabled aria-disabled="true">
                 <span class="auth-social-icon" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h16l-1.4 10.5a2 2 0 0 1-2 1.5H7.4a2 2 0 0 1-2-1.5L4 8Z" stroke-linejoin="round" /><path d="M8 8V6.5a4 4 0 0 1 8 0V8" /></svg>
                 </span>
-                <span class="auth-social-label">Continue with Shop</span>
-                <span class="auth-social-soon">Soon</span>
+                <span class="auth-social-label">{t.common.socialShop}</span>
+                <span class="auth-social-soon">{t.common.socialComingSoon}</span>
               </button>
             </div>
 
-            <div class="auth-divider">or</div>
+            <div class="auth-divider">{t.common.orDivider}</div>
 
             <p id="register-error" class="auth-error" role="alert" hidden></p>
 
             <form id="register-form" class="auth-form" novalidate>
               <div class="auth-field">
-                <label for="name">Name</label>
+                <label for="name">{t.register.nameLabel}</label>
                 <input id="name" name="name" type="text" autocomplete="name" required />
               </div>
 
               <div class="auth-field">
-                <label for="email">Email</label>
+                <label for="email">{t.register.emailLabel}</label>
                 <input id="email" name="email" type="email" autocomplete="username" required />
               </div>
 
               <div class="auth-field">
-                <label for="password">Password</label>
+                <label for="password">{t.register.passwordLabel}</label>
                 <div class="auth-password-row">
                   <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required />
-                  <button type="button" data-toggle-for="password" class="auth-password-toggle" aria-pressed="false" aria-label="Show password">
+                  <button type="button" data-toggle-for="password" class="auth-password-toggle" aria-pressed="false" aria-label={t.common.showPassword}>
                     <svg data-icon-show width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" /></svg>
                     <svg data-icon-hide width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.6 6.7C4.3 8.2 2.7 10.4 2 12c0 0 3.6 7 10 7 1.8 0 3.4-.4 4.7-1.1M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7-.5.9-1.3 2.1-2.4 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                   </button>
                 </div>
-                <p class="auth-hint">At least 12 characters.</p>
+                <p class="auth-hint">{t.common.passwordHint}</p>
               </div>
 
               <div class="auth-field">
-                <label for="confirmPassword">Confirm password</label>
+                <label for="confirmPassword">{t.register.confirmPasswordLabel}</label>
                 <div class="auth-password-row">
                   <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required />
-                  <button type="button" data-toggle-for="confirmPassword" class="auth-password-toggle" aria-pressed="false" aria-label="Show password">
+                  <button type="button" data-toggle-for="confirmPassword" class="auth-password-toggle" aria-pressed="false" aria-label={t.common.showPassword}>
                     <svg data-icon-show width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" /></svg>
                     <svg data-icon-hide width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.6 6.7C4.3 8.2 2.7 10.4 2 12c0 0 3.6 7 10 7 1.8 0 3.4-.4 4.7-1.1M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7-.5.9-1.3 2.1-2.4 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                   </button>
                 </div>
               </div>
 
-              <button type="submit" class="auth-submit">Create account</button>
+              <button type="submit" class="auth-submit">{t.register.submit}</button>
             </form>
 
-          <p class="auth-bottom-line">Already have an account? <a href={loginHref}>Sign in</a></p>
+          <p class="auth-bottom-line">{t.register.haveAccount} <a href={loginHref}>{t.register.signIn}</a></p>
         </div>
 
-        <p class="auth-legal"><a href="/privacy-policy/">Privacy policy</a></p>
+        <p class="auth-legal"><a href={privacyPolicyHref(lang)}>{t.common.privacyPolicy}</a></p>
         </main>
       </section>
 
@@ -113,7 +134,7 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)
       </aside>
     </div>
 
-    <script is:inline define:vars={{ redirectTarget }}>
+    <script is:inline define:vars={{ redirectTarget, lang, common: t.common, register: t.register }}>
       const form = document.querySelector('#register-form');
       const errorEl = document.querySelector('#register-error');
       const nameInput = document.querySelector('#name');
@@ -130,9 +151,13 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)
           const showing = targetInput.type === 'text';
           targetInput.type = showing ? 'password' : 'text';
           toggleButton.setAttribute('aria-pressed', showing ? 'false' : 'true');
-          toggleButton.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+          toggleButton.setAttribute('aria-label', showing ? common.showPassword : common.hidePassword);
         });
       });
+
+      function isValidEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      }
 
       if (
         form instanceof HTMLFormElement &&
@@ -144,32 +169,81 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)
         submitButton instanceof HTMLButtonElement
       ) {
         const originalLabel = submitButton.textContent;
+        const fields = [nameInput, emailInput, passwordInput, confirmPasswordInput];
+
+        function clearError() {
+          errorEl.hidden = true;
+          errorEl.textContent = '';
+          fields.forEach((input) => {
+            input.removeAttribute('aria-invalid');
+            input.removeAttribute('aria-describedby');
+          });
+        }
+
+        function showError(message, invalidInput) {
+          errorEl.textContent = message;
+          errorEl.hidden = false;
+          fields.forEach((input) => {
+            if (input === invalidInput) {
+              input.setAttribute('aria-invalid', 'true');
+              input.setAttribute('aria-describedby', 'register-error');
+            } else {
+              input.removeAttribute('aria-invalid');
+              input.removeAttribute('aria-describedby');
+            }
+          });
+          if (invalidInput) invalidInput.focus();
+        }
+
+        fields.forEach((input) => {
+          input.addEventListener('input', () => { if (!errorEl.hidden) clearError(); });
+        });
 
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
-          errorEl.hidden = true;
+          if (submitButton.disabled) return;
+          clearError();
 
+          if (!nameInput.value.trim()) {
+            showError(register.nameRequired, nameInput);
+            return;
+          }
+          const email = emailInput.value.trim();
+          if (!email) {
+            showError(common.emailRequired, emailInput);
+            return;
+          }
+          if (!isValidEmail(email)) {
+            showError(common.emailInvalid, emailInput);
+            return;
+          }
+          if (!passwordInput.value) {
+            showError(common.passwordRequired, passwordInput);
+            return;
+          }
+          // Matches the backend's own minPasswordLength (12) -- see
+          // src/server/auth/customer-auth.ts -- not an invented extra rule.
+          if (passwordInput.value.length < 12) {
+            showError(register.passwordTooShort, passwordInput);
+            return;
+          }
           // Client-side only -- confirmPassword is never sent to the
           // server; it exists purely so a typo is caught before a network
           // round trip, matching the backend's existing {name,email,
-          // password} contract exactly (see
-          // src/server/lib/validate-admin-product-input.ts's sibling
-          // pattern of never inventing fields the backend doesn't accept).
+          // password} contract exactly.
           if (passwordInput.value !== confirmPasswordInput.value) {
-            errorEl.textContent = 'Passwords do not match.';
-            errorEl.hidden = false;
-            confirmPasswordInput.focus();
+            showError(register.passwordMismatch, confirmPasswordInput);
             return;
           }
 
           submitButton.disabled = true;
-          submitButton.textContent = 'Creating account…';
+          submitButton.textContent = register.submitLoading;
 
           try {
             const res = await fetch('/api/customer-auth/sign-up/email', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ name: nameInput.value, email: emailInput.value, password: passwordInput.value }),
+              body: JSON.stringify({ name: nameInput.value, email: emailInput.value, password: passwordInput.value, locale: lang }),
             });
 
             if (res.ok) {
@@ -177,14 +251,16 @@ const loginHref = `/customer/login?redirect=${encodeURIComponent(redirectTarget)
               return;
             }
 
-            const body = await res.json().catch(() => null);
-            errorEl.textContent = res.status === 429
-              ? 'Too many attempts. Please try again later.'
-              : (body?.message || 'Could not create your account. Please try again.');
-            errorEl.hidden = false;
+            // Never surface the raw Better Auth/server response body here
+            // -- only a clean, localized message per status bucket.
+            const message = res.status === 429
+              ? common.rateLimitError
+              : res.status >= 500
+                ? common.serverError
+                : register.genericFailure;
+            showError(message, null);
           } catch {
-            errorEl.textContent = 'Something went wrong. Please try again.';
-            errorEl.hidden = false;
+            showError(common.genericError, null);
           } finally {
             submitButton.disabled = false;
             submitButton.textContent = originalLabel;

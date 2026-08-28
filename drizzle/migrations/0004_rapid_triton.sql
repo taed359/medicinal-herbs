@@ -1,0 +1,2 @@
+ALTER TABLE "customer_profiles" ADD COLUMN "locale" text DEFAULT 'vi' NOT NULL;--> statement-breakpoint
+ALTER TABLE "customer_profiles" ADD CONSTRAINT "locale_check" CHECK ("customer_profiles"."locale" IN ('vi', 'zh'));

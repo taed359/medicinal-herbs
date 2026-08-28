@@ -16,7 +16,7 @@ const t = getTranslations(lang);
   <div class="container-page">
     <div class="text-center mb-7 sm:mb-9">
       <p class="no-eyebrow m-0 mb-1">{t.naturalOils.eyebrow}</p>
-      <h2 id="natural-oils-heading" class="no-heading m-0">{t.naturalOils.heading}</h2>
+      <h2 id="natural-oils-heading" class="no-heading font-serif m-0">{t.naturalOils.heading}</h2>
     </div>
 
     <!-- Products only: mobile horizontal scroll, grid from sm+ (2 cols), 4 cols on lg -->
@@ -47,7 +47,10 @@ const t = getTranslations(lang);
   /* Match HealthGoals/Reads heading language */
   .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
   @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }
-  .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+  /* 1.25, not the usual 1.15 -- see BrandStory.astro's .bs-heading comment
+     for why (Playfair Display's vertical metrics need more room than 1.15
+     gives when this heading wraps to 2 lines on narrow viewports). */
+  .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
   @media (min-width: 640px) { .no-heading { font-size: 2.25rem; } }
 
   /* Mobile horizontal carousel for products */
