@@ -143,6 +143,15 @@ body {
   margin: 0;
   width: 100%;
   min-height: 100%;
+  /* Defensive guard against a WebKit/iOS Safari bug where a wide
+   * transformed descendant inside nested overflow:hidden wrappers (e.g.
+   * TrustMarquee's animated ticker track) can let Safari compute the
+   * page's scrollable width from the un-clipped content, allowing a
+   * horizontal swipe to pan the whole document and reveal the body
+   * background as a strip past the visual edge. The page never
+   * legitimately scrolls horizontally, so this is safe site-wide. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 * {
   box-sizing: border-box;
