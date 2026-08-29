@@ -160,6 +160,21 @@ const year = new Date().getFullYear();
     gap: 2.5rem;
     margin-bottom: 2.5rem;
   }
+  /* Grid items default to `min-width: auto` (their content's min-content
+   * size), not 0 -- the classic Grid/Flexbox overflow gotcha. Confirmed
+   * live on a real iPhone (Web Inspector): the zh footer's Column 1
+   * forced document.body.scrollWidth to 516px against a 320px viewport
+   * (a 500px-wide column, all four locale-shared columns share this same
+   * grid so any of them could trip it) -- the `ch`-based max-widths in
+   * this file (.footer-brand-tag: 26ch, .footer-desc: 30ch) resolve to a
+   * much larger pixel value under the zh Noto Sans SC font's wider glyph
+   * metrics than under vi's font, pushing a column's min-content past
+   * the viewport and forcing the whole grid (and body) to overflow
+   * horizontally on narrow phones. Forcing min-width:0 confirmed
+   * scrollWidth drops back to exactly the viewport width. */
+  .footer-grid > * {
+    min-width: 0;
+  }
   @media (min-width: 768px) {
     .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
