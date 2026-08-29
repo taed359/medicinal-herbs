@@ -100,6 +100,32 @@ const sequences = Array.from({ length: REPEAT_COUNT });
         flex-wrap: nowrap;
     }
 
+    /* `overflow: clip` (not just the `overflow-hidden` Tailwind utility
+     * already on these two elements in the markup above) plus `contain:
+     * paint` is the standards-correct fix for a WebKit/iOS Safari bug
+     * where this section's very wide, `will-change: transform`-animated
+     * `.marquee-track` (intentionally many multiples of the viewport
+     * width, see REPEAT_COUNT above) can leak into the *page's* computed
+     * scrollable width even though it is visually clipped -- letting
+     * Safari believe the document is wider than the viewport and permit
+     * a horizontal pan/rubber-band that reveals the body background past
+     * the right edge. `overflow: clip` (unlike `hidden`) is specified to
+     * never contribute to a scroll container's scrollable overflow, and
+     * `contain: paint` guarantees nothing in this subtree is ever
+     * painted or measured outside its own box. Scoped Astro selectors
+     * here (implicit component scoping) only affect this file's own
+     * <section>/.marquee-viewport, so this can't affect any other
+     * overflow:hidden usage site-wide. */
+    section {
+        overflow: clip;
+        contain: paint;
+    }
+
+    .marquee-viewport {
+        overflow: clip;
+        contain: paint;
+    }
+
     @keyframes trust-marquee {
         from {
             transform: translateX(0);
