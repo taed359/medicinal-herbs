@@ -2,7 +2,8 @@
 import type { Locale } from '../i18n/utils';
 import { getTranslations, localePath } from '../i18n/utils';
 import Breadcrumbs from './Breadcrumbs.astro';
-import type { ProductDetailView } from '../domain/types';
+import ProductCard from './ProductCard.astro';
+import type { ProductDetailView, ProductSummaryView } from '../domain/types';
 import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
 import { Image } from 'astro:assets';
 import { formatExtractionMethod, formatCountryOfOrigin, formatCertType } from '../lib/product-metadata-labels';
@@ -10,8 +11,14 @@ import { formatExtractionMethod, formatCountryOfOrigin, formatCertType } from '.
 interface Props {
   lang: Locale;
   product: ProductDetailView;
+  // Same category, published, excluding this product -- fetched by the
+  // page (see [slug].astro) via productRepository.listByCategory, same
+  // real repository method NaturalOils.astro's own featured-products grid
+  // already relies on. Optional/defaults to empty so this component still
+  // renders correctly for any caller that doesn't pass it.
+  relatedProducts?: ProductSummaryView[];
 }
-const { lang, product } = Astro.props;
+const { lang, product, relatedProducts = [] } = Astro.props;
 const t = getTranslations(lang);
 
 const name = product.name;
@@ -39,6 +46,26 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
     maximumFractionDigits: 0,
   }).format(minorUnits);
 }
+
+// Mirrors NaturalOils.astro's own `products = items.map(...)` exactly --
+// same reason: most real products today have no seeded price yet, and
+// ProductCard already omits its price block when `price` is undefined.
+const relatedProductsList = relatedProducts.map((p) => ({
+  ...p,
+  formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
+  formattedOriginalPrice:
+    p.compareAtMinor != null ? formatPrice(p.compareAtMinor, p.currency ?? 'VND', lang) : undefined,
+}));
+
+// Which of the two content tabs ("Mo ta & Cach dung" / "Thanh phan") this
+// product actually has data for -- only real fields (product.description,
+// product.usage, product.ingredients), nothing invented. When just one
+// side has content, the tab *list* is skipped entirely (see the template
+// below) rather than rendering a single-item tab bar, since a tab strip
+// with one already-active tab has nothing to switch between.
+const hasDescriptionUsageTab = Boolean(product.description || product.usage);
+const hasIngredientsTab = Boolean(product.ingredients);
+const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).length;
 
 ---
 <section
@@ -90,7 +117,7 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
       </div>
 
       <div class="pd-info">
-        <p class="pd-eyebrow text-caption m-0">{catLabel}</p>
+        <p class="pd-eyebrow text-smm-0">{catLabel}</p>
         <h1 id="product-name" class="pd-title font-serif m-0 mt-3">{name}</h1>
 
         {hasPrice && defaultVariant && (
@@ -179,7 +206,7 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
             </dl>
 
             <form class="pd-purchase mt-8" onsubmit="return false">
-              <label for="pdp-quantity" class="pd-quantity-label text-caption">
+              <label for="pdp-quantity" class="pd-quantity-label text-sm">
                 {t.productDetail.quantityLabel}
               </label>
               <div class="pd-purchase-row">
@@ -214,61 +241,102 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
           </>
         )}
 
-        {(product.ingredients || product.usage || product.description || product.warnings.length > 0) && (
-          <div class="pd-details mt-7">
-            {product.ingredients && (
-              <details open>
-                <summary>{t.productDetail.ingredientsLabel}</summary>
-                <div class="pd-details-content">
-                  <div class="pd-details-content-inner">
-                    <p>{product.ingredients}</p>
-                  </div>
-                </div>
-              </details>
+        {(hasDescriptionUsageTab || hasIngredientsTab) && (
+          <div class="pd-tabs mt-7" data-pd-tabs>
+            {tabCount > 1 && (
+              <div class="pd-tab-list" role="tablist" aria-label={t.productDetail.descriptionUsageTabLabel}>
+                <button
+                  type="button"
+                  class="pd-tab"
+                  role="tab"
+                  id="pd-tab-desc"
+                  aria-controls="pd-panel-desc"
+                  aria-selected="true"
+                  data-pd-tab-target="pd-panel-desc"
+                >
+                  {t.productDetail.descriptionUsageTabLabel}
+                </button>
+                <button
+                  type="button"
+                  class="pd-tab"
+                  role="tab"
+                  id="pd-tab-ingredients"
+                  aria-controls="pd-panel-ingredients"
+                  aria-selected="false"
+                  data-pd-tab-target="pd-panel-ingredients"
+                >
+                  {t.productDetail.ingredientsLabel}
+                </button>
+              </div>
             )}
-            {product.usage && (
-              <details>
-                <summary>{t.productDetail.usageLabel}</summary>
-                <div class="pd-details-content">
-                  <div class="pd-details-content-inner">
-                    <p>{product.usage}</p>
-                  </div>
+
+            <div class="pd-tab-panels">
+              {hasDescriptionUsageTab && (
+                <div class="pd-tab-panel" id="pd-panel-desc" role="tabpanel" aria-labelledby="pd-tab-desc">
+                  {product.description && <p>{product.description}</p>}
+                  {product.usage && <p>{product.usage}</p>}
                 </div>
-              </details>
-            )}
-            {product.description && (
-              <details>
-                <summary>{t.productDetail.descriptionLabel}</summary>
-                <div class="pd-details-content">
-                  <div class="pd-details-content-inner">
-                    <p>{product.description}</p>
-                  </div>
+              )}
+              {hasIngredientsTab && (
+                <div
+                  class="pd-tab-panel"
+                  id="pd-panel-ingredients"
+                  role="tabpanel"
+                  aria-labelledby="pd-tab-ingredients"
+                  hidden={hasDescriptionUsageTab}
+                >
+                  <p>{product.ingredients}</p>
                 </div>
-              </details>
-            )}
-            {product.warnings.length > 0 && (
-              <details>
-                <summary>{t.productDetail.warningsLabel}</summary>
-                <div class="pd-details-content">
-                  <div class="pd-details-content-inner">
-                    {product.warnings.map((warning) => (
-                      <p>{warning}</p>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            )}
+              )}
+            </div>
+          </div>
+        )}
+
+        {product.warnings.length > 0 && (
+          <div class="pd-warnings mt-6" role="note">
+            <p class="pd-warnings-label m-0">{t.productDetail.warningsLabel}</p>
+            {product.warnings.map((warning) => (
+              <p class="m-0 mt-2">{warning}</p>
+            ))}
           </div>
         )}
 
         <div class="mt-9">
-          <a href={backHref} data-astro-reload class="pd-back inline-flex items-center gap-2 no-underline text-caption">
+          <a href={backHref} data-astro-reload class="pd-back inline-flex items-center gap-2 no-underline text-sm">
             <span aria-hidden="true">←</span>
             <span>{t.productDetail.backToCollection}</span>
           </a>
         </div>
       </div>
     </div>
+
+    {relatedProductsList.length > 0 && (
+      <section class="pd-related mt-16 sm:mt-20" aria-labelledby="pd-related-heading">
+        <p class="eyebrow m-0 mb-2">{t.relatedProducts.eyebrow}</p>
+        <h2 id="pd-related-heading" class="text-heading-section font-serif m-0">{t.relatedProducts.heading}</h2>
+        <ul class="pd-related-grid m-0 mt-6 grid list-none grid-cols-2 gap-4 p-0 sm:gap-5 lg:grid-cols-4" role="list">
+          {relatedProductsList.map((p) => {
+            const relatedHref = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
+            const relatedImage = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
+            const relatedAlt = p.primaryImage?.alt || p.name;
+            return (
+              <li class="h-full">
+                <ProductCard
+                  name={p.name}
+                  category={catLabel}
+                  href={relatedHref}
+                  cta={t.product.ctaViewDetails}
+                  image={relatedImage}
+                  alt={relatedAlt}
+                  price={p.formattedPrice}
+                  originalPrice={p.formattedOriginalPrice}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
   </div>
 </section>
 
@@ -557,68 +625,87 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
     color: var(--color-muted);
   }
 
-  .pd-details {
-    border-top: 1px solid var(--color-border);
-  }
-
-  .pd-details details {
+  /* Tabs: replaces the old <details> accordion. Two tabs max today
+     ("Mo ta & Cach dung" combined, "Thanh phan") -- see the frontmatter
+     comment on hasDescriptionUsageTab/hasIngredientsTab for why a third
+     "Reviews" tab isn't here; there's no review data to show in one. */
+  .pd-tab-list {
+    display: flex;
+    gap: 1.75rem;
     border-bottom: 1px solid var(--color-border);
-    interpolate-size: allow-keywords;
   }
 
-  .pd-details summary {
-    position: relative;
-    padding: 1.15rem 1.5rem 1.15rem 0;
-    color: var(--color-heading);
+  .pd-tab {
+    padding: 0 0 0.85rem;
+    color: var(--color-muted);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font: inherit;
     font-size: 0.925rem;
     font-weight: 700;
     cursor: pointer;
-    list-style: none;
+    transition: color 180ms ease, border-color 180ms ease;
   }
 
-  .pd-details summary::-webkit-details-marker {
-    display: none;
+  .pd-tab:hover {
+    color: var(--color-heading);
   }
 
-  .pd-details summary::after {
-    content: '+';
-    position: absolute;
-    right: 0;
-    color: var(--color-muted);
-    font-size: 0.85rem;
-    font-weight: 400;
-    transform: rotate(0deg);
-    transform-origin: center;
-    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  .pd-tab[aria-selected='true'] {
+    color: var(--color-heading);
+    border-bottom-color: var(--color-brand);
   }
 
-  .pd-details details[open] summary::after {
-    transform: rotate(45deg);
+  .pd-tab:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
   }
 
-  .pd-details details::details-content {
-    block-size: 0;
-    overflow: clip;
-    transition:
-      block-size 280ms cubic-bezier(0.4, 0, 0.2, 1),
-      content-visibility 280ms allow-discrete;
+  .pd-tab-panels {
+    padding-top: 1.25rem;
   }
 
-  .pd-details details[open]::details-content {
-    block-size: auto;
-  }
-
-  .pd-details-content-inner {
-    overflow: clip;
-  }
-
-  .pd-details p {
+  /* A lone panel (no tab list above it, tabCount === 1) still gets this
+     same top padding rather than special-cased to zero -- it reads as a
+     normal content block either way, and keeps the spacing identical to
+     the two-tab case instead of jumping when a product later gains its
+     missing field. */
+  .pd-tab-panel p {
     margin: 0;
-    padding: 0 0 1rem;
     color: var(--color-body);
     font-size: 0.875rem;
     line-height: 1.7;
   }
+
+  .pd-tab-panel p + p {
+    margin-top: 0.85rem;
+  }
+
+  /* Warnings: pulled out of the tabs entirely (unlike the old accordion,
+     which buried them behind an extra click next to unrelated content) --
+     always visible when they exist, styled as a quiet safety notice
+     rather than another tab or collapsible. */
+  .pd-warnings {
+    padding: 1rem 1.15rem;
+    border: 1px solid color-mix(in oklab, var(--color-border) 55%, transparent);
+    border-left: 3px solid var(--color-brand);
+    border-radius: var(--radius-badge, 6px);
+    background: var(--color-cream);
+  }
+
+  .pd-warnings-label {
+    color: var(--color-heading);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .pd-warnings p {
+    color: var(--color-body);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
 
   .pd-back {
     color: var(--color-body);
@@ -642,7 +729,8 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
 
   .pd-zh .pd-summary,
   .pd-zh .pd-benefits,
-  .pd-zh .pd-details p {
+  .pd-zh .pd-tab-panel p,
+  .pd-zh .pd-warnings p {
     line-height: 1.8;
   }
 
@@ -670,9 +758,7 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
   @media (prefers-reduced-motion: reduce) {
     .pd-back,
     .pd-quantity-button,
-    .pd-details summary::after { transition: none; }
-
-    .pd-details details::details-content { transition: none; }
+    .pd-tab { transition: none; }
   }
 </style>
 
@@ -685,6 +771,24 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
       button.addEventListener('click', () => {
         const action = button.getAttribute('data-quantity-action');
         action === 'increase' ? input.stepUp() : input.stepDown();
+      });
+    });
+  });
+
+  // Description/Ingredients tabs -- only wired up when a tab LIST exists
+  // (tabCount > 1 in the frontmatter); a lone panel has no buttons here
+  // to begin with, so this simply finds nothing and does nothing.
+  document.querySelectorAll<HTMLElement>('[data-pd-tabs]').forEach((root) => {
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    if (tabs.length === 0) return;
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.getAttribute('data-pd-tab-target');
+        tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+        root.querySelectorAll<HTMLElement>('[role="tabpanel"]').forEach((panel) => {
+          panel.hidden = panel.id !== targetId;
+        });
       });
     });
   });

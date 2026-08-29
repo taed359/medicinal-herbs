@@ -5,6 +5,7 @@ import {
   localeHomePath,
   swapLocaleInPath,
   isLocale,
+  getTranslations,
   type Locale,
 } from '../i18n/utils';
 
@@ -25,6 +26,7 @@ const {
 const hasMultipleMessages = messages.length > 1;
 
 const current = localeMeta[lang];
+const t = getTranslations(lang);
 
 // Preserve the current pathname when switching locale: swap only the locale
 // segment via the centralized swapLocaleInPath() helper. If the current
@@ -42,8 +44,13 @@ const options = locales.map((locale) => ({
   active: locale === lang,
 }));
 ---
-<div class="w-full bg-brand text-white">
-  <div class="container-page h-11 flex items-center justify-between gap-4">
+<!-- Stage 2J: recomposed to match the visual-reference mockup's slim
+     topbar -- pine-dark background (not the sitewide brand green),
+     paper-2 text, reduced height (36px, close to the mockup's 38px, down
+     from the previous 44px). Mechanics (rotation, prev/next, locale
+     switching) are entirely unchanged; only color/height/container. -->
+<div class="w-full bg-pine-dark text-paper-2">
+  <div class="container-editorial h-9 flex items-center justify-between gap-4">
     <!-- Arrows + rotating text live together as one left-aligned group (not
          centered) so the text gets as much width as possible on narrow
          screens (e.g. iPhone SE) instead of splitting space three ways
@@ -53,7 +60,7 @@ const options = locales.map((locale) => ({
         <div class="announcement-arrows flex items-center gap-1 shrink-0">
           <button
             type="button"
-            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-white/80 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 rounded-sm cursor-pointer transition-colors"
+            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-paper-2/80 hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 rounded-sm cursor-pointer transition-colors"
             aria-label="Previous message"
             aria-controls="announcement-track"
             data-announcement-prev
@@ -64,7 +71,7 @@ const options = locales.map((locale) => ({
           </button>
           <button
             type="button"
-            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-white/80 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 rounded-sm cursor-pointer transition-colors"
+            class="announcement-arrow shrink-0 inline-flex items-center justify-center w-6 h-6 text-paper-2/80 hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 rounded-sm cursor-pointer transition-colors"
             aria-label="Next message"
             aria-controls="announcement-track"
             data-announcement-next
@@ -82,19 +89,37 @@ const options = locales.map((locale) => ({
               data-announcement-slide
               data-active={i === 0 ? 'true' : undefined}
             >
-              <span class="block w-full min-w-0 truncate text-left text-caption">{msg}</span>
+              <span class="block w-full min-w-0 truncate text-left text-sm">{msg}</span>
             </p>
           ))}
         </div>
       </div>
     ) : (
-      <p class="m-0 min-w-0 flex-1 text-left text-caption truncate">{messages[0] ?? ''}</p>
+      <p class="m-0 min-w-0 flex-1 text-left text-smtruncate">{messages[0] ?? ''}</p>
     )}
-    <div class="flex items-center justify-end shrink-0">
+    <div class="flex items-center justify-end gap-1 shrink-0">
+      <!-- Store locator: UI only for now, deliberately no href/handler --
+           there is no store-locator page or physical-store data in this
+           codebase yet (see project notes), so this must not pretend to
+           navigate anywhere until a real destination exists. A plain,
+           unwired <button> (never `<a href="#">`, which would silently
+           jump to the top of the page) keeps that honest while still
+           matching the announcement bar's other controls visually. -->
+      <button
+        type="button"
+        class="find-store-button flex items-center gap-1.5 min-h-11 px-2 py-1.5 text-sm font-medium text-paper-2 hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 transition-colors rounded-sm cursor-pointer"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0">
+          <path d="M12 21s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <circle cx="12" cy="9" r="2.3" stroke="currentColor" stroke-width="1.6" />
+        </svg>
+        <span>{t.header.findStoreLabel}</span>
+      </button>
+
       <div class="locale-switcher relative" data-locale-switcher>
         <button
           type="button"
-          class="locale-switcher-trigger flex items-center gap-1.5 min-h-11 px-2 py-1.5 text-sm font-medium text-white hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 transition-colors rounded-sm cursor-pointer"
+          class="locale-switcher-trigger flex items-center gap-1.5 min-h-11 px-2 py-1.5 text-sm font-medium text-paper-2 hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber/70 transition-colors rounded-sm cursor-pointer"
           aria-haspopup="menu"
           aria-expanded="false"
           aria-controls="locale-switcher-menu"

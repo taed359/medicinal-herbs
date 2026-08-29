@@ -1,6 +1,6 @@
 <svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
-<title>Bieu tuong cham soc benh man tinh</title>
-<desc>Duong nhip tim xuyen qua hinh trai tim, tuong trung cho theo doi va cham soc benh man tinh.</desc>
+<title>Bieu tuong giac ngu &amp; giam cang thang</title>
+<desc>Trang luoi liem voi vai vi sao nho, tuong trung cho giac ngu va giam cang thang.</desc>
 <defs>
   <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="#F6F1E8"/>
@@ -12,7 +12,11 @@
 <circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
 <circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
 <circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
-<path d="M200,246 C200,246 152,212 152,178 C152,154 172,142 189,154 C195,158 200,165 200,165 C200,165 205,158 211,154 C228,142 248,154 248,178 C248,212 200,246 200,246 Z"
-  fill="#EFE8D6" stroke="#1C3128" stroke-width="3.2"/>
-<path d="M156,194 L178,194 L188,168 L200,222 L212,172 L222,194 L244,194" fill="none" stroke="#B9863F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="196" cy="196" r="36" fill="#2C4A3B"/>
+<circle cx="212" cy="184" r="31" fill="url(#paperBg)"/>
+<g fill="#B9863F">
+  <circle cx="246" cy="164" r="2.4"/>
+  <circle cx="234" cy="148" r="1.8"/>
+  <circle cx="256" cy="182" r="1.6"/>
+</g>
 </svg>

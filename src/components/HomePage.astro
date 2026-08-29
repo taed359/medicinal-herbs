@@ -4,6 +4,7 @@ import Hero from "./Hero.astro";
 import TrustMarquee from "./TrustMarquee.astro";
 import HealthGoals from "./HealthGoals.astro";
 import TrustCertifications from "./TrustCertifications.astro";
+import Process from "./Process.astro";
 import BrandStory from "./BrandStory.astro";
 import HealthReads from "./HealthReads.astro";
 import ExpertConsultation from "./ExpertConsultation.astro";
@@ -21,11 +22,12 @@ const { lang, naturalOils } = Astro.props;
 const t = getTranslations(lang);
 ---
 
-<Layout lang={lang} title={t.home.title}>
+<Layout lang={lang} title={t.home.title} mainClass="homepage-main">
     <Hero lang={lang} />
 
     <TrustMarquee lang={lang} />
     <TrustCertifications lang={lang} />
+    <Process lang={lang} />
     <HealthGoals lang={lang} />
     <NaturalOils lang={lang} items={naturalOils} />
     <HealthReads lang={lang} />

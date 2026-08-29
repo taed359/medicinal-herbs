@@ -99,7 +99,14 @@ a { color: var(--auth-brand); }
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--auth-surface);
+  /* Match the storefront's page background (see --auth-cream's doc
+     comment: copied by value from --color-cream). This panel fills the
+     entire visible left half via .auth-shell's grid stretch, so its own
+     background IS what reads as "the page background" here -- it was
+     previously set to --auth-surface (the lighter "soft ivory" tone used
+     for cards/inputs sitewide), which made these auth pages look
+     noticeably whiter/flatter than every other page on the site. */
+  background: var(--auth-cream);
 }
 
 /* Language switcher --------------------------------------------------------

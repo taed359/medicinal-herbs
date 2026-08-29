@@ -1,0 +1,27 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong lam dep &amp; chong lao hoa</title>
+<desc>Bong hoa no tron voi tia sang lap lanh, tuong trung cho lam dep va chong lao hoa.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(0 200 200)"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(60 200 200)"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(120 200 200)"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(180 200 200)"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(240 200 200)"/>
+<ellipse cx="200" cy="172" rx="15" ry="28" fill="#E7CFA0" stroke="#8A6423" stroke-width="1.2" transform="rotate(300 200 200)"/>
+<circle cx="200" cy="200" r="11" fill="#B9863F"/>
+<g stroke="#8A6423" stroke-width="2" stroke-linecap="round">
+  <line x1="256" y1="132" x2="256" y2="146"/>
+  <line x1="249" y1="139" x2="263" y2="139"/>
+</g>
+<circle cx="256" cy="139" r="1.6" fill="#8A6423"/>
+</svg>

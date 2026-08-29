@@ -30,14 +30,19 @@ const accountHref = `/customer/account?lang=${lang}`;
 ---
 <AnnouncementBar lang={lang} messages={t.header.announcement} />
 
-<header class="sticky top-0 z-40 bg-surface">
+<header class="sticky top-0 z-40 bg-cream">
   <!-- Main navbar -->
-  <div class="bg-surface border-b border-border">
-    <div class="container-page relative h-[80px] flex items-center justify-between gap-4">
+  <!-- Stage 2J: height matched to the mockup's masthead (84px, was 80px),
+       container widened to match Hero/homepage below it
+       (.container-editorial, was .container-page) so the header's edges
+       line up with the redesigned page instead of the wider 1440px
+       storefront default. -->
+  <div class="bg-cream border-b border-border">
+    <div class="container-editorial relative h-[84px] flex items-center justify-between gap-4">
       <button
         type="button"
         data-mobile-menu-open
-        class="md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-heading hover:text-brand transition-colors"
+        class="md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-pine-dark hover:text-amber transition-colors"
         aria-label={t.header.menuLabel}
         aria-expanded="false"
         aria-controls="mobile-navigation-drawer"
@@ -47,27 +52,43 @@ const accountHref = `/customer/account?lang=${lang}`;
         </svg>
       </button>
 
-      <!-- Logo -->
-      <a href={homeHref} data-astro-reload class="absolute left-1/2 -translate-x-1/2 flex flex-col leading-tight no-underline shrink-0 md:static md:translate-x-0">
-        <span class="font-sans text-2xl text-heading">{t.common.siteName}</span>
-        <span class="header-meta-text text-caption hidden sm:block">{t.common.tagline}</span>
-      </a>
+      <!-- Stage 2K: logo + nav share one flex group with their own fixed
+           gap, rather than being two of three siblings under the row's
+           `justify-between`. With the wider --max-container-editorial
+           (Stage 2K), three siblings under `justify-between` would
+           distribute the extra ~290px of space (at 1440px+ viewports)
+           into just two gaps -- visually stranding the nav links far
+           from the logo. Grouping them keeps that gap fixed; the row's
+           `justify-between` now only distributes space between this
+           group and the search/icons cluster, which is the expected
+           masthead pattern (brand+nav clustered left, utilities right).
+           Purely a wrapping div -- doesn't change the logo's own mobile
+           absolute-centering (it still resolves against the row's own
+           `relative`, since this wrapper is unpositioned/static) or the
+           nav's `hidden md:flex` behavior. -->
+      <div class="flex items-center gap-12">
+        <!-- Logo -->
+        <a href={homeHref} data-astro-reload class="absolute left-1/2 -translate-x-1/2 flex flex-col leading-tight no-underline shrink-0 md:static md:translate-x-0">
+          <span class="font-serif text-2xl text-pine-dark">{t.common.siteName}</span>
+          <span class="header-meta-text text-smhidden sm:block">{t.common.tagline}</span>
+        </a>
 
       <!-- Center nav (desktop) -->
-      <nav aria-label="primary" class="hidden md:flex items-center gap-8">
-        <a href="#" class="relative flex items-center gap-1.5 font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
+      <nav aria-label="primary" class="hidden md:flex items-center gap-9">
+        <a href="#" class="relative flex items-center gap-1.5 font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
           {t.header.navSale}
           <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
         </a>
-        <a href="#" class="relative flex items-center gap-1 font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
+        <a href="#" class="relative flex items-center gap-1 font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
           {t.header.navShopBy}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
-        <a href="#" class="relative font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
-        <a href="#" class="relative font-sans text-sm text-heading hover:text-brand transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-brand after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navHealthReads}</a>
-      </nav>
+        <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
+        <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navHealthReads}</a>
+        </nav>
+      </div>
 
       <!-- Search + icons -->
       <div class="flex items-center gap-4">
@@ -98,7 +119,7 @@ const accountHref = `/customer/account?lang=${lang}`;
             data-astro-reload
             data-account-guest
             hidden={Boolean(customerUser)}
-            class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors"
+            class="inline-flex items-center gap-1.5 text-pine-dark hover:text-amber transition-colors"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
@@ -115,7 +136,7 @@ const accountHref = `/customer/account?lang=${lang}`;
               aria-haspopup="menu"
               aria-expanded="false"
               aria-controls="account-menu"
-              class="inline-flex items-center gap-1.5 text-heading hover:text-brand transition-colors cursor-pointer"
+              class="inline-flex items-center gap-1.5 text-pine-dark hover:text-amber transition-colors cursor-pointer"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5" />
@@ -152,7 +173,7 @@ const accountHref = `/customer/account?lang=${lang}`;
         <!-- Mobile search toggle -->
         <button
           type="button"
-          class="mobile-search-trigger md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-heading hover:text-brand transition-colors"
+          class="mobile-search-trigger md:hidden inline-flex items-center justify-center w-9 h-9 cursor-pointer text-pine-dark hover:text-amber transition-colors"
           aria-label={t.header.searchLabel}
           aria-expanded="false"
           aria-controls="mobile-search-popup"
@@ -167,7 +188,7 @@ const accountHref = `/customer/account?lang=${lang}`;
           </svg>
         </button>
 
-        <a href="#" aria-label={t.header.cartLabel} class="relative text-heading hover:text-brand transition-colors">
+        <a href="#" aria-label={t.header.cartLabel} class="relative text-pine-dark hover:text-amber transition-colors">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M4 7h16l-1.5 10.5a2 2 0 0 1-2 1.5H7.5a2 2 0 0 1-2-1.5L4 7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
             <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="1.5" />
@@ -221,7 +242,7 @@ const accountHref = `/customer/account?lang=${lang}`;
       data-mobile-menu-panel
     >
       <div class="mobile-drawer-topbar">
-        <a href={homeHref} data-astro-reload class="font-sans text-lg text-heading no-underline">{t.common.siteName}</a>
+        <a href={homeHref} data-astro-reload class="font-serif text-lg text-pine-dark no-underline">{t.common.siteName}</a>
         <button
           type="button"
           class="mobile-drawer-icon-button"
@@ -496,7 +517,7 @@ const accountHref = `/customer/account?lang=${lang}`;
     align-items: center;
     justify-content: center;
     padding: 0;
-    color: var(--color-heading);
+    color: var(--color-pine-dark);
     border: 0;
     background: transparent;
     cursor: pointer;
@@ -562,14 +583,14 @@ const accountHref = `/customer/account?lang=${lang}`;
     border-bottom: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
     background: transparent;
     font: inherit;
-    font-size: 0.95rem;
+    font-size: 1rem;
     text-align: left;
     text-decoration: none;
     cursor: pointer;
     transition: color 180ms ease;
   }
 
-  .mobile-menu-row:hover { color: var(--color-brand); }
+  .mobile-menu-row:hover { color: var(--color-amber); }
 
   /* Accordion chevron rotates to reflect its trigger's own aria-expanded
      -- same idiom as the desktop account dropdown's caret. Toggling

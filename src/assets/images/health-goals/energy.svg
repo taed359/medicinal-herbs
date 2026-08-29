@@ -1,0 +1,27 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong nang luong &amp; suc song</title>
+<desc>Vong tia mat troi voi la non ben duoi, tuong trung cho nang luong va suc song.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(0 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(45 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(90 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(135 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(180 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(225 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(270 200 200)"/>
+<line x1="200" y1="146" x2="200" y2="162" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round" transform="rotate(315 200 200)"/>
+<circle cx="200" cy="200" r="27" fill="#B9863F"/>
+<circle cx="200" cy="200" r="27" fill="none" stroke="#8A6423" stroke-width="1"/>
+<path d="M200,224 C214,228 218,244 200,254 C182,244 186,228 200,224 Z" fill="#2C4A3B"/>
+<line x1="200" y1="230" x2="200" y2="248" stroke="#F6F1E8" stroke-width="1.2" opacity="0.8"/>
+</svg>

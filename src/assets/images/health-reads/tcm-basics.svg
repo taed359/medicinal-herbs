@@ -1,7 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" fill="none">
-  <rect width="800" height="800" rx="24" fill="#FBF6EE"/>
-  <circle cx="400" cy="400" r="160" fill="#FAF4E8"/>
-  <path d="M320 420c50-80 140-120 230-120" stroke="#8B1E2B" stroke-width="10" stroke-linecap="round"/>
-  <path d="M240 520c90-10 160-40 210-110" stroke="#C5A25D" stroke-width="10" stroke-linecap="round"/>
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong y hoc co truyen</title>
+<desc>Bieu tuong am duong thai cuc, tuong trung cho nen tang y hoc co truyen.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<circle cx="200" cy="200" r="62" fill="#E7CFA0"/>
+<path d="M200,138 A62,62 0 0,1 200,262 A31,31 0 0,1 200,200 A31,31 0 0,0 200,138 Z" fill="#2C4A3B"/>
+<circle cx="200" cy="169" r="9" fill="#E7CFA0"/>
+<circle cx="200" cy="231" r="9" fill="#2C4A3B"/>
+<circle cx="200" cy="200" r="62" fill="none" stroke="#1C3128" stroke-width="3"/>
 </svg>
-

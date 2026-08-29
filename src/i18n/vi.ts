@@ -17,6 +17,7 @@ export const vi: TranslationSchema = {
     navShopBy: 'Mua theo',
     navOurStory: 'Câu chuyện',
     navHealthReads: 'Thảo dược & Sức khỏe',
+    findStoreLabel: 'Tìm cửa hàng',
     searchPlaceholder: 'Tìm kiếm sản phẩm...',
     searchLabel: 'Tìm kiếm',
     accountLabel: 'Tài khoản',
@@ -63,12 +64,12 @@ export const vi: TranslationSchema = {
     privacy: 'Quyền riêng tư',
   },
   hero: {
-    eyebrow: 'Kỷ Niệm 147 Năm',
-    title: 'Đại Tiệc Sale Kỷ Niệm Lớn Nhất',
+    eyebrow: 'Di Sản Y Học Cổ Truyền',
+    title: 'Tinh Hoa Thảo Dược · Chuẩn Mực Hiện Đại',
     description:
-      'Ưu đãi MỚI giảm 61% cho sản phẩm thứ 2, cùng chương trình Hoàn Tiền Tức Thì trên toàn cửa hàng...',
-    ctaLabel: 'Mua Ngay',
-    imageAlt: 'Hình nền quảng bá Đại Tiệc Kỷ Niệm Thảo Dược với họa tiết lá thảo mộc trang nhã',
+      'Kế thừa trí tuệ y học cổ truyền, chúng tôi tuyển chọn nguyên liệu tự nhiên và tuân thủ tiêu chuẩn chất lượng hiện đại, mang đến những sản phẩm thảo dược đáng tin cậy cho sức khỏe của bạn.',
+    ctaLabel: 'Khám Phá Sản Phẩm',
+    imageAlt: 'Minh họa lọ cao thảo dược hổ phách cùng con dấu di sản, bao quanh bởi lá và rễ thảo mộc',
   },
   healthGoals: {
     eyebrow: 'Mua theo',
@@ -110,6 +111,8 @@ export const vi: TranslationSchema = {
     ariaLabel: 'Chứng nhận chất lượng và giá trị',
     disclaimer:
       'Chứng nhận và đăng ký có thể khác nhau tùy theo từng sản phẩm. Tiêu chuẩn chất lượng nghiêm ngặt được duy trì trên toàn bộ danh mục.',
+    statLabel: 'Tiêu chuẩn chất lượng được tuân thủ',
+    ctaLabel: 'Xem đầy đủ chứng nhận',
     items: {
       tga: {
         title: 'Sản phẩm được TGA liệt kê',
@@ -142,6 +145,30 @@ export const vi: TranslationSchema = {
           'Thảo dược được xác minh khoa học về danh tính, chất lượng và tính nhất quán.',
       },
     },
+  },
+  process: {
+    eyebrow: 'Nguyên tắc lựa chọn',
+    heading: 'Từ nguyên liệu đến thông tin sản phẩm',
+    lede:
+      'Bốn nguyên tắc định hướng cách chúng tôi lựa chọn và giới thiệu sản phẩm thảo dược cho nhu cầu hằng ngày.',
+    steps: [
+      {
+        title: 'Tìm hiểu nguồn gốc',
+        description: 'Ưu tiên thông tin rõ ràng về nguyên liệu và nơi sản xuất.',
+      },
+      {
+        title: 'Xem xét công thức',
+        description: 'Đọc kỹ thành phần và cách dùng được công bố cho từng sản phẩm.',
+      },
+      {
+        title: 'Đối chiếu chất lượng',
+        description: 'Xem xét tiêu chuẩn và thông tin chất lượng áp dụng cho từng sản phẩm.',
+      },
+      {
+        title: 'Trình bày minh bạch',
+        description: 'Cung cấp thông tin thiết yếu để bạn cân nhắc lựa chọn phù hợp.',
+      },
+    ],
   },
   healthReads: {
     eyebrow: 'Góc Sức Khỏe',
@@ -191,6 +218,10 @@ export const vi: TranslationSchema = {
     heading: 'Tinh hoa từ thiên nhiên',
     ctaViewAll: 'Xem tất cả dầu thực vật',
     collectionPath: 'products/natural-oils',
+  },
+  relatedProducts: {
+    eyebrow: 'Có thể bạn cũng thích',
+    heading: 'Sản phẩm liên quan',
   },
   pager: {
     prevLabel: 'Trang trước',
@@ -248,6 +279,7 @@ export const vi: TranslationSchema = {
     usageLabel: 'Cách sử dụng',
     descriptionLabel: 'Mô tả sản phẩm',
     warningsLabel: 'Lưu ý an toàn',
+    descriptionUsageTabLabel: 'Mô tả & Cách dùng',
     botanicalNameLabel: 'Tên khoa học',
     originLabel: 'Xuất xứ',
     extractionMethodLabel: 'Phương pháp chiết xuất',

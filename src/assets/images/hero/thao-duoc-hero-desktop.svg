@@ -1,0 +1,84 @@
+<svg width="680" height="820" viewBox="0 0 680 820" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Minh họa lọ cao thảo dược — bản desktop</title>
+<desc>Lọ thủy tinh màu hổ phách chứa cao thảo dược, bao quanh bởi cành lá và rễ cây khô, cùng một con dấu tròn khắc chữ Hán, trên nền xanh tùng đậm với họa tiết lá cách điệu.</desc>
+<defs>
+  <linearGradient id="jarGrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3C5C4B"/>
+    <stop offset="55%" stop-color="#2C4A3B"/>
+    <stop offset="100%" stop-color="#1C3128"/>
+  </linearGradient>
+</defs>
+<style>
+  .bg{ fill:#1C3128; }
+  .leaf2{ fill:#33503F; }
+  .branch{ fill:none; stroke:#6B8A76; stroke-width:1.2; }
+  .paper{ fill:#F5F0E3; }
+  .amber{ fill:#B9863F; }
+  .ink{ fill:#221F1A; }
+  .sage{ fill:#A9B79C; }
+  .zhtext{ font-family:'Noto Serif SC','Songti SC',serif; }
+  .serif{ font-family:'Fraunces','Georgia',serif; }
+  .sans{ font-family:'Be Vietnam Pro','Helvetica Neue',sans-serif; }
+</style>
+
+<rect class="bg" width="680" height="820"/>
+
+<circle cx="340" cy="360" r="300" fill="#213C30" opacity="0.6"/>
+<circle cx="340" cy="360" r="230" fill="#25412F" opacity="0.5"/>
+
+<g opacity="0.55">
+  <path class="branch" d="M60 120 C 120 90, 160 140, 130 200 C 110 240, 60 250, 40 210"/>
+  <ellipse class="leaf2" cx="95" cy="145" rx="20" ry="9" transform="rotate(-30 95 145)"/>
+  <ellipse class="leaf2" cx="125" cy="180" rx="18" ry="8" transform="rotate(20 125 180)"/>
+  <ellipse class="leaf2" cx="70" cy="205" rx="16" ry="7" transform="rotate(60 70 205)"/>
+
+  <path class="branch" d="M620 640 C 560 610, 540 670, 580 710 C 605 735, 640 720, 645 690"/>
+  <ellipse class="leaf2" cx="580" cy="655" rx="18" ry="8" transform="rotate(35 580 655)"/>
+  <ellipse class="leaf2" cx="610" cy="695" rx="16" ry="7" transform="rotate(-15 610 695)"/>
+</g>
+
+<g transform="translate(230,180)">
+  <path d="M0 500 L15 500 L28 130 Q30 90 70 90 L150 90 Q190 90 192 130 L205 500 L220 500 L220 520 Q220 540 200 540 L20 540 Q0 540 0 520 Z" fill="url(#jarGrad)"/>
+  <path d="M28 130 Q30 90 70 90 L150 90 Q190 90 192 130 L192 175 L28 175 Z" fill="#3C5C4B" opacity="0.6"/>
+  <rect x="82" y="55" width="56" height="45" rx="4" fill="#8A6A38"/>
+  <rect x="88" y="35" width="44" height="28" rx="10" fill="#6B4E27"/>
+
+  <rect x="18" y="230" width="184" height="230" rx="4" class="paper"/>
+  <circle cx="110" cy="285" r="26" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+  <circle cx="110" cy="285" r="20" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+  <text x="110" y="294" text-anchor="middle" class="zhtext ink" font-size="20" font-weight="500">草</text>
+
+  <text x="110" y="345" text-anchor="middle" class="serif ink" font-size="19" font-weight="500">Cao Ngũ Vị Tử</text>
+  <text x="110" y="368" text-anchor="middle" class="zhtext sage" font-size="12">五味子膏 · Herbal Extract</text>
+
+  <line x1="45" y1="390" x2="175" y2="390" stroke="#D8CDA8" stroke-width="1"/>
+  <text x="110" y="415" text-anchor="middle" class="ink sans" font-size="10" letter-spacing="1.5" opacity="0.6">NATURAL · NO. 05</text>
+</g>
+
+<g transform="translate(140,470)" opacity="0.9">
+  <path class="branch" d="M0 60 Q 30 10 70 20 Q 110 30 100 70"/>
+  <ellipse class="leaf2" cx="20" cy="35" rx="16" ry="7" transform="rotate(-40 20 35)"/>
+  <ellipse class="leaf2" cx="55" cy="15" rx="15" ry="7" transform="rotate(10 55 15)"/>
+  <ellipse class="leaf2" cx="90" cy="45" rx="15" ry="7" transform="rotate(50 90 45)"/>
+</g>
+
+<g transform="translate(420,500)" opacity="0.9">
+  <path class="branch" d="M100 70 Q 70 20 30 25 Q -5 30 5 65"/>
+  <ellipse class="leaf2" cx="80" cy="35" rx="16" ry="7" transform="rotate(40 80 35)"/>
+  <ellipse class="leaf2" cx="45" cy="15" rx="15" ry="7" transform="rotate(-10 45 15)"/>
+  <ellipse class="leaf2" cx="12" cy="48" rx="15" ry="7" transform="rotate(-50 12 48)"/>
+</g>
+
+<g transform="translate(90,700)">
+  <circle r="46" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+  <circle r="38" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+  <text y="9" text-anchor="middle" class="zhtext" font-size="26" fill="#F5F0E3" font-weight="500">信</text>
+</g>
+<text x="150" y="708" class="serif" font-size="13" fill="#E7CFA0" font-weight="500">147 năm</text>
+<text x="150" y="726" class="sage sans" font-size="11" letter-spacing="0.5">gìn giữ y học cổ truyền</text>
+
+<g transform="translate(560,120)" opacity="0.85">
+  <circle r="34" fill="none" stroke="#B9863F" stroke-width="1.2"/>
+  <text y="7" text-anchor="middle" class="zhtext" font-size="18" fill="#E7CFA0" font-weight="500">源</text>
+</g>
+</svg>

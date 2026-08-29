@@ -9,7 +9,7 @@ const { lang } = Astro.props;
 const t = getTranslations(lang);
 
 // Order fixed here (not derived from Object.keys) so markup order matches
-// the ICON_ORDER below deterministically, independent of key insertion
+// the icon markup below deterministically, independent of key insertion
 // order in the i18n dictionaries.
 const ITEM_ORDER = ['tga', 'nsf', 'gmp', 'fda', 'fingerprinting'] as const;
 
@@ -17,189 +17,416 @@ const items = ITEM_ORDER.map((key) => ({
   key,
   ...t.trustCertifications.items[key],
 }));
+
+// Recomposed from "five equal certification cards" into one editorial
+// trust statement -- a left-hand intro (eyebrow, heading, and the
+// section's existing disclaimer promoted into a visible lede rather than
+// small print at the bottom) beside a quiet, divided list on the right.
+//
+// IMPORTANT re: the certification claims themselves -- title/subtitle/
+// description text below is UNCHANGED from the existing i18n content (see
+// src/i18n/vi.ts / zh.ts). This pass only changes which existing field
+// gets primary visual weight: each item's `subtitle` (already the more
+// general, conservative phrase -- "Compliance standard" / "Independent
+// certification" / "Manufacturing standard" / "Quality & Compliance" /
+// "Scientific verification") is promoted to the bold heading of its row,
+// and `title` (the more specific regulatory-sounding claim -- "TGA
+// Listed" / "NSF Certified" / etc.) is kept as visible supporting text
+// underneath, not hidden. Nothing was invented, softened in wording, or
+// removed -- only re-prioritized, specifically so this section reads as
+// "quality practices we follow" rather than "certifications we hold,"
+// without touching the underlying (still-unverified) claims themselves.
+// See the Stage 2C report for the legal context this is working within.
+//
+// The section's own disclaimer text is now the visible lede under the
+// heading instead of italic fine print at the very bottom -- a more
+// prominent, more honest placement of the same existing qualifier, not a
+// new one.
+//
+// Icons below are the same abstract line-art shapes the previous card
+// layout used (shield, ribbon-check, layered-stack, house-check,
+// leaf-with-nodes) -- generic marks, not reproductions of any real
+// TGA/NSF/GMP/FDA logo, just resized out of the old badge-circle
+// treatment into a leaner list-row icon.
+//
+// No seal/stamp motif here -- deliberately. This is the one section on
+// the homepage where a stamp-like decorative mark would most plausibly be
+// misread as an official certification seal, which is exactly the
+// impression this redesign has to avoid while these claims are
+// unverified. Evaluated and rejected on that basis, not omitted by
+// default.
 ---
 
-<section class="tc-section py-8 sm:py-10" aria-labelledby="trust-certifications-heading">
-  <div class="container-page">
-    <!-- Header -->
-    <div class="text-center mb-7 sm:mb-9">
-      <p class="tc-eyebrow m-0 mb-1">{t.trustCertifications.eyebrow}</p>
-      <h2 id="trust-certifications-heading" class="tc-heading font-serif m-0">{t.trustCertifications.heading}</h2>
-    </div>
+<section class="tc-section" aria-labelledby="trust-certifications-heading">
+  <div class="container-editorial">
+    <div class="tc-layout grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-16 lg:items-start">
+      <div class="tc-intro">
+        <p class="eyebrow m-0 mb-2">{t.trustCertifications.eyebrow}</p>
+        <h2 id="trust-certifications-heading" class="text-heading-section font-serif m-0">
+          {t.trustCertifications.heading}
+        </h2>
+        <p class="tc-lede mt-5 leading-relaxed max-w-prose">
+          {t.trustCertifications.disclaimer}
+        </p>
 
-    <!-- Cards: horizontal scroll-snap on mobile, responsive grid from sm upward -->
-    <div
-      class="tc-scroll flex gap-4 overflow-x-auto sm:grid sm:gap-5 sm:overflow-visible sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
-      tabindex="0"
-      role="group"
-      aria-label={t.trustCertifications.ariaLabel}
-    >
-      {items.map((item) => (
-        <article class="tc-card">
-          <span class="tc-icon" aria-hidden="true">
-            {item.key === 'tga' && (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                <path d="M9 12.2l2 2 4-4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            )}
-            {item.key === 'nsf' && (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5" />
-                <path d="M9.3 10.6l1.8 1.8 3.6-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M9 16.3L7.5 21l4.5-2 4.5 2-1.5-4.7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-              </svg>
-            )}
-            {item.key === 'gmp' && (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <path d="M4 20V11l4 2.5V11l4 2.5V11l4 2.5V7l4-2.5V20H4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                <path d="M4 20h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-              </svg>
-            )}
-            {item.key === 'fda' && (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <path d="M5 21V10l7-5 7 5v11" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                <path d="M9.5 10.6l1.8 1.8 3.2-3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            )}
-            {item.key === 'fingerprinting' && (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <path d="M20 4s-7 1-10 4-4 6-4 8 2 4 4 4 4-1 6-4 4-12 4-12Z" stroke="currentColor" stroke-width="1.5" />
-                <circle cx="16" cy="7" r="1" fill="currentColor" />
-                <circle cx="12" cy="12" r="1" fill="currentColor" />
-                <circle cx="9" cy="17" r="1" fill="currentColor" />
-                <path d="M16 7l-4 5-3 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
-              </svg>
-            )}
-          </span>
-          <h3 class="tc-title font-serif m-0 mt-4">{item.title}</h3>
-          <p class="tc-subtitle m-0 mt-1">{item.subtitle}</p>
-          <p class="tc-description m-0 mt-2">{item.description}</p>
-        </article>
-      ))}
-    </div>
+        <!-- Fills the intro column's own natural whitespace below the
+             short lede (the column is structurally shorter than the
+             5-row list beside it, independent of the sticky behavior
+             above) -- not a second hero, just a quick-scan reinforcement
+             of the same list. `items.length` (5) is computed from the
+             real ITEM_ORDER array above, not a separate hardcoded
+             number, so it can never drift out of sync with the actual
+             list. No second/invented stat: the item count is the only
+             number in this section's real content that's honestly
+             countable without overstating what's actually verified --
+             see the file's existing top-of-file note on subtitle vs.
+             title being deliberately conservative phrasing. -->
+        <div class="tc-stat">
+          <p class="tc-stat-value font-serif m-0">{items.length}</p>
+          <p class="tc-stat-label m-0">{t.trustCertifications.statLabel}</p>
+        </div>
 
-    <!-- Disclaimer -->
-    <p class="tc-disclaimer mx-auto mt-8 sm:mt-10">{t.trustCertifications.disclaimer}</p>
+        <!-- No certifications/quality detail route exists anywhere in
+             src/pages yet (checked before adding this) -- same
+             "honest, not-yet-built destination" pattern already used
+             elsewhere on the homepage (e.g. HealthGoals' health-goals/
+             {slug} hrefs). Points at "#" until a real page exists;
+             swap for a real URL then, no other change needed here. -->
+        <a href="#" class="tc-cta">
+          {t.trustCertifications.ctaLabel}
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <ul class="tc-list m-0 p-0 list-none" role="list" aria-label={t.trustCertifications.ariaLabel}>
+        {items.map((item) => (
+          <li class="tc-row">
+            <span class="tc-row-icon" aria-hidden="true">
+              {item.key === 'tga' && (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M9 12.2l2 2 4-4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              )}
+              {item.key === 'nsf' && (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M9.3 10.6l1.8 1.8 3.6-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M9 16.3L7.5 21l4.5-2 4.5 2-1.5-4.7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                </svg>
+              )}
+              {item.key === 'gmp' && (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 20V11l4 2.5V11l4 2.5V11l4 2.5V7l4-2.5V20H4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M4 20h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              )}
+              {item.key === 'fda' && (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 21V10l7-5 7 5v11" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M9.5 10.6l1.8 1.8 3.2-3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              )}
+              {item.key === 'fingerprinting' && (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 4s-7 1-10 4-4 6-4 8 2 4 4 4 4-1 6-4 4-12 4-12Z" stroke="currentColor" stroke-width="1.5" />
+                  <circle cx="16" cy="7" r="1" fill="currentColor" />
+                  <circle cx="12" cy="12" r="1" fill="currentColor" />
+                  <circle cx="9" cy="17" r="1" fill="currentColor" />
+                  <path d="M16 7l-4 5-3 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+                </svg>
+              )}
+            </span>
+            <div class="tc-row-text">
+              <h3 class="text-heading-card font-serif m-0">{item.subtitle}</h3>
+              <p class="tc-row-detail m-0 mt-1">{item.title}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   </div>
 </section>
 
 <style>
-  .tc-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
-  @media (min-width: 640px) { .tc-eyebrow { font-size: 1.375rem; } }
-
-  /* line-height 1.25, not the usual 1.15 -- this heading's VI copy
-     measures ~366px at this font-size (Playfair Display Bold) against a
-     ~343px mobile column, so it reliably wraps to 2 lines; see
-     BrandStory.astro's .bs-heading comment for the full reasoning. */
-  .tc-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
-  @media (min-width: 640px) { .tc-heading { font-size: 2.25rem; } }
-
-  /* Mobile: horizontal scroll-snap track, ~1.2-1.4 cards visible.
-     From `sm` up, the container switches to `display:grid` (via Tailwind
-     classes on the element) and these flex/scroll rules become inert. */
-  .tc-scroll {
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 0.25rem;
-  }
-  .tc-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .tc-scroll:focus-visible {
-    outline: 2px solid var(--color-brand);
-    outline-offset: 2px;
-  }
-
-  .tc-card {
-    color: var(--color-body);
+  /* Same rhythm BrandStory established in Stage 2B -- duplicated locally
+     rather than extracted into a shared global.css utility, since that
+     extraction would require touching BrandStory.astro too and this
+     stage's scope explicitly excludes it. Worth consolidating into one
+     shared class once every homepage section has gone through this same
+     redesign pass, not piecemeal while some are still off-limits. */
+  .tc-section {
+    padding-block: 1.5rem;
     background: var(--color-cream);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card, 12px);
-    box-shadow: var(--shadow-card);
-    padding: 1.75rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    min-height: 260px;
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
-
-    /* Mobile flex-item sizing: ~1.2-1.4 cards visible, snap-aligned. */
-    flex: 0 0 78%;
-    scroll-snap-align: start;
-  }
-  @media (min-width: 480px) {
-    .tc-card {
-      flex-basis: 62%;
-    }
   }
   @media (min-width: 640px) {
-    .tc-card {
-      flex: unset;
-      scroll-snap-align: unset;
-    }
+    .tc-section { padding-block: 1.75rem; }
   }
-  .tc-card:hover,
-  .tc-card:focus-within {
-    box-shadow: var(--shadow-card-hover);
-    transform: translateY(-2px);
+  @media (min-width: 1024px) {
+    .tc-section { padding-block: 2rem; }
   }
 
-  .tc-icon {
+  .tc-layout {
+    width: 100%;
+  }
+
+  /* Mobile/tablet (below lg): a centered editorial intro -- eyebrow, H2,
+     and lede all centered with a controlled measure, borrowing
+     BrandStory's .bs-copy typographic feel (not its layout) as the
+     benchmark for what a calm, confident mobile section intro should
+     look like. Below lg, .tc-layout is a single-column grid (the
+     lg:grid-cols-[1fr_1.2fr] split only engages at lg), so this column
+     spans the full container width -- centering it here keeps the intro
+     from reading as a small left-aligned text block sitting awkwardly
+     above a much longer list. Reverts to the original left-aligned,
+     wider-measure treatment at lg, where the intro sits beside the list
+     as its own column instead of stacked above it. */
+  .tc-intro {
+    max-width: 30ch;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .tc-intro .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .tc-intro .text-heading-section {
+    font-size: 2.125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .tc-lede {
+    max-width: 30ch;
+    margin-top: 1.5rem;
+    margin-inline: auto;
+    color: var(--color-body);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  /* Stat + CTA block: fills the intro column's own remaining height
+     below the lede (see the markup comment above). No separate
+     text-align rule needed here -- .tc-intro's own text-align (center
+     on mobile/tablet, left at desktop) is an inherited property and
+     cascades down to these children automatically, same as it already
+     does for the eyebrow/heading/lede above them. Degrades to a plain
+     stacked block on mobile since nothing here depends on the grid/
+     sticky context introduced at 1024px. */
+  .tc-stat {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+  }
+
+  .tc-stat-value {
+    font-size: 2.5rem;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--color-pine-dark);
+  }
+
+  .tc-stat-label {
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-body);
+  }
+
+  /* Same resting style NaturalOils' own .no-view-all link already uses
+     (pine-dark text + border-bottom), defined here as its own
+     self-contained rule rather than depending on that component's
+     .btn-tertiary chain. Hover/focus shifts to --color-pine, matching
+     this project's established text/icon hover convention (HealthGoals'
+     tile arrows, HealthReads' row arrows both do the same pine shift). */
+  .tc-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 1.25rem;
+    padding-bottom: 0.125rem;
+    border-bottom: 1px solid var(--color-pine-dark);
+    color: var(--color-pine-dark);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .tc-cta:hover,
+  .tc-cta:focus-visible {
+    color: var(--color-pine);
+    border-color: var(--color-pine);
+  }
+  .tc-cta:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 3px;
+  }
+
+  .tc-cta span {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .tc-cta:hover span,
+  .tc-cta:focus-visible span {
+    transform: translateX(3px);
+  }
+
+  /* A quiet hairline marks the handoff from the centered intro above to
+     the left-aligned, scannable list below -- otherwise the alignment
+     shift (center to left) reads as an unintentional seam rather than a
+     deliberate transition between two different reading modes. Mobile/
+     tablet only: at lg the list sits beside the intro as its own column,
+     where a top edge would read as a stray line rather than a
+     transition. Same hairline color .tc-row already uses between rows,
+     so it reads as part of the existing system, not a new element.
+     No margin-top here -- .tc-layout's own grid `gap` (Tailwind gap-10,
+     2.5rem) already provides the space above this element; adding a
+     margin on top of that gap would double it. Padding-top is
+     deliberately small (0.5rem): .tc-row already carries its own
+     1.5rem top padding, so the two combine to a clean 2rem gap between
+     the hairline and the first row's content, not a stacked/doubled
+     one. */
+  .tc-list {
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+  }
+
+  @media (min-width: 1024px) {
+    /* Sticky, desktop only: .tc-intro (eyebrow + heading + short lede)
+       is structurally much shorter than .tc-list (5 stacked rows), which
+       left a large empty gap under the intro once the list ran past it.
+       Since both are direct items in the same single-row grid, .tc-intro
+       can stick within its own grid area's height -- CSS handles the
+       "unstick once the list's bottom approaches" part automatically, no
+       JS needed. `top: 7rem` clears the sticky Header (84px/5.25rem)
+       plus ~28px of breathing room so the intro doesn't sit flush
+       against it while pinned. */
+    .tc-intro {
+      max-width: 42ch;
+      margin-inline: 0;
+      text-align: left;
+      position: sticky;
+      top: 7rem;
+    }
+
+    .tc-lede {
+      max-width: 40ch;
+      margin-inline: 0;
+      font-size: 0.96875rem;
+      line-height: 1.75;
+    }
+
+    .tc-list {
+      padding-top: 0;
+      border-top: 0;
+    }
+  }
+
+  .tc-list {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Fixed 56px icon column (was 1.25rem/20px) so the circular badge below
+     has a consistent track regardless of content, and every row's text
+     starts at the same x-position -- this is also what makes the divider
+     border below relate visually to the content above it instead of
+     trailing off into empty space past a left-aligned, narrower block. */
+  .tc-row {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1.25rem;
+    width: 100%;
+    padding-block: 1.5rem;
+  }
+
+  .tc-row:not(:last-child) {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+    transition: border-color 0.2s ease;
+  }
+
+  /* Same border-color-hover formula NaturalOils' own product cards
+     already use (.pc-card:hover) -- reused here rather than introducing
+     a new hover treatment, so a border-color interaction reads the same
+     way everywhere on the homepage. */
+  .tc-row:hover:not(:last-child) {
+    border-bottom-color: color-mix(in srgb, var(--color-amber-decorative) 55%, var(--color-cream));
+  }
+
+  /* Seal-like circular badge, matching the amber-bordered-circle motif
+     already established by Process.astro's step seals -- gives the icon
+     enough visual weight to sit next to a bold serif heading instead of
+     reading as a bare, disconnected line-art glyph. Background matches
+     the section's own cream (not a new surface color), same as how
+     Process's seal background matches ITS section's own pine-dark --
+     definition comes from the border, not from a contrasting fill. */
+  .tc-row-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 9999px;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    color: var(--color-brand);
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
+    border: 1.5px solid var(--color-amber-decorative);
+    border-radius: 50%;
+    background: var(--color-cream);
+    color: var(--color-pine);
+    transition: border-color 0.2s ease;
   }
 
-  .tc-title {
-    color: var(--color-brand);
-    font-size: 1.125rem;
+  /* Pine, not another amber-decorative mix: the badge's resting border
+     is already solid amber-decorative, so a hover state also mixing
+     toward amber would read as a MUTING rather than an activation.
+     Pine is this project's established "engaged/hover" signal for
+     icon-like elements (HealthGoals' tile arrows, HealthReads' row
+     arrows both shift to --color-pine on hover) -- reused here for the
+     same reason, on a border instead of text color. */
+  .tc-row:hover .tc-row-icon {
+    border-color: var(--color-pine);
+  }
+
+  .tc-row-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .tc-row-text {
+    min-width: 0;
+    max-width: 38rem;
+  }
+
+  .tc-row-text .text-heading-card {
+    color: var(--color-pine-dark);
+    font-size: 1.0625rem;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.4;
+    letter-spacing: 0;
   }
 
-  .tc-subtitle {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--color-heading);
-  }
-
-  .tc-description {
+  .tc-row-detail {
+    margin-top: 0.3125rem;
     font-size: 0.875rem;
-    line-height: 1.6;
+    line-height: 1.55;
     color: var(--color-body);
-    max-width: 26ch;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
   }
 
-  .tc-disclaimer {
-    max-width: 42rem;
-    text-align: center;
-    font-size: 0.8125rem;
-    font-style: italic;
-    color: var(--color-body);
-    line-height: 1.6;
-  }
+  /* ZH: no artificial letter-spacing on the row heading, matches the
+     same convention applied sitewide to CJK headings/titles. */
+  html[lang="zh"] .tc-row-text h3 { letter-spacing: 0; }
+  html[lang="zh"] .tc-intro .text-heading-section { letter-spacing: 0; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tc-card {
+    .tc-row:not(:last-child),
+    .tc-row-icon,
+    .tc-cta,
+    .tc-cta span {
       transition: none;
-    }
-    .tc-scroll {
-      scroll-behavior: auto;
     }
   }
 </style>

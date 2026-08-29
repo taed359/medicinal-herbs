@@ -1,42 +1,110 @@
 ---
+import { getImage } from 'astro:assets';
 import { getTranslations, type Locale } from '../i18n/utils';
+import apothecaryScene from '../assets/images/brand-story/apothecary-scene.svg';
 
 interface Props {
   lang?: Locale;
+  /**
+   * Real photo URL override, when one exists. The section's own default
+   * image is now the real apothecary-scene illustration below (mortar
+   * and pestle, dried herb bundles) -- this prop stays purely as a future
+   * override point in case an actual heritage PHOTOGRAPH is approved
+   * later, at which point passing `image={...}` from the calling page is
+   * the entire integration (no other change needed here). No caller
+   * currently passes this prop, so the illustration is what renders.
+   */
   image?: string;
 }
-const { lang = 'vi', image = '/favicon.svg' } = Astro.props;
+const { lang = 'vi', image } = Astro.props;
 
 const t = getTranslations(lang);
+
+// format: 'svg' -- Astro's default sharp service throws if a requested
+// output format other than 'svg' is applied to an SVG source (SVG
+// rasterization is disabled unless image.dangerouslyProcessSVG is set in
+// astro.config.mjs, which it isn't here); with format: 'svg' the file is
+// passed through unchanged, still hashed and emitted via the normal
+// asset pipeline. Same approach Hero.astro already uses for its own SVG
+// illustrations.
+const illustrationOptimized = await getImage({ src: apothecaryScene, format: 'svg' });
+const resolvedImageSrc = image ?? illustrationOptimized.src;
 ---
-<section class="container-page py-8 sm:py-10">
-  <div class="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 sm:gap-10">
-    <!-- Image first on mobile -->
-    <div class="order-1 lg:order-2 group rounded-card overflow-hidden border border-border bg-cream" style="aspect-ratio: 4 / 3;">
-      <img src={image} alt={t.brandStory.imageAlt} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
-    </div>
-    <!-- Text -->
-    <div class="order-2 lg:order-1">
-      <div class="mb-4 sm:mb-5">
-        <p class="bs-eyebrow m-0 mb-1">{t.brandStory.eyebrow}</p>
-        <h2 class="bs-heading font-serif m-0">{t.brandStory.heading}</h2>
+<section class="bs-section">
+  <div class="container-editorial">
+    <div class="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-14">
+      <!-- Image first in the DOM: on mobile it leads (image, then text);
+           on desktop it occupies the left column. No `order` utilities
+           needed -- DOM order already matches the desired visual order at
+           both breakpoints (mirrors the reasoning in Hero.astro, though
+           BrandStory intentionally leads with the image on mobile where
+           Hero leads with text -- see the design-rhythm note in the
+           stage report). -->
+      <!-- Meaningful alt text (t.brandStory.imageAlt), not empty/
+           decorative: unlike e.g. HealthGoals' tile images -- which sit
+           directly beside their own always-visible text label, so an
+           empty alt there doesn't lose any information -- this
+           illustration is the section's primary visual anchor, playing
+           the same role Hero's own image does (also given a real,
+           descriptive alt rather than alt=""), not a small supporting
+           icon next to a redundant label. The i18n key already existed
+           for this exact real-image case, from when this component only
+           had the prop-based branch below. -->
+      <div class="bs-image relative overflow-hidden border border-border" style="aspect-ratio: 4 / 3;">
+        <img
+          src={resolvedImageSrc}
+          alt={t.brandStory.imageAlt}
+          class="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
       </div>
-      <p class="m-0 text-body leading-relaxed max-w-prose">{t.brandStory.body}</p>
+
+      <div class="bs-copy">
+        <p class="eyebrow m-0 mb-2">{t.brandStory.eyebrow}</p>
+        <h2 class="text-heading-section font-serif m-0">{t.brandStory.heading}</h2>
+        <p class="mt-5 text-body leading-relaxed max-w-prose">{t.brandStory.body}</p>
+      </div>
     </div>
   </div>
 </section>
 
 <style>
-  .bs-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
-  @media (min-width: 640px) { .bs-eyebrow { font-size: 1.375rem; } }
-  /* line-height 1.25, not the site's usual tight 1.15 -- this heading's VI
-     copy measures ~422px at this font-size (Playfair Display Bold) against
-     a ~343px mobile column, so it reliably wraps to 2 lines; Playfair's own
-     vertical metrics (hhea ascent+|descent| ~1.33em) need more room than
-     1.15 gives or the wrapped lines visually crowd each other. */
-  .bs-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
-  @media (min-width: 640px) { .bs-heading { font-size: 2.25rem; } }
-  @media (prefers-reduced-motion: reduce) {
-    .group:hover img { transform: none !important; }
+  /* Clearly more generous than the sitewide py-8/py-10 pattern still used
+     by the not-yet-redesigned sections around this one (see the mockup
+     audit) -- but not a blind copy of the mockup's flat 88px either, this
+     is tuned to the project's own rem-based scale and grows across three
+     steps instead of one fixed value. */
+  .bs-section {
+    /* Stage 2N: relaxed tier -- 1.5/1.75/2rem, down from 4/5/6rem. */
+    padding-block: 1.5rem;
+    background: var(--color-cream);
+  }
+  @media (min-width: 640px) {
+    .bs-section { padding-block: 1.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .bs-section { padding-block: 2rem; }
+  }
+
+  /* Editorial image treatment, not a product-card treatment: restrained
+     radius token (not --radius-card), thin border, no shadow, no
+     card-within-card. */
+  .bs-image {
+    border-radius: var(--radius-editorial);
+    background: transparent;
+  }
+
+  .bs-copy { max-width: 46ch; }
+
+  /* Modest bump over the shared .text-heading-section's 1.75rem mobile
+     default -- enough for this to read as a real section heading next
+     to the sections around it (most of which already use ~2.125rem via
+     their own local override), without the extra height that pushing
+     all the way to 2.125rem would add on top of the already-tall
+     image-then-text mobile stack this section uses. */
+  .bs-copy .text-heading-section {
+    font-size: 1.875rem;
+    line-height: 1.25;
   }
 </style>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập — Thảo Dược</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#221F1A;
+    --paper:#F5F0E3;
+    --paper-2:#EFE8D6;
+    --pine:#2C4A3B;
+    --pine-dark:#1C3128;
+    --amber:#B9863F;
+    --amber-light:#E7CFA0;
+    --sage:#A9B79C;
+    --line: rgba(34,31,26,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ height:100%; }
+  body{
+    font-family:'Be Vietnam Pro','Noto Sans SC', sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  .zh{ font-family:'Noto Serif SC', serif; }
+
+  .screen{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  /* ---------- LEFT: form ---------- */
+  .form-side{
+    display:flex; flex-direction:column; justify-content:center;
+    padding:64px 80px;
+    max-width:560px;
+    margin:0 auto;
+    width:100%;
+  }
+  .logo{ display:flex; align-items:center; gap:12px; margin-bottom:56px; }
+  .logo .mark{ width:32px; height:32px; border-radius:50%; background:var(--pine); position:relative; flex-shrink:0; }
+  .logo .mark::after{ content:''; position:absolute; inset:7px; border:1px solid var(--paper); border-radius:50%; }
+  .logo .txt{ font-family:'Fraunces', serif; font-size:20px; color:var(--pine-dark); }
+
+  .eyebrow{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--amber); font-weight:700; margin-bottom:14px; }
+  h1{ font-family:'Fraunces', 'Noto Serif SC', serif; font-weight:500; font-size:34px; color:var(--pine-dark); margin-bottom:10px; }
+  .sub{ font-size:14.5px; color:#4B4740; margin-bottom:36px; }
+  .sub a{ color:var(--pine-dark); font-weight:600; border-bottom:1px solid var(--amber); }
+
+  form{ display:flex; flex-direction:column; gap:20px; }
+  .field{ display:flex; flex-direction:column; gap:8px; }
+  .field label{ font-size:12.5px; font-weight:600; color:var(--pine-dark); letter-spacing:.02em; }
+  .field input{
+    font-family:inherit; font-size:14.5px; color:var(--ink);
+    padding:14px 16px; border:1.5px solid var(--line); border-radius:2px;
+    background:var(--paper); outline:none;
+    transition:border-color .2s ease;
+  }
+  .field input:focus{ border-color:var(--amber); }
+  .field input::placeholder{ color:#B6AF9E; }
+
+  .row-between{ display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+  .remember{ display:flex; align-items:center; gap:8px; color:#4B4740; }
+  .remember input{ accent-color:var(--pine); width:15px; height:15px; }
+  .forgot{ color:var(--amber); font-weight:600; }
+
+  .btn-primary{
+    width:100%; padding:15px; border:none; border-radius:2px;
+    background:var(--pine); color:var(--paper);
+    font-family:inherit; font-size:14.5px; font-weight:600; letter-spacing:.02em;
+    cursor:pointer; transition:background .2s ease;
+    margin-top:6px;
+  }
+  .btn-primary:hover{ background:var(--pine-dark); }
+
+  .divider{ display:flex; align-items:center; gap:16px; margin:28px 0; font-size:12px; color:var(--sage); text-transform:uppercase; letter-spacing:.1em; }
+  .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+  .social{ display:flex; gap:12px; }
+  .btn-social{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px; border:1.5px solid var(--line); border-radius:2px;
+    background:var(--paper); font-size:13.5px; font-weight:600; color:var(--ink);
+    cursor:pointer; transition:border-color .2s ease;
+  }
+  .btn-social:hover{ border-color:var(--amber); }
+  .ic-circle{ width:16px; height:16px; border-radius:50%; border:1.3px solid var(--ink); display:inline-block; }
+
+  .signup{ text-align:center; font-size:14px; color:#4B4740; margin-top:36px; }
+  .signup a{ color:var(--pine-dark); font-weight:700; border-bottom:1px solid var(--amber); }
+
+  /* ---------- RIGHT: image panel ---------- */
+  .image-side{
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(160deg,#3C5C4B 0%, var(--pine) 45%, var(--pine-dark) 100%);
+    display:flex; align-items:flex-end;
+    padding:64px;
+  }
+  .image-side::before{
+    content:'';
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,.08), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(0,0,0,.22), transparent 50%);
+  }
+  .image-side .branch{ position:absolute; opacity:.5; }
+  .image-side .branch.b1{ top:60px; left:40px; width:140px; }
+  .image-side .branch.b2{ bottom:220px; right:40px; width:160px; transform:scaleX(-1); }
+
+  .image-side .content{ position:relative; z-index:2; color:var(--paper); max-width:420px; }
+  .image-side .seal{
+    width:64px; height:64px; border-radius:50%;
+    border:1.5px solid var(--amber-light);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:28px;
+  }
+  .image-side .seal span{ font-family:'Noto Serif SC', serif; font-size:24px; color:var(--paper); }
+  .image-side h2{ font-family:'Fraunces','Noto Serif SC', serif; font-weight:500; font-size:28px; line-height:1.3; margin-bottom:14px; }
+  .image-side p{ font-size:14px; color:var(--sage); line-height:1.6; }
+  .image-side .badge-top{
+    position:absolute; top:64px; right:64px; z-index:2;
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber-light);
+    border:1px solid rgba(231,207,160,.4); padding:8px 16px; border-radius:20px;
+  }
+
+  @media (max-width:960px){
+    .screen{ grid-template-columns:1fr; }
+    .image-side{ display:none; }
+    .form-side{ padding:48px 28px; max-width:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="screen">
+
+    <div class="form-side">
+      <div class="logo">
+        <div class="mark"></div>
+        <div class="txt">Thảo Dược</div>
+      </div>
+
+      <div class="eyebrow">Chào mừng trở lại</div>
+      <h1>Đăng nhập tài khoản</h1>
+      <p class="sub">Chưa có tài khoản? <a href="#">Đăng ký ngay</a></p>
+
+      <form>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="ban@email.com">
+        </div>
+        <div class="field">
+          <label for="password">Mật khẩu</label>
+          <input id="password" type="password" placeholder="••••••••">
+        </div>
+
+        <div class="row-between">
+          <label class="remember"><input type="checkbox"> Ghi nhớ đăng nhập</label>
+          <a class="forgot" href="#">Quên mật khẩu?</a>
+        </div>
+
+        <button type="submit" class="btn-primary">Đăng nhập →</button>
+      </form>
+
+      <div class="divider">hoặc tiếp tục với</div>
+
+      <div class="social">
+        <button class="btn-social"><span class="ic-circle"></span>Google</button>
+        <button class="btn-social"><span class="ic-circle"></span>Facebook</button>
+      </div>
+
+      <p class="signup">Bằng việc đăng nhập, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> của chúng tôi.</p>
+    </div>
+
+    <div class="image-side">
+      <span class="badge-top">147 năm di sản</span>
+      <svg class="branch b1" viewBox="0 0 140 140" fill="none"><path d="M10 20 C 40 5, 70 40, 55 75 C 45 100, 15 110, 5 85" stroke="#6B8A76" stroke-width="1.5"/><ellipse cx="35" cy="35" rx="14" ry="6" fill="#3F5F4E" transform="rotate(-30 35 35)"/><ellipse cx="55" cy="65" rx="13" ry="6" fill="#3F5F4E" transform="rotate(20 55 65)"/></svg>
+      <svg class="branch b2" viewBox="0 0 160 160" fill="none"><path d="M10 20 C 50 5, 85 45, 65 85 C 50 115, 15 125, 5 95" stroke="#6B8A76" stroke-width="1.5"/><ellipse cx="40" cy="40" rx="16" ry="7" fill="#3F5F4E" transform="rotate(-30 40 40)"/><ellipse cx="65" cy="75" rx="15" ry="7" fill="#3F5F4E" transform="rotate(20 65 75)"/></svg>
+
+      <div class="content">
+        <div class="seal"><span>信</span></div>
+        <h2>Tinh hoa thảo mộc,<br>gốc rễ an lành.</h2>
+        <p>Đăng nhập để theo dõi đơn hàng, nhận tư vấn riêng từ chuyên gia Y học cổ truyền và lưu lại sản phẩm yêu thích của bạn.</p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

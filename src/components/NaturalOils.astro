@@ -11,56 +11,254 @@ interface Props {
 }
 const { lang, items } = Astro.props;
 const t = getTranslations(lang);
+
+// Mirrors ProductDetail.astro's own formatPrice exactly (duplicated
+// rather than extracted into a shared lib, to avoid touching that file
+// in this pass) -- priceMinor is a whole VND amount, not divided by 100.
+function formatPrice(minorUnits: number, currency: string, locale: Locale): string {
+  return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'vi-VN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(minorUnits);
+}
+
+// IMPORTANT, discovered by inspecting the real data flow before touching
+// this component: of the 4 real featured products this section queries
+// (coconut/sunflower/sesame/olive oil), only coconut oil currently has a
+// seeded price (see seed-coconut-oil-content.ts) -- the other 3 have
+// priceMinor === null, exactly like seed-natural-oils.ts's own comment
+// documents ("No pricing ... rows were created"). ProductCard already
+// renders its price block conditionally (`{price && (...)}`), so passing
+// `undefined` through for the 3 unpriced products correctly omits the
+// price line for them rather than showing a fake or blank value -- this
+// is the same pattern ProductDetail.astro's own `hasPrice` check already
+// relies on for the same reason.
+//
+// No "Add to Cart" CTA is added here, deliberately: there is no working
+// cart feature anywhere in this codebase to wire it to. ProductDetail.
+// astro's own add-to-cart button already exists purely as an inert stub
+// (`<form ... onsubmit="return false">`, no cart API route anywhere), and
+// Header.astro's cart icon links to `href="#"`. Adding a functional-
+// looking "Add to cart" button to this grid would present capability
+// that doesn't exist. Each card's existing "view details" link (leading
+// to the real, working product detail route) remains the one real,
+// honest commerce action available today.
+const products = items.map((p) => ({
+  ...p,
+  formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
+  formattedOriginalPrice:
+    p.compareAtMinor != null ? formatPrice(p.compareAtMinor, p.currency ?? 'VND', lang) : undefined,
+}));
 ---
-<section class="py-8 sm:py-10" aria-labelledby="natural-oils-heading">
-  <div class="container-page">
-    <div class="text-center mb-7 sm:mb-9">
-      <p class="no-eyebrow m-0 mb-1">{t.naturalOils.eyebrow}</p>
-      <h2 id="natural-oils-heading" class="no-heading font-serif m-0">{t.naturalOils.heading}</h2>
+<section id="products" class="natural-oils-section" aria-labelledby="natural-oils-heading">
+  <div class="container-editorial">
+    <div class="no-header">
+      <div>
+        <p class="no-eyebrow eyebrow m-0">{t.naturalOils.eyebrow}</p>
+        <h2 id="natural-oils-heading" class="no-heading text-heading-section font-serif m-0">{t.naturalOils.heading}</h2>
+      </div>
+
+      <!-- Real destination: /{lang}/products/natural-oils/ (the paginated
+           collection listing already exists at src/pages/{lang}/products/
+           natural-oils/[...page].astro). -->
+      <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="no-view-all btn-tertiary no-underline hover:no-underline">
+        {t.naturalOils.ctaViewAll}
+        <span class="btn-tertiary-arrow" aria-hidden="true">→</span>
+      </a>
     </div>
 
-    <!-- Products only: mobile horizontal scroll, grid from sm+ (2 cols), 4 cols on lg -->
+    <!-- Products only: mobile horizontal scroll, grid from sm+ (2 cols), 4 cols on lg. -->
     <ul
-      class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible lg:grid-cols-4 lg:gap-6"
+      class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
       role="list"
       tabindex="0"
     >
-      {items.map((p) => {
+      {products.map((p) => {
         const href = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
+        const isPlaceholder = !p.primaryImage;
         const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
         const alt = p.primaryImage?.alt || p.name;
         return (
-          <li class="no-slide h-full">
-            <ProductCard name={p.name} href={href} cta={t.product.ctaViewDetails} image={image} alt={alt} />
+          <li class:list={['no-slide h-full', { 'no-placeholder': isPlaceholder }]}>
+            <ProductCard
+              name={p.name}
+              category={t.naturalOils.eyebrow}
+              href={href}
+              cta={t.product.ctaViewDetails}
+              image={image}
+              alt={alt}
+              price={p.formattedPrice}
+              originalPrice={p.formattedOriginalPrice}
+            />
           </li>
         );
       })}
     </ul>
-
-    <div class="mt-7 sm:mt-8 text-center">
-      <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="btn btn-secondary no-underline transition-colors duration-300 hover:no-underline">{t.naturalOils.ctaViewAll}</a>
-    </div>
   </div>
 </section>
 
 <style>
-  /* Match HealthGoals/Reads heading language */
-  .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
-  @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }
-  /* 1.25, not the usual 1.15 -- see BrandStory.astro's .bs-heading comment
-     for why (Playfair Display's vertical metrics need more room than 1.15
-     gives when this heading wraps to 2 lines on narrow viewports). */
-  .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
-  @media (min-width: 640px) { .no-heading { font-size: 2.25rem; } }
+  .natural-oils-section {
+    /* Stage 2N: compact "denser" tier -- 1.25/1.5/1.75rem across
+       breakpoints, down from 4/5/5.5rem. Two adjacent sections in this
+       tier now combine to a 56px total gap (was ~176-184px), and against
+       the "relaxed" tier (BrandStory/TrustCertifications, 1.5/1.75/2rem)
+       combine to 60px -- both within the requested 48-64px range. */
+    padding-block: 1.25rem;
+    background: var(--color-cream);
+  }
 
-  /* Mobile horizontal carousel for products */
+  .no-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2.75rem;
+  }
+
+  .no-eyebrow {
+    margin-bottom: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .no-heading.text-heading-section {
+    font-size: 2.125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .no-view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0 0 0.125rem;
+    border-bottom: 1px solid var(--color-pine-dark);
+    color: var(--color-pine-dark);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  /* Mobile horizontal carousel for products -- unchanged from before this
+     pass. */
   .no-track { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .no-track::-webkit-scrollbar { display: none; }
   .no-slide { flex: 0 0 82%; scroll-snap-align: start; }
   @media (min-width: 480px) { .no-slide { flex-basis: 68%; } }
-  @media (min-width: 640px) { .no-slide { flex: unset; scroll-snap-align: unset; } }
+  @media (min-width: 640px) {
+    .natural-oils-section { padding-block: 1.5rem; }
+    .no-track { gap: 1.375rem; }
+    .no-slide { flex: unset; scroll-snap-align: unset; }
+  }
 
-  /* ZH locale micro-typography: avoid Latin‑style casing/letterspacing */
-  html[lang="zh"] .no-eyebrow { letter-spacing: 0; text-transform: none; }
-  @media (max-width: 360px) { html[lang="zh"] .no-heading { font-size: 1.625rem; } }
+  @media (min-width: 1024px) {
+    .natural-oils-section { padding-block: 1.75rem; }
+  }
+
+  /* Homepage-only convergence toward the reference's restrained product
+     tiles. ProductCard itself remains unchanged for collection pages. */
+  .natural-oils-section :global(.pc-card) {
+    background: var(--color-paper-2);
+    border-color: color-mix(in srgb, var(--color-pine-dark) 12%, var(--color-cream));
+    border-radius: var(--radius-editorial);
+    box-shadow: none;
+  }
+
+  .natural-oils-section :global(.pc-card:hover),
+  .natural-oils-section :global(.pc-card:focus-visible) {
+    border-color: color-mix(in srgb, var(--color-amber-decorative) 55%, var(--color-cream));
+    box-shadow: none;
+  }
+
+  .natural-oils-section :global(.pc-image) {
+    background: var(--color-paper-2);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2));
+  }
+
+  .natural-oils-section :global(.pc-img) {
+    padding: 2rem;
+    transition: none;
+  }
+
+  .natural-oils-section .no-placeholder :global(.pc-image) {
+    border-bottom: none;
+  }
+
+  .natural-oils-section .no-placeholder :global(.pc-img) {
+    padding: 0;
+    opacity: 0.82;
+  }
+
+  .natural-oils-section .no-placeholder :global(.pc-card:hover .pc-img),
+  .natural-oils-section .no-placeholder :global(.pc-card:focus-visible .pc-img) {
+    transform: none;
+  }
+
+  .natural-oils-section :global(.pc-card > div:last-child) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-content: start;
+    column-gap: 0.75rem;
+    min-height: 8.25rem;
+    padding: 1.125rem 1.125rem 1.375rem;
+  }
+
+  .natural-oils-section :global(.pc-category),
+  .natural-oils-section :global(.pc-title),
+  .natural-oils-section :global(.pc-benefit) {
+    grid-column: 1 / -1;
+  }
+
+  .natural-oils-section :global(.pc-category) {
+    margin-bottom: 0.375rem;
+    color: var(--color-amber);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .natural-oils-section :global(.pc-title) {
+    color: var(--color-pine-dark);
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* The price wrapper -- placed in column 1 of its own row; see the
+     grid comment above `.pc-card > div:last-child`. */
+  .natural-oils-section :global(.pc-card > div:last-child > .mt-3) {
+    grid-column: 1;
+    align-self: end;
+    margin-top: 0.625rem;
+  }
+
+  .natural-oils-section :global(.pc-price) {
+    color: var(--color-pine-dark);
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+
+  /* Column 2 of the price/CTA row -- see the grid comment above
+     `.pc-card > div:last-child`. `margin-top: auto` was ProductCard's
+     own trick for pinning the CTA to the card's bottom edge in its
+     default flex-column layout; that no longer applies once this is a
+     grid row placed right under the price, so it's replaced with the
+     same fixed gap the price wrapper uses (`.mt-3` above), which keeps
+     the two aligned on one line. */
+  .natural-oils-section :global(.pc-cta) {
+    grid-column: 2;
+    align-self: end;
+    margin-top: 0.625rem;
+    color: var(--color-pine-dark);
+    font-size: 0.8125rem;
+  }
+
+  html[lang="zh"] .no-heading.text-heading-section { letter-spacing: 0; }
 </style>

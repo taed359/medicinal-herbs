@@ -11,8 +11,9 @@ interface Props {
   htmlLang?: string;
   title?: string;
   description?: string;
+  mainClass?: string;
 }
-const { lang = 'vi', uiLang: requestedUiLang, htmlLang = lang, title = 'Medicinal Herbs', description } = Astro.props;
+const { lang = 'vi', uiLang: requestedUiLang, htmlLang = lang, title = 'Medicinal Herbs', description, mainClass } = Astro.props;
 const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
 
 // Localized fallback: any page can still pass its own `description` prop
@@ -43,9 +44,15 @@ const metaDescription = description ?? t.seo.description;
   </head>
   <body>
     <Header lang={uiLang} />
-    <main>
+    <main class={mainClass}>
       <slot />
     </main>
     <Footer lang={lang} uiLang={uiLang} />
   </body>
 </html>
+
+<style>
+  main.homepage-main {
+    background: var(--color-cream);
+  }
+</style>

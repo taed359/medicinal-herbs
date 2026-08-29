@@ -1,8 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" fill="none">
-  <rect width="800" height="800" rx="24" fill="#FBF6EE"/>
-  <circle cx="260" cy="300" r="90" fill="#FAF4E8"/>
-  <circle cx="520" cy="520" r="120" fill="#FAF4E8"/>
-  <path d="M560 260c-110 10-190 70-240 150-30 50-40 95-42 128" stroke="#8B1E2B" stroke-width="10" stroke-linecap="round"/>
-  <path d="M250 500c60-18 130-55 170-140" stroke="#C5A25D" stroke-width="10" stroke-linecap="round"/>
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong suc khoe tre em</title>
+<desc>Binh sua voi mam la vuon len tu nap, tuong trung cho cham soc tu nhien cho tre.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<line x1="200" y1="150" x2="200" y2="128" stroke="#2C4A3B" stroke-width="2.2"/>
+<ellipse cx="188" cy="130" rx="11" ry="5" transform="rotate(-30 188 130)" fill="#2C4A3B"/>
+<ellipse cx="212" cy="130" rx="11" ry="5" transform="rotate(30 212 130)" fill="#2C4A3B"/>
+<rect x="182" y="148" width="36" height="15" rx="4" fill="#B9863F" stroke="#8A6423" stroke-width="1.4"/>
+<rect x="190" y="161" width="20" height="13" fill="#EFE8D6" stroke="#1C3128" stroke-width="2.2"/>
+<rect x="172" y="172" width="56" height="106" rx="16" fill="#EFE8D6" stroke="#1C3128" stroke-width="3"/>
+<path d="M175,225 L225,225 L225,262 C225,271 214,278 200,278 C186,278 175,271 175,262 Z" fill="#E7CFA0" opacity="0.9"/>
+<line x1="180" y1="197" x2="191" y2="197" stroke="#1C3128" stroke-width="2" opacity="0.35"/>
+<line x1="180" y1="211" x2="191" y2="211" stroke="#1C3128" stroke-width="2" opacity="0.35"/>
 </svg>
-

@@ -17,6 +17,7 @@ export const zh: TranslationSchema = {
     navShopBy: '按分类选购',
     navOurStory: '品牌故事',
     navHealthReads: '本草与健康',
+    findStoreLabel: '查找门店',
     searchPlaceholder: '搜索产品...',
     searchLabel: '搜索',
     accountLabel: '账户',
@@ -63,11 +64,11 @@ export const zh: TranslationSchema = {
     privacy: '隐私',
   },
   hero: {
-    eyebrow: '147周年庆典',
-    title: '年度最大周年庆典特卖',
-    description: '全新第二件享61%折扣优惠，加上全场即时返现活动...',
-    ctaLabel: '立即选购',
-    imageAlt: '草药周年庆典宣传背景，饰以典雅草本叶片纹样',
+    eyebrow: '传统医学传承',
+    title: '草本精粹 · 现代品质',
+    description: '我们秉承传统智慧，精选天然原料，同时符合现代品质标准，为您带来值得信赖的草本产品。',
+    ctaLabel: '探索产品',
+    imageAlt: '琥珀色草本膏罐与传承印章插画，周围环绕草本枝叶',
   },
   healthGoals: {
     eyebrow: '按分类选购',
@@ -102,6 +103,8 @@ export const zh: TranslationSchema = {
     heading: '始终坚持卓越品质',
     ariaLabel: '品质认证与价值主张',
     disclaimer: '不同产品的认证与注册情况可能有所不同。我们始终坚持严格的品质标准。',
+    statLabel: '已遵循的品质标准',
+    ctaLabel: '查看完整认证信息',
     items: {
       tga: {
         title: 'TGA 注册产品',
@@ -129,6 +132,29 @@ export const zh: TranslationSchema = {
         description: '通过科学方法验证草本原料的身份、品质与一致性。',
       },
     },
+  },
+  process: {
+    eyebrow: '甄选原则',
+    heading: '从原料到产品信息',
+    lede: '四项原则，指引我们甄选并介绍适合日常需求的草本产品。',
+    steps: [
+      {
+        title: '了解来源',
+        description: '优先关注清晰的原料信息与生产地点。',
+      },
+      {
+        title: '审阅配方',
+        description: '仔细阅读每款产品所标示的成分与使用方法。',
+      },
+      {
+        title: '核对品质',
+        description: '审视每款产品适用的标准与品质信息。',
+      },
+      {
+        title: '清晰呈现',
+        description: '提供必要信息，帮助您审慎选择合适的产品。',
+      },
+    ],
   },
   healthReads: {
     eyebrow: '健康知识',
@@ -178,6 +204,10 @@ export const zh: TranslationSchema = {
     heading: '精选天然植物油',
     ctaViewAll: '查看全部天然植物油',
     collectionPath: 'products/natural-oils',
+  },
+  relatedProducts: {
+    eyebrow: '猜你喜欢',
+    heading: '相关产品',
   },
   pager: {
     prevLabel: '上一页',
@@ -235,6 +265,7 @@ export const zh: TranslationSchema = {
     usageLabel: '使用方法',
     descriptionLabel: '产品说明',
     warningsLabel: '安全提示',
+    descriptionUsageTabLabel: '说明与用法',
     botanicalNameLabel: '植物学名',
     originLabel: '产地',
     extractionMethodLabel: '萃取方式',

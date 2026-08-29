@@ -1,7 +1,7 @@
 ---
 import { getImage } from 'astro:assets';
-import heroDesktop from '../assets/images/hero/anniversary-desktop.webp';
-import heroMobile from '../assets/images/hero/anniversary-mobile.webp';
+import heroDesktop from '../assets/images/hero/thao-duoc-hero-desktop.svg';
+import heroMobile from '../assets/images/hero/thao-duoc-hero-mobile.svg';
 import { getTranslations, localeHomePath, type Locale } from '../i18n/utils';
 
 interface Props {
@@ -15,6 +15,13 @@ const homeHref = localeHomePath(lang);
 // Slide data is kept separate from the markup below so this can grow into a
 // real array (Swiper-driven, multiple slides) later without a structural
 // rewrite. Only one slide is used for now.
+//
+// NOTE ON IMAGERY: `heroDesktop`/`heroMobile` are the real illustrated
+// artwork (herbal jar + heritage seal motif, in the site's own pine/
+// amber/cream palette), replacing the earlier "anniversary" abstract-
+// gradient placeholder. The old placeholder files
+// (anniversary-desktop.webp / anniversary-mobile.webp) are intentionally
+// left in place under assets/images/hero/ but no longer referenced here.
 const slides = [
   {
     desktopImage: heroDesktop,
@@ -23,85 +30,196 @@ const slides = [
     title: t.hero.title,
     description: t.hero.description,
     ctaLabel: t.hero.ctaLabel,
-    // No dedicated catalogue/checkout route exists yet, so this points at the
-    // homepage's existing "Featured products" section. Swap for a real
-    // catalogue/collection URL once Content Collections ship product pages.
+    // Anchors to the featured-products section (id="products" on
+    // NaturalOils.astro's <section>, added in Stage 2A). No dedicated
+    // catalogue route exists yet; swap for a real collection URL once
+    // one ships.
     ctaHref: `${homeHref}#products`,
     imageAlt: t.hero.imageAlt,
   },
 ];
 const slide = slides[0];
 
-// Pre-process both art-directed variants once at build time. A hand-rolled
-// <picture> below ensures the browser only downloads whichever one matches
-// the active breakpoint, never both.
-const desktopOptimized = await getImage({ src: slide.desktopImage, format: 'webp', quality: 82 });
-const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'webp', quality: 82 });
+// format: 'svg' (not 'webp'/quality, which the source images used before
+// this swap): Astro's default sharp image service refuses to rasterize
+// SVG sources unless `image.dangerouslyProcessSVG` is enabled in
+// astro.config.mjs (it isn't, and doesn't need to be here) -- requesting
+// any output format other than 'svg' for an SVG source throws a build
+// error. With format: 'svg', the file is passed through unchanged (still
+// hashed and emitted via the normal asset pipeline, just not resized --
+// vectors don't need it); `quality` has no meaning for a vector format,
+// so it's dropped rather than left as a no-op option.
+const desktopOptimized = await getImage({ src: slide.desktopImage, format: 'svg' });
+const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' });
 ---
 
-<section class="relative w-full overflow-hidden bg-cream" aria-labelledby="hero-heading">
-  <div class="relative flex min-h-[460px] items-center sm:min-h-[540px] md:min-h-[640px] lg:min-h-[680px]">
-    <!-- Background layer (z-0): visual only — no promotional text baked into the image -->
-    <div class="absolute inset-0 z-0 overflow-hidden">
-      <picture class="block h-full w-full">
-        <source media="(min-width: 768px)" srcset={desktopOptimized.src} />
-        <img
-          src={mobileOptimized.src}
-          alt={slide.imageAlt}
-          class="h-full w-full object-cover"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-      </picture>
-    </div>
+<!--
+  Stage 2H: recomposed from the Stage 2A full-bleed asymmetric banner into
+  a CONTAINED editorial split, matching the visual-reference mockup's
+  hero proportions (1.05fr/.95fr text/image, both inside one shared
+  narrower container) instead of letting the image bleed to the true
+  viewport edge. See the Stage 2H report for the full reasoning: the
+  full-bleed treatment was a deliberate Stage 2A choice, re-evaluated here
+  because the mockup is now the primary visual reference and its hero is
+  explicitly a contained composition, not a banner.
 
-    <!-- Overlay layer (z-10): readability scrim — bottom-up on mobile (text sits low), left-to-right on desktop (text sits left) -->
-    <div
-      class="absolute inset-0 z-10 bg-[linear-gradient(to_top,var(--color-cream)_18%,transparent_62%)] md:bg-[linear-gradient(to_right,var(--color-cream)_0%,var(--color-cream)_22%,transparent_60%)]"
-      aria-hidden="true"
-    >
-    </div>
-
-    <!-- Content layer (z-20) -->
-    <div class="container-page relative z-20 flex flex-1 items-end py-8 sm:items-center sm:py-12 md:py-0">
-      <div class="hero-fade-in max-w-full sm:max-w-md md:max-w-[45%]">
-        <p class="eyebrow">{slide.eyebrow}</p>
-        <h1 id="hero-heading" class="mt-3 font-serif text-3xl leading-tight text-heading sm:text-4xl md:text-5xl">
+  DOM order (text, then image) is unchanged from Stage 2A and still
+  matches the mockup's own markup order -- text leads on mobile (where
+  the grid collapses to one column) and sits left on desktop, with no
+  `order` utilities needed either way.
+-->
+<section class="hero-section" aria-labelledby="hero-heading">
+  <div class="container-editorial">
+    <div class="hero-layout">
+      <div class="hero-copy">
+        <p class="hero-eyebrow eyebrow m-0">{slide.eyebrow}</p>
+        <h1 id="hero-heading" class="hero-heading font-serif text-display-hero m-0">
           {slide.title}
         </h1>
-        <p class="mt-4 max-w-prose text-sm text-body/85 sm:text-base">
+        <p class="hero-lead m-0">
           {slide.description}
         </p>
         <a
           href={slide.ctaHref}
           data-astro-reload
-          class="mt-7 inline-flex min-h-12 items-center justify-center rounded-pill border border-brand bg-surface/70 px-8 py-3 text-sm font-semibold tracking-wide text-brand no-underline transition-colors duration-300 hover:bg-brand hover:text-surface hover:no-underline"
+          class="hero-cta btn btn-editorial-primary no-underline hover:no-underline"
         >
           {slide.ctaLabel}
+          <span aria-hidden="true">→</span>
         </a>
+      </div>
+
+      <div class="hero-image-frame relative aspect-4/5 overflow-hidden">
+        <picture class="block h-full w-full">
+          <source media="(min-width: 1024px)" srcset={desktopOptimized.src} />
+          <img
+            src={mobileOptimized.src}
+            alt={slide.imageAlt}
+            class="h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </picture>
       </div>
     </div>
   </div>
 </section>
 
 <style>
-  /* Minimal entrance animation; fully inert unless the user allows motion */
-  .hero-fade-in {
-    opacity: 1;
-    transform: none;
+  .hero-section {
+    width: 100%;
+    padding-block: 3.5rem 4rem;
+    background: var(--color-cream);
   }
-  @media (prefers-reduced-motion: no-preference) {
-    .hero-fade-in {
-      opacity: 0;
-      transform: translateY(14px);
-      animation: hero-fade-in 700ms ease-out 120ms forwards;
+
+  .hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+
+  .hero-copy {
+    min-width: 0;
+    max-width: 38rem;
+  }
+
+  /* Small decorative line before the eyebrow, matching the mockup's own
+     ::before flourish. Scoped to Hero only -- the shared .eyebrow class
+     (see global.css) stays plain everywhere else; this is a Hero-specific
+     compositional detail, not a sitewide change. */
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1.125rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 26px;
+    height: 1px;
+    /* --color-amber-decorative (Stage 2I), not --color-amber: this is a
+       purely decorative 1px line, not text, so it uses the mockup's
+       actual more-saturated amber rather than the darker WCAG-adjusted
+       text variant -- see the token comment in global.css. */
+    background: var(--color-amber-decorative);
+  }
+
+  /* Headline uses --color-pine-dark rather than the sitewide
+     --color-heading -- both are near-black, but pine-dark carries a
+     visible green character matching the mockup's heading treatment
+     (h1,h2,h3 { color: var(--pine-dark) }), where --color-heading reads
+     as a more neutral warm black. Scoped to Hero only, not a change to
+     the shared heading color used elsewhere. */
+  .hero-heading {
+    color: var(--color-pine-dark);
+    font-size: 2.375rem;
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .hero-lead {
+    max-width: 27.5rem;
+    margin-top: 1.375rem;
+    color: var(--color-body);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Contained, rounded, softly-shadowed image frame -- replaces Stage
+     2A's full-bleed treatment. --radius-editorial (existing token) on
+     all four corners now, since nothing here bleeds to an edge anymore.
+     The shadow is deliberately soft/low-opacity/large-blur -- restrained
+     editorial depth, matching the mockup's own hero-art shadow language,
+     not a modern SaaS card shadow (no shadow at all was the Stage 2A
+     default; this reintroduces one deliberately, per the Stage 2H
+     re-evaluation). */
+  .hero-image-frame {
+    width: 100%;
+    min-width: 0;
+    border-radius: var(--radius-editorial);
+    box-shadow: 0 30px 60px -20px color-mix(in srgb, var(--color-pine-dark) 35%, transparent);
+  }
+
+  @media (min-width: 640px) {
+    .hero-heading { font-size: 3.25rem; }
+    .hero-lead { font-size: 1.03125rem; }
+    .hero-cta { width: auto; }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-layout {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 3.5rem;
+      align-items: center;
+    }
+
+    .hero-heading { font-size: 3.25rem; }
+
+    .hero-image-frame {
+      width: 100%;
+      max-width: 33rem;
+      justify-self: end;
     }
   }
-  @keyframes hero-fade-in {
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
+
+  html[lang="zh"] .hero-heading { letter-spacing: 0; }
 </style>

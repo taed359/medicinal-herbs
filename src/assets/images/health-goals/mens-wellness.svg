@@ -1,0 +1,25 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong suc khoe nam gioi</title>
+<desc>Cu sam thon dai voi mam la ro net phia tren, tuong trung cho suc khoe nam gioi.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<path d="M200,162 C214,162 222,176 218,194 C226,208 220,226 200,242 C180,226 174,208 182,194 C178,176 186,162 200,162 Z"
+  fill="#B9863F" stroke="#8A6423" stroke-width="1.4"/>
+<line x1="192" y1="196" x2="197" y2="222" stroke="#8A6423" stroke-width="1" opacity="0.5"/>
+<line x1="208" y1="196" x2="203" y2="222" stroke="#8A6423" stroke-width="1" opacity="0.5"/>
+<path d="M190,240 Q180,252 182,264" fill="none" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M210,240 Q220,252 218,264" fill="none" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M200,242 Q200,254 200,266" fill="none" stroke="#B9863F" stroke-width="3.5" stroke-linecap="round"/>
+<line x1="200" y1="162" x2="200" y2="138" stroke="#2C4A3B" stroke-width="2.2"/>
+<ellipse cx="188" cy="140" rx="11" ry="5" transform="rotate(-30 188 140)" fill="#2C4A3B"/>
+<ellipse cx="212" cy="140" rx="11" ry="5" transform="rotate(30 212 140)" fill="#2C4A3B"/>
+</svg>

@@ -7,26 +7,64 @@ import expertImg from '../assets/images/expert-contact.webp';
 interface Props { lang: Locale }
 const { lang } = Astro.props;
 const t = getTranslations(lang);
+
+// Real, working route -- confirmed before keeping this, not assumed:
+// src/pages/{vi,zh}/contact.astro both exist and render ContactPage.astro.
+// This is the same destination the original component already used; kept
+// unchanged.
 const contactHref = localePath(lang, 'contact');
+
+// No BrandStory cross-link added: BrandStory.astro still has no id/anchor
+// (checked fresh before writing this file) and no about/story route
+// exists anywhere in src/pages, same as when this was first flagged in
+// Stage 2B. Nothing to link to yet, so nothing was added.
 ---
-<section class="py-10 sm:py-12 bg-cream" aria-labelledby="expert-cta-heading">
-  <div class="container-page">
-    <div class="mx-auto max-w-[68rem] overflow-hidden rounded-card">
-      <div class="group grid grid-cols-1 lg:grid-cols-[2fr_1fr]">
-        <!-- Left: Content -->
-        <div class="bg-brand p-7 sm:p-9 lg:p-10 text-white">
-          <p class="m-0 mb-2 text-[22px] sm:text-2xl font-semibold tracking-wide">{t.expertCta.eyebrow}</p>
-          <h2 id="expert-cta-heading" class="m-0 text-white font-serif text-[30px] sm:text-[36px] leading-tight font-bold">{t.expertCta.heading}</h2>
-          <p class="m-0 mt-3 max-w-prose text-[15px] sm:text-[16px] leading-relaxed text-white/90">{t.expertCta.description}</p>
+<section class="ec-section bg-cream" aria-labelledby="expert-cta-heading">
+  <div class="container-editorial">
+    <div class="ec-panel overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr]">
+        <!-- Left: Content. Dark solid panel, not text-over-photo -- this
+             stays the one homepage section with an inverted (dark
+             background / light text) treatment, which is what makes it
+             read as a distinct "human moment" rather than another
+             cream-surface section. Text contrast here depends only on
+             this solid fill, never on the photograph. Panel color is
+             --color-pine (Stage 2H's mockup-matched green), not the
+             sitewide --color-brand -- this is the homepage's largest
+             solid dark surface after Hero, so its exact shade matters
+             for whether the page reads as one palette. -->
+        <div class="bg-pine p-7 sm:p-9 lg:p-10 text-white">
+          <p class="ec-eyebrow eyebrow m-0 mb-2">{t.expertCta.eyebrow}</p>
+          <h2 id="expert-cta-heading" class="text-heading-section font-serif m-0 text-white">{t.expertCta.heading}</h2>
+          <p class="m-0 mt-3 max-w-prose text-[16px] leading-relaxed text-white/90">{t.expertCta.description}</p>
           <div class="mt-6">
-            <a href={contactHref} data-astro-reload class="inline-flex items-center justify-center rounded-pill bg-cream px-6 py-3 text-sm font-semibold text-brand no-underline transition-colors duration-300 hover:bg-white hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
+            <!-- Not .btn-primary: that class is a brand-green fill, which
+                 would be near-invisible against this panel's own
+                 brand-green background. This is the section's one
+                 genuine primary action (real destination, confirmed
+                 above), just inverted in color to stay legible here. -->
+            <a href={contactHref} data-astro-reload class="ec-cta no-underline hover:no-underline">
               {t.expertCta.ctaLabel}
             </a>
           </div>
         </div>
-        <!-- Right: Image -->
+        <!-- Right: the real photograph. Requested at its native 720x618
+             resolution (previously requested at 900x900, forcing an
+             upscale AND a square crop that doesn't match the source's
+             actual ~1.16:1 aspect ratio) -- this is a build-time
+             optimization-request fix, not a replacement or regeneration
+             of the asset itself. object-cover still handles fitting it
+             into whatever the column's actual rendered shape is. -->
         <div class="relative h-64 lg:h-auto overflow-hidden">
-          <Image src={expertImg} alt={t.expertCta.imageAlt} width={900} height={900} loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-[500ms] ease-out group-hover:scale-105" />
+          <Image
+            src={expertImg}
+            alt={t.expertCta.imageAlt}
+            width={720}
+            height={618}
+            loading="lazy"
+            decoding="async"
+            class="h-full w-full object-cover"
+          />
         </div>
       </div>
     </div>
@@ -34,7 +72,119 @@ const contactHref = localePath(lang, 'contact');
 </section>
 
 <style>
+  /* Generous, but deliberately not matching BrandStory/TrustCertifications'
+     full escalation to 6rem at lg -- this section sits right after
+     NaturalOils' intentionally denser commerce spacing and right before
+     HealthReads, and three consecutive maximally-spacious sections in a
+     row was flagged as a real risk during the mockup audit. This lands
+     between NaturalOils' density and BrandStory's full breathing room:
+     more generous than commerce, without pushing the page's overall
+     rhythm further toward the "too vertically spacious" concern already
+     on record. */
+  .ec-section {
+    /* Relaxed tier, not the dense tier HealthGoals/NaturalOils/HealthReads
+       use -- this is the homepage's other inverted (pine) surface besides
+       Process, and that color shift is a bigger transition than moving
+       between two cream sections, so it earns the same breathing room as
+       BrandStory/TrustCertifications/Process rather than being squeezed
+       like the dense list sections around it. */
+    padding-block: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .ec-section { padding-block: 1.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .ec-section { padding-block: 2rem; }
+  }
+
+  /* Editorial radius (see --radius-editorial in global.css), not the
+     product/card radius -- this is a photograph-and-text moment, not a
+     purchase surface. */
+  .ec-panel {
+    border-radius: var(--radius-editorial);
+  }
+
+  /* Overrides the shared .eyebrow's amber color for this section's dark
+     panel specifically. NOT done via a Tailwind color utility (e.g.
+     `text-cream`) in the markup: Tailwind v4 utilities compile into
+     `@layer utilities`, while `.eyebrow` in global.css is unlayered plain
+     CSS -- per the CSS cascade-layers spec, unlayered rules always beat
+     layered ones regardless of source order, so a utility class can never
+     actually override `.eyebrow`'s color here. This scoped selector
+     compares on ordinary specificity instead (two classes vs. one),
+     which reliably wins -- verified by inspecting the compiled build
+     output before relying on this. */
+  .ec-eyebrow.eyebrow {
+    color: var(--color-cream);
+  }
+
+  /* CRITICAL FIX, found during the Stage 2I visual-convergence audit: the
+     `text-white` utility on the <h2> above was NEVER actually applying.
+     Same unlayered-vs-layered cascade issue as the eyebrow override just
+     above, just undiscovered until now -- `.text-heading-section`'s own
+     `color: var(--color-heading)` (unlayered, global.css) was silently
+     beating the layered `text-white` utility every time, meaning this
+     heading has been rendering in near-black on this dark green panel
+     since Stage 2F. Computed contrast of that actual combination:
+     ~1.86:1 -- far below the 4.5:1 AA minimum, effectively illegible.
+     Fixed the same way as the eyebrow: a higher-specificity unlayered
+     override, using the heading's own id (already present for
+     aria-labelledby) rather than introducing a new class. */
+  #expert-cta-heading {
+    color: var(--color-cream);
+    font-size: 2rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  /* Narrowest phones only (this is also the exact breakpoint global.css
+     already uses for its own zh heading downscale, reused here rather
+     than inventing a new one): the VI heading is the longest on the
+     page (~49 characters) and sits inside a panel with its own padding
+     nested inside the section's container padding, leaving very little
+     width at 320-360px -- at the base 2rem size that wraps to 4 lines.
+     1.625rem keeps it a clearly still-a-heading size while bringing it
+     back to 3 lines. Unconditional (not locale-gated): the zh heading
+     is short enough that this never causes it any problem, so a single
+     rule covers both locales instead of a lang-conditional one. */
+  @media (max-width: 360px) {
+    #expert-cta-heading {
+      font-size: 1.625rem;
+    }
+  }
+
+  /* Full-width on mobile for a prominent, easy-to-tap CTA inside this
+     panel (matching Hero's own .hero-cta treatment) -- reverts to its
+     original shrink-to-fit size at sm, where the panel has more room and
+     a full-width button would look stretched next to the shorter text
+     column. */
+  .ec-cta {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-editorial-btn);
+    background: var(--color-cream);
+    color: var(--color-pine);
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+  }
+
+  @media (min-width: 640px) {
+    .ec-cta { width: auto; }
+  }
+  .ec-cta:hover {
+    background: var(--color-surface);
+  }
+  .ec-cta:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .group:hover img { transform: none !important; }
+    .ec-cta { transition: none; }
   }
 </style>

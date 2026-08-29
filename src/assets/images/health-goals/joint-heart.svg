@@ -1,0 +1,23 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong xuong khop &amp; tim mach</title>
+<desc>Trai tim voi duong gan la ben trong, tuong trung cho tim mach va xuong khop.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<g>
+  <circle cx="186" cy="188" r="19" fill="#E7CFA0"/>
+  <circle cx="214" cy="188" r="19" fill="#E7CFA0"/>
+  <path d="M164,196 L200,236 L236,196 Z" fill="#E7CFA0"/>
+</g>
+<path d="M200,168 Q200,200 200,222" stroke="#2C4A3B" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M200,186 Q188,192 182,200" stroke="#2C4A3B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+<path d="M200,186 Q212,192 218,200" stroke="#2C4A3B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+</svg>

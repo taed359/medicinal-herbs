@@ -1,0 +1,22 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong suc khoe nu gioi</title>
+<desc>Hoa sen nhieu canh nhon voi than cay ben duoi, tuong trung cho suc khoe nu gioi.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<path d="M200,214 C210,190 210,166 200,140 C190,166 190,190 200,214 Z" fill="#E7CFA0" opacity="0.92" transform="rotate(-60 200 214)"/>
+<path d="M200,214 C210,190 210,166 200,140 C190,166 190,190 200,214 Z" fill="#2C4A3B" opacity="0.92" transform="rotate(-30 200 214)"/>
+<path d="M200,214 C210,190 210,166 200,140 C190,166 190,190 200,214 Z" fill="#E7CFA0" opacity="0.92" transform="rotate(0 200 214)"/>
+<path d="M200,214 C210,190 210,166 200,140 C190,166 190,190 200,214 Z" fill="#2C4A3B" opacity="0.92" transform="rotate(30 200 214)"/>
+<path d="M200,214 C210,190 210,166 200,140 C190,166 190,190 200,214 Z" fill="#E7CFA0" opacity="0.92" transform="rotate(60 200 214)"/>
+<line x1="200" y1="214" x2="200" y2="240" stroke="#2C4A3B" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="200" cy="214" r="7" fill="#B9863F"/>
+</svg>

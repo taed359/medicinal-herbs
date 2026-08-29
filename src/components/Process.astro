@@ -1,0 +1,244 @@
+---
+import { getTranslations, type Locale } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+const t = getTranslations(lang);
+---
+
+<section class="process-section" aria-labelledby="process-heading">
+  <div class="container-editorial">
+    <header class="process-header">
+      <p class="process-eyebrow eyebrow m-0">{t.process.eyebrow}</p>
+      <div class="process-header-row">
+        <h2 id="process-heading" class="text-heading-section font-serif m-0">
+          {t.process.heading}
+        </h2>
+        <p class="process-lede m-0">{t.process.lede}</p>
+      </div>
+    </header>
+
+    <ol class="process-steps m-0 p-0 list-none">
+      {t.process.steps.map((step, index) => (
+        <li class="process-step">
+          <span class="process-seal" aria-hidden="true">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+          </span>
+          <div class="process-copy">
+            <h3 class="font-serif m-0">{step.title}</h3>
+            <p class="m-0">{step.description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .process-section {
+    /* Asymmetric on purpose, not a single relaxed-tier value: the entry
+       from TrustCertifications above should stay compact (TC's own
+       2.4rem/24px bottom padding + this section's smaller top padding
+       lands around 40-44px), while the exit into HealthGoals below gets
+       more breathing room (this section's larger bottom padding + HG's
+       20px top padding lands around 48-52px) -- since this is one of
+       only two inverted (pine) surfaces on the homepage, the color shift
+       on the way OUT deserves more separation than the shift on the way
+       IN, where TrustCertifications' own compact rhythm should carry
+       through. A symmetric padding-block here (matching top and bottom)
+       can't produce that asymmetry regardless of which single value is
+       chosen. */
+    padding-block: 1.25rem 2rem;
+    background: var(--color-pine-dark);
+  }
+
+  .process-header {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2.75rem;
+  }
+
+  .process-eyebrow { color: var(--color-amber-light); }
+
+  /* Heading + lede live in their own row, deliberately separate from
+     the eyebrow above (which used to sit inside the same grid cell as
+     the heading). That mattered because align-items compares whole
+     grid-item boxes: with the eyebrow stacked on top of the heading,
+     the "heading" cell's total height was eyebrow+gap+heading, so
+     bottom- or center-aligning the lede against that combined box
+     landed its top edge up near the EYEBROW's position, not the
+     heading's -- no align-items value can fix that while the eyebrow
+     is part of the same cell. Pulling the eyebrow out is what makes
+     align-items: end below actually do what it looks like it should:
+     compare the heading and lede directly, baseline-flush. */
+  .process-header-row {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .process-header-row .text-heading-section {
+    max-width: 42rem;
+    color: var(--color-surface);
+    font-size: 2.125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .process-lede {
+    /* 36ch was already narrower than the old 18-28rem column range,
+       leaving dead space to the lede's own right inside its column on
+       top of the vertical misalignment -- the tightened 16-22rem range
+       below keeps the column close to what the text actually needs. */
+    max-width: 36ch;
+    color: color-mix(in srgb, var(--color-paper-2) 72%, var(--color-pine-dark));
+    /* Matches TrustCertifications' own desktop .tc-lede size exactly
+       (0.96875rem) rather than a separate value, per the project's
+       established lede type-scale. */
+    font-size: 0.96875rem;
+    line-height: 1.65;
+  }
+
+  .process-steps {
+    border-top: 1px solid color-mix(in srgb, var(--color-paper-2) 18%, transparent);
+  }
+
+  .process-step {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+    padding-block: 1.75rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-paper-2) 18%, transparent);
+  }
+
+  /* Smaller on mobile than the original 4.625rem (restored at lg below):
+     at the mobile icon-left/text-right row layout, a 74px circle next to
+     two lines of 18px/15px type visually outweighs the copy it's meant
+     to support. 56px keeps it legible as a step marker without
+     competing with the typography for attention -- "typography carries
+     the hierarchy, seal is a supporting mark" per the design brief. */
+  .process-seal {
+    position: relative;
+    display: grid;
+    width: 3.5rem;
+    height: 3.5rem;
+    place-items: center;
+    flex: none;
+    border: 1.5px solid var(--color-amber-light);
+    border-radius: 50%;
+    background: var(--color-pine-dark);
+    color: var(--color-surface);
+  }
+
+  .process-seal::after {
+    content: '';
+    position: absolute;
+    inset: 0.3125rem;
+    border: 1px solid color-mix(in srgb, var(--color-amber-light) 72%, transparent);
+    border-radius: 50%;
+  }
+
+  .process-seal span {
+    font-family: var(--font-serif);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+  }
+
+  .process-copy h3 {
+    color: var(--color-surface);
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .process-copy p {
+    max-width: 31ch;
+    margin-top: 0.5rem;
+    color: color-mix(in srgb, var(--color-paper-2) 72%, var(--color-pine-dark));
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 640px) {
+    .process-section { padding-block: 1.5rem 2.25rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .process-section { padding-block: 1.75rem 2.5rem; }
+
+    /* Ratio inspired by TrustCertifications' own .tc-layout (1fr:1.2fr,
+       its bigger content column slightly wider) -- here the heading is
+       the primary element, so the wider allocation goes to it instead:
+       a flexible first column plus a capped 16-22rem second column that
+       stays close to the lede's own ~18rem natural text measure (down
+       from 18-28rem, which let the column grow well past what the text
+       needed and left it looking stranded in its own whitespace).
+       align-items: end bottom-aligns the heading and lede directly --
+       see the .process-header-row comment above for why pulling the
+       eyebrow out of this row is what makes this actually work. */
+    .process-header-row {
+      grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+      gap: 1.5rem;
+      align-items: end;
+    }
+
+    .process-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      position: relative;
+      border-top: 0;
+    }
+
+    .process-steps::before {
+      content: '';
+      position: absolute;
+      top: 2.3125rem;
+      right: 3.75rem;
+      left: 3.75rem;
+      height: 1px;
+      background: color-mix(in srgb, var(--color-paper-2) 18%, transparent);
+    }
+
+    .process-step {
+      display: block;
+      position: relative;
+      min-width: 0;
+      padding: 0 0.875rem;
+      text-align: center;
+      border-bottom: 0;
+      border-left: 0;
+    }
+
+    /* Restored to its original full size: centered above the text in
+       this four-column layout, the seal reads as the step's primary
+       marker rather than competing with a tighter icon-left/text-right
+       row like it does on mobile, so the larger mobile-only rebalancing
+       above doesn't apply here. */
+    .process-seal {
+      width: 4.625rem;
+      height: 4.625rem;
+    }
+
+    .process-seal::after {
+      inset: 0.375rem;
+    }
+
+    .process-seal span {
+      font-size: 0.875rem;
+    }
+
+    .process-seal {
+      margin: 0 auto 1.25rem;
+    }
+
+    .process-copy p { margin-inline: auto; }
+  }
+
+  html[lang="zh"] .process-copy h3,
+  html[lang="zh"] .process-seal span { letter-spacing: 0; }
+</style>

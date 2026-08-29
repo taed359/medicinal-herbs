@@ -1,16 +1,22 @@
 ---
-import { Image } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import { getTranslations, localePath, type Locale } from '../i18n/utils';
 
-import beauty from '../assets/images/health-goals/beauty.webp';
-import energy from '../assets/images/health-goals/energy.webp';
-import generalWellness from '../assets/images/health-goals/general-wellness.webp';
-import immunity from '../assets/images/health-goals/immunity.webp';
-import mensWellness from '../assets/images/health-goals/mens-wellness.webp';
-import jointHeart from '../assets/images/health-goals/joint-heart.webp';
-import mindFocus from '../assets/images/health-goals/mind-focus.webp';
-import sleepStress from '../assets/images/health-goals/sleep-stress.webp';
-import womensHealth from '../assets/images/health-goals/womens-health.webp';
+// SVG illustrations, not photos -- same pass-through pattern as
+// Hero.astro / BrandStory.astro: astro:assets' <Image> component would
+// try to raster-process these (and throw, since Astro's default sharp
+// service can't rasterize SVG without image.dangerouslyProcessSVG),
+// so each is resolved once below via getImage({ format: 'svg' }) and
+// rendered as a plain <img>.
+import beauty from '../assets/images/health-goals/beauty.svg';
+import energy from '../assets/images/health-goals/energy.svg';
+import generalWellness from '../assets/images/health-goals/general-wellness.svg';
+import immunity from '../assets/images/health-goals/immunity.svg';
+import mensWellness from '../assets/images/health-goals/mens-wellness.svg';
+import jointHeart from '../assets/images/health-goals/joint-heart.svg';
+import mindFocus from '../assets/images/health-goals/mind-focus.svg';
+import sleepStress from '../assets/images/health-goals/sleep-stress.svg';
+import womensHealth from '../assets/images/health-goals/womens-health.svg';
 
 interface Props {
   lang?: Locale;
@@ -18,7 +24,7 @@ interface Props {
 
 const { lang = 'vi' } = Astro.props;
 
-const GOALS = [
+const GOALS_RAW = [
   { slug: 'beauty', key: 'beauty', image: beauty },
   { slug: 'energy', key: 'energy', image: energy },
   { slug: 'general-wellness', key: 'generalWellness', image: generalWellness },
@@ -30,111 +36,207 @@ const GOALS = [
   { slug: 'womens-health', key: 'womensHealth', image: womensHealth },
 ] as const;
 
+// format: 'svg' passes each file through unchanged (still hashed and
+// emitted via the normal asset pipeline) instead of trying to rasterize
+// it -- see the import comment above.
+const GOALS = await Promise.all(
+  GOALS_RAW.map(async (goal) => ({
+    ...goal,
+    imageSrc: (await getImage({ src: goal.image, format: 'svg' })).src,
+  }))
+);
+
+const [featuredGoal, ...supportingGoals] = GOALS;
+
 const t = getTranslations(lang);
+
+// KNOWN DEPENDENCY, unresolved -- verified fresh in this pass (see Stage
+// 2D report): no route under `health-goals/{slug}` exists anywhere in
+// src/pages, and the repository layer has no health-goal-based product
+// filtering, so there is no valid alternative destination either. Every
+// href below (mobile AND the new desktop grid) points at the same
+// not-yet-built destination the original implementation already used --
+// this pass does not introduce a new dead link, it inherits the existing
+// one unchanged, because disabling navigation here would mean rebuilding
+// the mobile Swiper's interaction, which is explicitly out of scope this
+// stage. Real `health-goals/{slug}` pages remain a required follow-up.
 ---
 
-<section class="py-8 sm:py-10" aria-label={t.healthGoals.sectionLabel}>
-  <div class="container-page">
-    <div class="text-center mb-7 sm:mb-9">
-      <p class="hg-eyebrow m-0 mb-1">{t.healthGoals.eyebrow}</p>
-      <h2 class="hg-heading font-serif m-0">{t.healthGoals.heading}</h2>
+<!-- HealthGoals shares the homepage's warm paper field. Its spacing is
+     controlled locally so the image-led discovery rhythm can remain
+     distinct from both Process above and NaturalOils below. -->
+<section class="hg-section" aria-label={t.healthGoals.sectionLabel}>
+  <div class="container-editorial">
+    <div class="hg-header">
+      <p class="eyebrow m-0 mb-1">{t.healthGoals.eyebrow}</p>
+      <h2 class="text-heading-section font-serif m-0">{t.healthGoals.heading}</h2>
     </div>
   </div>
 
-  <div class="container-page" data-health-goals-root>
-    <div class="hg-carousel">
-      <div class="swiper health-goals-swiper" data-health-goals-swiper>
-        <div class="swiper-wrapper">
-          {GOALS.map((goal) => {
-            const label = t.healthGoals.items[goal.key];
-            return (
-              <div class="swiper-slide">
-                <a
-                  href={localePath(lang, `health-goals/${goal.slug}`)}
-                  data-astro-reload
-                  class="hg-card group relative block aspect-square overflow-hidden rounded-card"
-                >
-                  <Image
-                    src={goal.image}
-                    alt=""
-                    width={480}
-                    height={480}
-                    loading="lazy"
-                    decoding="async"
-                    class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                />
-                  <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
-                  <div class="absolute inset-x-0 bottom-4 flex justify-center px-4">
-                    <span class="hg-pill">
-                      {label}
+  <!--
+    Below `lg` (1024px): the existing Swiper carousel -- same data,
+    breakpoints (1.5/3 slides), navigation, pagination, and behavior.
+    Only the presentation changes from an overlay card to an image-first
+    editorial rail with its label beneath the image.
+  -->
+  <div class="lg:hidden">
+    <div class="container-editorial" data-health-goals-root>
+      <div class="hg-carousel">
+        <div class="swiper health-goals-swiper" data-health-goals-swiper>
+          <div class="swiper-wrapper">
+            {GOALS.map((goal) => {
+              const label = t.healthGoals.items[goal.key];
+              return (
+                <div class="swiper-slide">
+                  <a
+                    href={localePath(lang, `health-goals/${goal.slug}`)}
+                    data-astro-reload
+                    class="hg-card group block"
+                  >
+                    <div class="hg-card-image">
+                      <img
+                        src={goal.imageSrc}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        class="h-full w-full object-cover"
+                      />
+                    </div>
+                    <span class="hg-card-label">
+                      <span class="hg-card-label-text">{label}</span>
+                      <span class="hg-card-arrow" aria-hidden="true">→</span>
                     </span>
-                  </div>
-                </a>
-              </div>
-            );
-          })}
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        <button type="button" class="hg-nav hg-nav-prev swiper-button-prev" aria-label={t.healthGoals.prev}></button>
+        <button type="button" class="hg-nav hg-nav-next swiper-button-next" aria-label={t.healthGoals.next}></button>
       </div>
 
-      <button type="button" class="hg-nav hg-nav-prev swiper-button-prev" aria-label={t.healthGoals.prev}></button>
-      <button type="button" class="hg-nav hg-nav-next swiper-button-next" aria-label={t.healthGoals.next}></button>
+      <div class="hg-pagination-row">
+        <div class="hg-pagination"></div>
+      </div>
     </div>
+  </div>
 
-    <div class="hg-pagination-row">
-      <div class="hg-pagination"></div>
+  <!--
+    `lg` and up: an editorial discovery grid, not a stretched version of
+    the mobile carousel. One featured tile (the first goal) sits in its
+    own left column; the remaining eight goals form a self-contained
+    2-column x 4-row grid in the right column. This is a genuine two-
+    region DOM split (outer `.hg-layout` grid with exactly two items),
+    not a single 9-item grid with a spanning cell -- that's what lets
+    the two regions become equal-height siblings for free via CSS
+    Grid's default `align-items: stretch`, instead of needing any
+    gap-size algebra to force the alignment (see the .hg-layout /
+    .hg-feature-image comment below for the full reasoning). No goal is
+    being editorially "featured" for health-priority reasons -- this is
+    a positional layout rhythm, not a content judgment, which is also
+    why it stays correct regardless of which goal happens to be first
+    in GOALS.
+  -->
+  <div class="hidden lg:block">
+    <div class="container-editorial">
+      <ul class="hg-layout m-0 p-0 list-none" role="list">
+        <li class="hg-feature-item">
+          <a href={localePath(lang, `health-goals/${featuredGoal.slug}`)} data-astro-reload class="hg-feature group block">
+            <div class="hg-tile-image hg-feature-image relative overflow-hidden">
+              <img
+                src={featuredGoal.imageSrc}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <h3 class="hg-tile-label font-serif m-0">
+              <span class="hg-tile-label-text">{t.healthGoals.items[featuredGoal.key]}</span>
+              <span class="hg-tile-arrow" aria-hidden="true">→</span>
+            </h3>
+          </a>
+        </li>
+
+        <li class="hg-supporting-item">
+          <ul class="hg-supporting m-0 p-0 list-none" role="list">
+            {supportingGoals.map((goal) => {
+              const label = t.healthGoals.items[goal.key];
+              return (
+                <li class="hg-tile">
+                  <a href={localePath(lang, `health-goals/${goal.slug}`)} data-astro-reload class="group block">
+                    <div class="hg-tile-image relative overflow-hidden">
+                      <img
+                        src={goal.imageSrc}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        class="h-full w-full object-cover"
+                      />
+                    </div>
+                    <h3 class="hg-tile-label font-serif m-0">
+                      <span class="hg-tile-label-text">{label}</span>
+                      <span class="hg-tile-arrow" aria-hidden="true">→</span>
+                    </h3>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </li>
+      </ul>
     </div>
   </div>
 </section>
 
 <style>
-  .hg-eyebrow {
-    color: var(--color-brand);
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  @media (min-width: 640px) {
-    .hg-eyebrow {
-      font-size: 1.375rem;
-    }
+  .hg-section {
+    padding-block: 1.25rem;
+    background: var(--color-cream);
   }
 
-  /* 1.25, not the usual 1.15 -- Playfair Display's own vertical metrics
-     (hhea ascent+|descent| ~1.33em) need more room on narrow viewports
-     where this VI heading can wrap to 2 lines, or the lines visually
-     crowd each other. Same fix applied to every other font-serif section
-     heading on the storefront (BrandStory, NaturalOils, TrustCertifications,
-     HealthReads). */
-  .hg-heading {
-    color: var(--color-heading);
-    font-size: 1.75rem;
+  .hg-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+    text-align: left;
+  }
+
+  .hg-header .eyebrow {
+    font-size: 0.75rem;
     font-weight: 700;
-    line-height: 1.25;
+    letter-spacing: 0.16em;
   }
+
+  .hg-header .text-heading-section {
+    font-size: 2.125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
   @media (min-width: 640px) {
-    .hg-heading {
-      font-size: 2.25rem;
+    .hg-section { padding-block: 1.5rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .hg-section { padding-block: 1.75rem; }
+    .hg-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2.25rem;
     }
   }
 
-  /* Wraps the Swiper instance + nav arrows only. Its box height equals the
-     card row's height exactly (nav buttons are position:absolute and don't
-     contribute to flow height), so arrows centered against it are centered
-     against the CARD AREA specifically -- not the pagination below. */
+  /* Mobile/tablet carousel (below lg). */
   .hg-carousel {
     position: relative;
-    /* Official Swiper navigation custom properties: setting these instead of
-       fighting `left`/`right`/`width`/`height`/`margin-top` with !important
-       keeps our sizing, inset and Swiper's internal centering math in sync. */
     --swiper-navigation-size: 42px;
     --swiper-navigation-sides-offset: 0.75rem;
     --swiper-navigation-color: var(--color-brand);
   }
 
-  /* Reserve Swiper's final geometry before its client bundle initializes.
-     Lazy images can leave this below-the-fold section visible while the
-     bundle is still loading; without this fallback, slides are full-width
-     blocks and the square cards temporarily stack at container width. */
   .health-goals-swiper {
     overflow: hidden;
   }
@@ -153,60 +255,100 @@ const t = getTranslations(lang);
       flex-basis: calc((100% - 40px) / 3);
     }
   }
-  @media (min-width: 1024px) {
-    .health-goals-swiper .swiper-wrapper {
-      gap: 30px;
-    }
-    .health-goals-swiper:not(.swiper-initialized) .swiper-slide {
-      flex-basis: calc((100% - 90px) / 4);
-    }
-  }
   .health-goals-swiper.swiper-initialized .swiper-wrapper {
     gap: 0;
   }
 
-  .hg-pill {
-    background: var(--color-surface);
-    color: var(--color-heading);
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.2;
-    padding: 0.5rem 1.1rem;
-    border-radius: 9999px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    white-space: nowrap;
-    max-width: calc(100% - 1.5rem);
+  .hg-card {
+    color: var(--color-pine-dark);
+    text-decoration: none;
+  }
+
+  .hg-card-image {
+    aspect-ratio: 4 / 5;
     overflow: hidden;
-    text-overflow: ellipsis;
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+    border-radius: var(--radius-editorial);
+    background: var(--color-cream);
+    transition: border-color 250ms ease;
   }
-  .hg-card:hover .hg-pill,
-  .hg-card:focus-visible .hg-pill {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
-    transform: translateY(-2px);
+
+  .hg-card-image img,
+  .hg-tile-image img {
+    transition: transform 450ms ease;
   }
+
+  /* Label geometry (mobile card) -- a proper 2-column grid rather than
+     inline text + inline arrow, so the arrow always sits in its own fixed
+     column at the tile's right edge instead of trailing immediately after
+     however long the title happens to be. `minmax(0, 1fr)` on the text
+     column is what lets it actually wrap instead of overflowing: a plain
+     flex/grid item defaults to a content-based minimum width and won't
+     shrink below it, which is exactly what let long titles push the arrow
+     out of alignment before this fix.
+     min-height reserves space for 2 lines using the LARGER of the two
+     locales' line-heights (zh: 1.6) so a 2-line zh title never exceeds the
+     block a 2-line vi title (1.4) was sized for -- sizing to the smaller
+     value would let zh overflow and reintroduce the same misalignment this
+     is fixing. */
+  .hg-card-label {
+    display: flex;
+    align-items: flex-start;
+    column-gap: 0.625rem;
+    margin-top: 0.875rem;
+    min-height: 3.4rem; /* 2 lines at 1.0625rem font-size / 1.6 line-height (zh) -- same constants as the desktop .hg-tile-label */
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  html[lang="zh"] .hg-card-label { letter-spacing: 0; line-height: 1.6; }
+  .hg-card-label-text { min-width: 0; flex: 0 1 auto; text-wrap: balance; }
+
+  .hg-card-arrow,
+  .hg-tile-arrow {
+    flex: 0 0 auto;
+    color: var(--color-amber);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 0.875em;
+    line-height: 1.4;
+    transition: color 250ms ease, transform 250ms ease;
+  }
+
+  .hg-card:hover .hg-card-image img,
+  .hg-card:focus-visible .hg-card-image img,
+  .group:hover .hg-tile-image img,
+  .group:focus-visible .hg-tile-image img {
+    transform: scale(1.035);
+  }
+
+  .hg-card:hover .hg-card-image,
+  .hg-card:focus-visible .hg-card-image,
+  .group:hover .hg-tile-image,
+  .group:focus-visible .hg-tile-image {
+    border-color: color-mix(in srgb, var(--color-amber-decorative) 45%, var(--color-border));
+  }
+
+  .hg-card:hover .hg-card-arrow,
+  .hg-card:focus-visible .hg-card-arrow,
+  .group:hover .hg-tile-arrow,
+  .group:focus-visible .hg-tile-arrow {
+    color: var(--color-pine);
+    transform: translateX(2px);
+  }
+
   .hg-card:focus-visible {
-    outline: 2px solid var(--color-brand);
+    outline: 2px solid var(--color-pine);
     outline-offset: 3px;
   }
 
-  /* Dedicated pagination area BELOW the carousel, in normal document flow.
-     `.hg-pagination` deliberately does NOT carry Swiper's own
-     `swiper-pagination` class (that class is what makes Swiper apply
-     `position: absolute` -- see component-level notes), so it always
-     participates in normal flow and can never overlap the cards above it. */
   .hg-pagination-row {
     margin-top: 1.25rem;
-    padding-block: 0;
     display: flex;
     justify-content: center;
   }
 
-  /* Same tap targets, same accessible click area (28px — still comfortably
-     tappable for a secondary/tertiary control like pagination, unlike a
-     primary action), just visually tighter: a small explicit `gap` between
-     bullets instead of each one being a full 44px square, which read as
-     one big blocky slab instead of a row of small dots. */
   .hg-pagination {
     display: flex;
     flex-wrap: wrap;
@@ -218,7 +360,6 @@ const t = getTranslations(lang);
     min-height: 28px;
   }
 
-  /* Accessible target with a restrained visual dot. */
   .hg-pagination :global(.swiper-pagination-bullet) {
     position: relative;
     flex: 0 0 28px;
@@ -245,18 +386,15 @@ const t = getTranslations(lang);
   }
 
   .hg-pagination :global(.swiper-pagination-bullet-active)::after {
-    background: var(--color-brand);
+    background: var(--color-pine);
     opacity: 1;
   }
 
   .hg-pagination :global(.swiper-pagination-bullet):focus-visible {
-    outline: 2px solid var(--color-brand);
+    outline: 2px solid var(--color-pine);
     outline-offset: -3px;
   }
 
-  /* Navigation arrows: premium circular buttons that feel part of the
-     carousel, not default oversized Swiper controls. Hidden on mobile/tablet
-     -- touch/swipe is the primary interaction there. */
   .hg-nav {
     display: none;
     align-items: center;
@@ -266,13 +404,11 @@ const t = getTranslations(lang);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 9999px;
-    box-shadow: 0 4px 14px rgba(42, 22, 22, 0.14);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
   .hg-nav:hover {
-    background: var(--color-surface);
-    box-shadow: 0 6px 18px rgba(42, 22, 22, 0.2);
-    transform: translateY(-1px);
+    border-color: var(--color-pine);
   }
   .hg-nav:focus-visible {
     outline: 2px solid var(--color-brand);
@@ -282,6 +418,9 @@ const t = getTranslations(lang);
     width: 13px;
     height: 13px;
   }
+  /* Nav arrows only ever mattered at >=1024px in the old single-layout
+     version; kept here (inert) purely because this whole block now lives
+     inside `lg:hidden`, so it can never actually reach that width. */
   @media (min-width: 1024px) {
     .hg-nav {
       display: flex;
@@ -289,19 +428,144 @@ const t = getTranslations(lang);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hg-card img {
-      transition: none !important;
-    }
-    .hg-pill {
-      transition: none !important;
-    }
-    .hg-nav {
-      transition: none !important;
-    }
-    .hg-pagination :global(.swiper-pagination-bullet)::after {
-      transition: none !important;
-    }
+    .hg-card img { transition: none !important; }
+    .hg-card-arrow { transition: none !important; }
+    .hg-nav { transition: none !important; }
+    .hg-pagination :global(.swiper-pagination-bullet)::after { transition: none !important; }
   }
+
+  /* Desktop editorial grid (lg and up).
+
+     Alignment is solved by CSS Grid mechanics, not by gap-size algebra.
+     `.hg-layout` is a 2-column, single-row grid with exactly two grid
+     items: the featured tile and the 8-item supporting grid. For an
+     `auto`-sized grid row, track sizing is based on each item's own
+     natural (content) height -- and `.hg-supporting`'s natural height
+     (4 stacked rows of a square tile image + label, plus 3 inner gaps)
+     is inherently taller than `.hg-feature`'s natural content height,
+     since the featured image carries no fixed aspect-ratio of its own.
+     `align-items: stretch` (CSS Grid's own default -- not overridden
+     here) then stretches `.hg-feature-item` to match that same row
+     height automatically. Inside it, `.hg-feature` is a flex column
+     whose label keeps the exact same fixed footprint
+     (--hg-mt + --hg-label-min-h) as every supporting tile's label, and
+     whose image is `flex: 1 1 auto` -- so the image simply fills
+     whatever height the stretch handed it. Because both labels share
+     one fixed footprint and both columns are stretched to one shared
+     height, the two label bottoms land on the same line as a structural
+     consequence of the layout, not because of a solved equation -- so
+     this holds at any viewport, and the gap values below are free to be
+     chosen purely for visual rhythm instead of being derived from an
+     alignment constraint.
+
+     Column ratio (2fr : 1fr) and gap (1.5rem/24px, both here and inside
+     `.hg-supporting`) were chosen empirically to keep the resulting
+     featured-image aspect ratio in a natural photographic range
+     (~1:1.23-1:1.35 across 1280-1536px, close to a 4:5 portrait) rather
+     than the much taller ratio a naive equal-fr split would produce --
+     see the Stage report for the full width/ratio table. */
+  .hg-layout {
+    --hg-mt: 0.75rem;          /* gap between image bottom and label top */
+    --hg-label-min-h: 3.4rem;  /* 2 lines at 1.0625rem font-size / 1.6 line-height (zh, the taller of the two locales) */
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    column-gap: 1.5rem;
+  }
+
+  .hg-feature-item,
+  .hg-supporting-item {
+    min-width: 0;
+  }
+
+  .hg-feature {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .hg-supporting {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+    gap: 1.5rem;
+  }
+
+  .hg-tile-image {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-editorial);
+    background: var(--color-cream);
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+    transition: border-color 250ms ease;
+  }
+
+  /* Overrides the fixed 1:1 ratio above: the featured image's height
+     instead comes from the grid-stretch + flex-fill mechanism described
+     above, so it must be free to take whatever height that hands it. */
+  .hg-feature-image {
+    aspect-ratio: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Label geometry (desktop grid) -- same reasoning as .hg-card-label
+     above: a flex row that hugs its own content, so the arrow trails
+     immediately after the title instead of being pinned to the tile's
+     far right edge (a fixed-column grid did that, and on the wide
+     featured tile it left a large empty gap after short titles). The
+     text item still shrinks/wraps via `flex: 0 1 auto` + `min-width: 0`
+     for the longest titles (zh) without forcing the row past the tile.
+
+     min-height reserves 2 lines using zh's line-height (1.6, taller than
+     vi's 1.4) as the universal value, so a 1-line title and a 2-line
+     title -- in EITHER locale -- occupy an identical structural block,
+     and the row of images below always starts from the same baseline
+     regardless of which goal happens to render longer.
+
+     This exact same class (font-size/weight/min-height/grid) is shared
+     by the featured tile (.hg-feature) and every supporting tile --
+     there is no separate, larger typography for the featured label. Its
+     visual weight comes entirely from its larger photograph, never from
+     its title being a bigger heading.
+
+     margin-top and min-height below read from --hg-mt / --hg-label-min-h
+     (defined once, on .hg-layout, and inherited here since this element
+     is its descendant) rather than restating 0.75rem/3.4rem a second
+     time -- both the featured and supporting labels reading the same
+     two variables is what keeps their footprints identical, which is
+     what makes the two sides' bottom edges land on the same line under
+     the grid-stretch mechanism described on .hg-layout above. If this
+     label's own footprint diverged between the two sides, that
+     alignment would silently break. */
+  .hg-tile-label {
+    display: flex;
+    align-items: flex-start;
+    column-gap: 0.75rem;
+    margin-top: var(--hg-mt);
+    min-height: var(--hg-label-min-h);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-pine-dark);
+  }
+  html[lang="zh"] .hg-tile-label { letter-spacing: 0; line-height: 1.6; }
+  .hg-tile-label-text { min-width: 0; flex: 0 1 auto; text-wrap: balance; }
+
+  .group:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 3px;
+    border-radius: var(--radius-editorial);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hg-tile-image img { transition: none !important; }
+    .hg-tile-arrow { transition: none !important; }
+    .hg-card-image,
+    .hg-tile-image { transition: none !important; }
+  }
+
+  html[lang="zh"] .hg-header .text-heading-section { letter-spacing: 0; }
 </style>
 
 <script>
@@ -311,10 +575,20 @@ const t = getTranslations(lang);
   import 'swiper/css/pagination';
   import 'swiper/css/navigation';
 
+  // Below `lg` (1024px) only -- above that width the carousel's own
+  // container is `display:none` (see the `lg:hidden` wrapper in the
+  // markup) and the static desktop grid takes over instead. Initializing
+  // Swiper inside a hidden, zero-dimension container would measure
+  // garbage slide widths, so this is skipped entirely above the
+  // breakpoint rather than initialized-then-hidden. Re-checked on resize
+  // (same pattern Header.astro already uses for its mobile drawer) so a
+  // desktop browser window shrunk below 1024px still gets a working
+  // carousel without a full page reload; each root's own
+  // `(el as any).swiper` guard below prevents ever double-initializing
+  // once created.
   function initHealthGoalsSwipers() {
-    // Query from the shared root (not the `.swiper` element itself), since
-    // the pagination row now lives outside the `.swiper` container for
-    // layout reasons -- see the component's <style> notes.
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
+
     const roots = document.querySelectorAll<HTMLElement>('[data-health-goals-root]');
     roots.forEach((root) => {
       const el = root.querySelector<HTMLElement>('[data-health-goals-swiper]');
@@ -342,7 +616,6 @@ const t = getTranslations(lang);
         },
         breakpoints: {
           640: { slidesPerView: 3, spaceBetween: 20 },
-          1024: { slidesPerView: 4, spaceBetween: 30 },
         },
       });
     });
@@ -354,4 +627,5 @@ const t = getTranslations(lang);
     initHealthGoalsSwipers();
   }
   document.addEventListener('astro:page-load', initHealthGoalsSwipers);
+  window.addEventListener('resize', initHealthGoalsSwipers);
 </script>

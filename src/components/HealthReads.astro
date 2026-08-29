@@ -20,119 +20,276 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   { key: 'womensHealth', image: imgWomen },
   { key: 'tcmBasics', image: imgTcm },
 ];
+
+// ROUTE STATUS, re-verified fresh for this stage: no route exists under
+// `health-reads/{slug}` OR under `blogs/{slug}` anywhere in src/pages.
+// Worth noting separately: the i18n schema itself declares
+// `t.healthReads.basePath === 'blogs'` (see src/i18n/utils.ts,
+// vi.ts/zh.ts) but this component has never actually used that field --
+// it hardcodes `health-reads` instead, a real, pre-existing discrepancy
+// between the declared intended path and the one actually linked.
+// Neither `health-reads/*` nor `blogs/*` exists today either way, so
+// this pass does not resolve which one is "correct" -- that's a content/
+// routing decision, not a visual one. Per this stage's instruction, each
+// article's existing (still unresolved) destination is preserved
+// unchanged rather than guessed at or swapped to "#".
+//
+// The section-level "view all" CTA: re-requested explicitly for this
+// stage despite the same missing-route problem above -- confirmed with
+// the user, who chose "UI only for now" (same treatment already used for
+// AnnouncementBar's store-locator button). So `t.healthReads.ctaViewAll`
+// (an already-existing, previously-unused i18n string) is now rendered
+// below as a real, unwired `<button>` -- never an `<a href="#">`, which
+// would silently jump to the top of the page -- so nothing here claims a
+// working destination that doesn't exist yet. Wire it to a real href
+// once an actual index route exists under either `health-reads/` or
+// `blogs/` (see the basePath discrepancy noted above -- worth resolving
+// at the same time, since the individual article links need the same
+// fix).
 ---
-<section class="py-8 sm:py-10" aria-labelledby="health-reads-heading">
-  <div class="container-page">
-    <!-- Header -->
-    <div class="text-center mb-7 sm:mb-9">
-      <p class="hr-eyebrow m-0 mb-1">{t.healthReads.eyebrow}</p>
-      <h2 id="health-reads-heading" class="hr-heading font-serif m-0">{t.healthReads.heading}</h2>
+<section class="hr-section" aria-labelledby="health-reads-heading">
+  <div class="container-editorial">
+    <div class="hr-header text-center mb-7 sm:mb-9">
+      <p class="eyebrow m-0 mb-1">{t.healthReads.eyebrow}</p>
+      <h2 id="health-reads-heading" class="text-heading-section font-serif m-0">{t.healthReads.heading}</h2>
     </div>
 
-    <!-- Responsive list: horizontal scroll on mobile, grid from sm+ -->
-    <ul
-      class="hr-scroll m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible lg:grid-cols-4 lg:gap-6"
-      role="list"
-    >
+    <!--
+      A single divided list at every breakpoint -- not a card grid (the
+      homepage already has two: HealthGoals' discovery grid and
+      NaturalOils' commerce grid) and not a horizontal mobile carousel
+      either. The previous horizontal scroll-snap treatment made sense
+      for square photo cards; it doesn't for this row-based editorial
+      format, which already reads naturally as a vertical list on every
+      screen size -- so there's nothing to adapt between breakpoints and
+      no duplicated markup is needed.
+
+      Each row is one link (matching ProductCard's existing pattern of a
+      single anchor with an explicit `aria-label` set to just the title,
+      rather than letting the screen reader announce the full description
+      paragraph as part of the link's accessible name).
+    -->
+    <ul class="hr-list m-0 p-0 list-none" role="list">
       {items.map((it) => {
         const d = t.healthReads.items[it.key];
         const href = localePath(lang, `health-reads/${d.slug}`);
         return (
-          <li class="hr-card h-full">
-            <article class="group h-full">
-              <a href={href} data-astro-reload class="block h-full rounded-card overflow-hidden bg-surface border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
-                <div class="relative aspect-square overflow-hidden">
-                  <Image src={it.image} alt="" width={640} height={640} loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                </div>
-                <div class="p-4">
-                  <h3 class="m-0 font-serif text-[18px] sm:text-[19px] leading-snug text-heading truncate">{d.title}</h3>
-                  <p class="hr-description m-0 mt-2">{d.description}</p>
-                </div>
-              </a>
-            </article>
+          <li class="hr-row">
+            <a href={href} data-astro-reload aria-label={d.title} class="hr-row-link group">
+              <span class="hr-row-thumb">
+                <Image src={it.image} alt="" width={220} height={220} loading="lazy" decoding="async" class="h-full w-full object-cover" />
+              </span>
+              <span class="hr-row-text">
+                <h3 class="text-heading-card font-serif m-0">
+                  {d.title}
+                  <span class="hr-row-arrow" aria-hidden="true"> →</span>
+                </h3>
+                <p class="hr-row-description m-0 mt-1">{d.description}</p>
+              </span>
+            </a>
           </li>
         );
       })}
     </ul>
 
-    <!-- CTA -->
-    <div class="mt-7 sm:mt-8 text-center">
-      <a href={localePath(lang, 'health-reads')} data-astro-reload class="btn btn-secondary no-underline transition-colors duration-300 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70">
+    <div class="hr-view-all-wrap">
+      <button type="button" class="hr-view-all btn-tertiary">
         {t.healthReads.ctaViewAll}
-      </a>
+        <span class="btn-tertiary-arrow" aria-hidden="true">→</span>
+      </button>
     </div>
   </div>
 </section>
 
 <style>
-  .hr-eyebrow {
-    color: var(--color-brand);
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+  /* Quiet editorial conclusion to the homepage -- generous but not
+     competing with BrandStory/TrustCertifications' full rhythm, similar
+     reasoning to ExpertConsultation's spacing decision (the same "is the
+     page getting too vertically spacious" concern applies here too, and
+     this section's content is inherently more compact/scannable than a
+     heritage or trust statement). */
+  .hr-section {
+    padding-block: 1.25rem; /* Stage 2N: compact tier, was 3/4/5rem */
+    background: var(--color-cream);
   }
   @media (min-width: 640px) {
-    .hr-eyebrow { font-size: 1.375rem; }
+    .hr-section { padding-block: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .hr-section { padding-block: 1.75rem; }
   }
 
-  /* 1.25, not the usual 1.15 -- see BrandStory.astro's .bs-heading comment
-     for why (Playfair Display's vertical metrics need more room than 1.15
-     gives if this heading wraps to 2 lines on narrow viewports). */
-  .hr-heading {
-    color: var(--color-heading);
-    font-size: 1.75rem;
+  .hr-header .eyebrow {
+    font-size: 0.75rem;
     font-weight: 700;
-    line-height: 1.25;
+    letter-spacing: 0.16em;
+  }
+
+  .hr-header .text-heading-section {
+    font-size: 2.125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .hr-list {
+    width: 100%;
+    border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-surface));
+  }
+
+  .hr-row {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-surface));
+  }
+
+  .hr-row-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.125rem;
+    padding-block: 1.25rem;
+    /* Negative inline margin cancels the added inline padding below, so
+       the row's TEXT still lines up at the same left edge as before --
+       only the hover fill (next rule) gets the extra breathing room. */
+    padding-inline: 0.75rem;
+    margin-inline: -0.75rem;
+    border-radius: var(--radius-editorial);
+    transition: background-color 0.2s ease;
   }
   @media (min-width: 640px) {
-    .hr-heading { font-size: 2.25rem; }
+    .hr-row-link { align-items: center; gap: 1.5rem; padding-block: 1.375rem; }
   }
 
-  /* Horizontal scroll behavior on small screens */
-  .hr-scroll {
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+  /* Stage: row hover feedback -- previously only the arrow changed color
+     on hover/focus, so the row itself felt inert/static. A faint amber
+     wash (7% mix, well below anything that would fight the row text's
+     own contrast) plus a matching thumb-border tint reuses the same
+     amber-decorative accent the arrow already uses on hover, instead of
+     introducing a new color. */
+  .hr-row-link:hover,
+  .hr-row-link:focus-visible {
+    background-color: color-mix(in oklab, var(--color-amber-decorative) 7%, transparent);
   }
-  .hr-scroll::-webkit-scrollbar { display: none; }
-  .hr-card {
-    flex: 0 0 82%;
-    scroll-snap-align: start;
+  .hr-row-link:hover .hr-row-thumb,
+  .hr-row-link:focus-visible .hr-row-thumb {
+    border-color: color-mix(in srgb, var(--color-amber-decorative) 45%, var(--color-surface));
   }
-  @media (min-width: 480px) {
-    .hr-card { flex-basis: 68%; }
+
+  .hr-row-thumb {
+    display: block;
+    flex-shrink: 0;
+    /* Stage: bumped from 4.5rem/5.5rem -- the redesigned icons (see
+       health-reads/*.svg) are fuller illustrations, not the old faint
+       single-stroke swooshes, so they read better with a bit more room
+       instead of looking cramped in the smaller box. */
+    width: 5rem;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    /* --radius-thumb: the token already exists specifically for this
+       kind of small thumbnail treatment (see global.css); this is its
+       first real use on the homepage. */
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-surface));
+    border-radius: var(--radius-editorial);
+    transition: border-color 0.2s ease;
   }
   @media (min-width: 640px) {
-    .hr-card { flex: unset; scroll-snap-align: unset; }
+    .hr-row-thumb { width: 6.25rem; }
   }
 
-  /* Slight downscale for ultra-narrow devices for better balance */
-  @media (max-width: 360px) {
-    .hr-heading { font-size: 1.625rem; }
+  .hr-row-text { min-width: 0; }
+
+  /* Desktop only: caps the row's actual readable content (title +
+     description) to an editorial measure, the same pattern
+     TrustCertifications already uses for its own row text
+     (.tc-row-text { max-width: 38rem }). .hr-list itself stays full
+     width inside .container-editorial -- this doesn't narrow the
+     section, it stops the row's TEXT from stretching to fill the full
+     96rem container once the description's own 2-line clamp and the
+     title's short length leave far more room than either needs. */
+  @media (min-width: 1024px) {
+    .hr-row-text { max-width: 36rem; }
   }
 
-  .hr-description {
-    font-size: 0.875rem;
-    line-height: 1.6;
+  /* Scoped bump, not a change to the shared .text-heading-card class:
+     that class is also ProductCard's title size on the actual product
+     listing/detail pages, so it stays untouched -- this overrides it
+     for HealthReads' own article titles only, via the extra .hr-row-text
+     ancestor class (higher specificity than the shared 0,1,0 rule). */
+  .hr-row-text .text-heading-card {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .hr-row-arrow {
+    display: inline-block;
+    color: var(--color-amber);
+    opacity: 0.7;
+    transition: opacity 0.2s ease, color 0.2s ease;
+  }
+  .group:hover .hr-row-arrow,
+  .group:focus-visible .hr-row-arrow {
+    color: var(--color-pine);
+    opacity: 1;
+  }
+  .group:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 3px;
+    border-radius: var(--radius-editorial);
+  }
+
+  .hr-row-description {
+    max-width: 70ch;
+    font-size: 0.9375rem;
+    line-height: 1.55;
     color: var(--color-body);
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    /* `height`, not `min-height`: on a `-webkit-box` (the box model
-       `-webkit-line-clamp` requires), `min-height` is not reliably honored
-       by the browser -- a 1-line-worth description just renders at its
-       natural 1-line content height regardless of min-height, so shorter
-       cards end up shorter than their siblings. An explicit `height`
-       forces the box itself, so a shorter description simply leaves blank
-       space below it instead of shrinking the box.
+  }
 
-       The title above (`<h3>`) doesn't need this same treatment: it's
-       clamped to exactly 1 line via the `truncate` utility class in the
-       markup instead of a 2-line reservation here, so its box is always
-       naturally the same height on every card -- no dead gap between a
-       short title and the description that follows it. */
-    height: calc(0.875rem * 1.6 * 2);
+  html[lang="zh"] .hr-row-text h3 { letter-spacing: 0; }
+  html[lang="zh"] .hr-header .text-heading-section { letter-spacing: 0; }
+
+  /* Section-level "view all" -- centered below the list rather than
+     NaturalOils' left-heading/right-CTA header row (.no-header): that
+     split-header treatment is a commerce-grid convention, and adopting
+     it here would restructure this section's own established "quiet
+     editorial conclusion" identity (see the .hr-section comment above)
+     just to fit a CTA. A centered link under the list keeps that intact.
+     Reuses the sitewide .btn-tertiary/.btn-tertiary-arrow base (see
+     global.css) with the same editorial-token color override
+     NaturalOils' own .no-view-all already applies (pine-dark, not the
+     generic --color-brand), since this section uses that same token
+     family throughout. */
+  .hr-view-all-wrap {
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .hr-view-all {
+    /* .btn-tertiary (global.css) was authored for <a> elements -- this is
+       a <button> instead (see the frontmatter comment: no real href to
+       point it at yet), so unlike NaturalOils' anchor-based .no-view-all
+       this also needs the UA button reset .btn-tertiary doesn't provide:
+       buttons don't inherit font-family/size from the page by default,
+       and need an explicit cursor. */
+    font: inherit;
+    cursor: pointer;
+    padding: 0 0 0.125rem;
+    border-bottom: 1px solid var(--color-pine-dark);
+    color: var(--color-pine-dark);
+    font-size: 0.875rem;
+  }
+  .hr-view-all:hover,
+  .hr-view-all:focus-visible {
+    color: var(--color-amber);
+    border-color: var(--color-amber);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hr-row-arrow { transition: none; }
+    .hr-row-link { transition: none; }
+    .hr-row-thumb { transition: none; }
   }
 </style>

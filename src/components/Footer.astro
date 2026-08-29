@@ -12,13 +12,28 @@ const privacyHref = lang === 'en' ? '/privacy-policy/' : localePath(lang, 'polic
 const backToTopLabel = lang === 'en' ? 'Back to top' : uiLang === 'zh' ? '返回顶部' : 'Về đầu trang';
 const year = new Date().getFullYear();
 ---
-<footer class="bg-brand text-cream mt-10">
-  <div class="container-page py-10">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-      <!-- Column 1: About -->
+<!--
+  Editorial convergence pass: same 4 real columns (About/Support/Shop-by-
+  Goal/Newsletter), same links, hrefs, i18n keys, and newsletter form as
+  before -- nothing added or removed functionally. What changed is purely
+  visual: pine-dark background (matching Process/ExpertConsultation's
+  established inverted treatment, replacing the older --color-brand
+  green), .container-editorial instead of .container-page (aligning the
+  footer's edges with the rest of the homepage), and a real brand intro
+  (site name + existing tagline, the same text already used in Header's
+  own logo) folded into the first column so it carries the extra visual
+  weight the mockup's brand column has, without inventing a 5th column
+  or removing the "About" links that column already had.
+-->
+<footer class="site-footer bg-pine-dark text-paper-2 mt-10">
+  <div class="container-editorial footer-top">
+    <div class="footer-grid">
+      <!-- Column 1: Brand intro + About -->
       <div>
+        <p class="footer-brand-name font-serif m-0">{t.common.siteName}</p>
+        <p class="footer-brand-tag m-0">{t.common.tagline}</p>
         <h3 class="footer-heading">{t.footer.aboutHeadingPrefix} {t.common.siteName}</h3>
-        <ul class="m-0 p-0 list-none space-y-2">
+        <ul class="footer-list m-0 p-0 list-none">
           <li><a class="footer-link" href="#">{t.footer.aboutLinks.story}</a></li>
           <li><a class="footer-link" href="#">{t.footer.aboutLinks.reads}</a></li>
           <li><a class="footer-link" href="#">{t.footer.aboutLinks.sustainability}</a></li>
@@ -28,7 +43,7 @@ const year = new Date().getFullYear();
       <!-- Column 2: Support -->
       <div>
         <h3 class="footer-heading">{t.footer.supportHeading}</h3>
-        <ul class="m-0 p-0 list-none space-y-2">
+        <ul class="footer-list m-0 p-0 list-none">
           <li><a class="footer-link" href={contactHref} data-astro-reload>{t.footer.supportLinks.contact}</a></li>
           <li><a class="footer-link" href="#">{t.footer.supportLinks.faqs}</a></li>
           <li><a class="footer-link" href="#">{t.footer.supportLinks.wholesale}</a></li>
@@ -38,7 +53,7 @@ const year = new Date().getFullYear();
       <!-- Column 3: Shop by Health Goal -->
       <div>
         <h3 class="footer-heading">{t.footer.shopHeading}</h3>
-        <ul class="m-0 p-0 list-none space-y-2">
+        <ul class="footer-list m-0 p-0 list-none">
           <li><a class="footer-link" href="#">{t.footer.goals.immunity}</a></li>
           <li><a class="footer-link" href="#">{t.footer.goals.energy}</a></li>
           <li><a class="footer-link" href="#">{t.footer.goals.beauty}</a></li>
@@ -61,31 +76,31 @@ const year = new Date().getFullYear();
   </div>
 
   <!-- Bottom bar -->
-  <div class="border-t border-white/15">
-    <div class="container-page py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="footer-bottom-band">
+    <div class="container-editorial footer-bottom-inner">
       <!-- Social icons -->
       <div class="flex items-center gap-4">
-        <a href="#" aria-label="Facebook" class="text-cream hover:text-gold" rel="nofollow noopener">
+        <a href="#" aria-label="Facebook" class="text-paper-2 hover:text-amber-light" rel="nofollow noopener">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 9h3V6h-3a4 4 0 0 0-4 4v3H7v3h3v6h3v-6h3l1-3h-4v-3a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5"/></svg>
         </a>
-        <a href="#" aria-label="Instagram" class="text-cream hover:text-gold" rel="nofollow noopener">
+        <a href="#" aria-label="Instagram" class="text-paper-2 hover:text-amber-light" rel="nofollow noopener">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
         </a>
-        <a href="#" aria-label="TikTok" class="text-cream hover:text-gold" rel="nofollow noopener">
+        <a href="#" aria-label="TikTok" class="text-paper-2 hover:text-amber-light" rel="nofollow noopener">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 3v4a5 5 0 0 0 5 5h1v3a8 8 0 1 1-8-8V3Z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
         </a>
-        <a href="#" aria-label="YouTube" class="text-cream hover:text-gold" rel="nofollow noopener">
+        <a href="#" aria-label="YouTube" class="text-paper-2 hover:text-amber-light" rel="nofollow noopener">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l5 2-5 2v-4Z" fill="currentColor"/></svg>
         </a>
       </div>
 
       <!-- Legal -->
-      <div class="text-sm text-cream/90 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <div class="footer-legal">
         <span>© {year} — {t.common.siteName}. {t.footer.rights}</span>
-        <span class="hidden sm:inline">•</span>
-        <a href="#" class="text-cream hover:text-gold no-underline w-fit">{t.footer.terms}</a>
-        <span class="hidden sm:inline">|</span>
-        <a href={privacyHref} data-astro-reload class="text-cream hover:text-gold no-underline w-fit">{t.footer.privacy}</a>
+        <span class="footer-legal-sep">•</span>
+        <a href="#" class="footer-legal-link">{t.footer.terms}</a>
+        <span class="footer-legal-sep">|</span>
+        <a href={privacyHref} data-astro-reload class="footer-legal-link">{t.footer.privacy}</a>
       </div>
     </div>
   </div>
@@ -124,32 +139,96 @@ const year = new Date().getFullYear();
     transform: scaleX(1);
   }
 
+  /* Top padding only -- grows with viewport (matching the mockup's 72px
+     at desktop, tapering down responsibly for mobile per this project's
+     own established rem-scale convention rather than copying the flat
+     pixel value verbatim). The grid's own margin-bottom below handles
+     the space before the bottom bar, so there's no bottom padding here
+     to double up with that. */
+  .footer-top {
+    padding-top: 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .footer-top { padding-top: 3rem; }
+  }
+  @media (min-width: 1024px) {
+    .footer-top { padding-top: 4.5rem; }
+  }
+
+  .footer-grid {
+    display: grid;
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+  @media (min-width: 768px) {
+    .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1024px) {
+    /* 1.3fr first column, matching the mockup's own heavier brand
+       column (1.4fr repeat(3,1fr)) -- the brand intro + About links
+       column carries more real content than the other three, so this
+       gives it room to breathe rather than fighting an equal-width
+       grid, without a 5th column. */
+    .footer-grid {
+      grid-template-columns: 1.3fr repeat(3, minmax(0, 1fr));
+      margin-bottom: 3.5rem;
+    }
+  }
+
+  .footer-brand-name {
+    font-size: 1.375rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-cream);
+  }
+
+  .footer-brand-tag {
+    margin-top: 0.375rem;
+    margin-bottom: 1.75rem;
+    max-width: 26ch;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: color-mix(in srgb, var(--color-paper-2) 78%, var(--color-pine-dark));
+  }
+
+  /* Small-caps eyebrow treatment, matching the mockup's footer h4 (and
+     the same --color-amber-light already used for Process's own eyebrow
+     on its pine-dark section) rather than the previous larger white
+     sans-serif heading. */
   .footer-heading {
-    margin: 0 0 16px 0;
+    margin: 0 0 1.125rem;
     font-family: var(--font-sans);
-    font-weight: 600;
-    line-height: 1.25;
-    font-size: 1.125rem; /* ~18px */
-    color: rgba(255, 255, 255, 0.96);
-    letter-spacing: 0.012em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-amber-light);
+    text-wrap: balance;
+  }
+
+  .footer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
   }
 
   .footer-link {
     display: inline-block;
-    color: rgba(255,255,255,0.9);
+    color: color-mix(in srgb, var(--color-paper-2) 82%, var(--color-pine-dark));
     text-decoration: none;
-    font-size: 0.9375rem; /* 15px */
-    line-height: 1.55;
+    font-size: 0.875rem;
+    line-height: 1.5;
     transition: color 0.2s ease;
   }
-  .footer-link:hover { color: var(--color-gold); }
+  .footer-link:hover,
+  .footer-link:focus-visible { color: var(--color-amber-light); }
 
   .footer-desc {
-    margin: 0 0 14px 0;
-    max-width: 34ch;
-    font-size: 0.875rem;
+    margin: 0 0 0.875rem;
+    max-width: 30ch;
+    font-size: 0.8125rem;
     line-height: 1.6;
-    color: rgba(255,255,255,0.88);
+    color: color-mix(in srgb, var(--color-paper-2) 80%, var(--color-pine-dark));
   }
 
   .nl-form {
@@ -158,12 +237,12 @@ const year = new Date().getFullYear();
     min-width: 0;
     height: 48px;
     align-items: stretch;
-    border: 1px solid color-mix(in oklab, var(--color-gold) 30%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-amber-light) 35%, transparent);
     border-radius: var(--radius-pill);
     overflow: hidden;
     background: var(--color-cream);
   }
-  .nl-form:focus-within { outline: 2px solid color-mix(in oklab, var(--color-gold) 55%, transparent); outline-offset: 2px; }
+  .nl-form:focus-within { outline: 2px solid color-mix(in srgb, var(--color-amber-light) 55%, transparent); outline-offset: 2px; }
 
   .nl-input {
     flex: 1 1 auto;
@@ -184,21 +263,68 @@ const year = new Date().getFullYear();
     justify-content: center;
     padding: 0 18px;
     min-width: 122px;
-    background: var(--color-brand);
-    color: #fff;
+    background: var(--color-pine);
+    color: var(--color-cream);
     font-weight: 600;
+    font-size: 0.875rem;
     border: 0;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
   }
-  .nl-button:hover { background: var(--color-brand-hover); }
-  .nl-button:focus-visible { outline: 2px solid color-mix(in oklab, var(--color-gold) 60%, transparent); outline-offset: 2px; }
+  .nl-button:hover { background: var(--color-pine-dark); }
+  .nl-button:focus-visible { outline: 2px solid color-mix(in srgb, var(--color-amber-light) 60%, transparent); outline-offset: 2px; }
 
   .footer-privacy {
     margin: 8px 0 0 0;
-    font-size: 0.75rem; /* 12px */
+    font-size: 0.75rem;
     line-height: 1.5;
-    color: rgba(255,255,255,0.78);
+    color: color-mix(in srgb, var(--color-paper-2) 65%, var(--color-pine-dark));
+  }
+
+  .footer-bottom-band {
+    border-top: 1px solid color-mix(in srgb, var(--color-paper-2) 15%, transparent);
+  }
+
+  .footer-bottom-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-block: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .footer-bottom-inner {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding-block: 1.375rem;
+    }
+  }
+
+  .footer-legal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: color-mix(in srgb, var(--color-paper-2) 80%, var(--color-pine-dark));
+  }
+  @media (min-width: 640px) {
+    .footer-legal { flex-direction: row; align-items: center; gap: 0.75rem; }
+  }
+
+  .footer-legal-link {
+    color: inherit;
+    text-decoration: none;
+    width: fit-content;
+  }
+  .footer-legal-link:hover,
+  .footer-legal-link:focus-visible { color: var(--color-amber-light); }
+
+  .footer-legal-sep {
+    display: none;
+    opacity: 0.6;
+  }
+  @media (min-width: 640px) {
+    .footer-legal-sep { display: inline; }
   }
 
   .back-to-top {
@@ -260,8 +386,11 @@ const year = new Date().getFullYear();
     pointer-events: none;
   }
 
+  html[lang="zh"] .footer-heading,
+  html[lang="zh"] .footer-brand-name { letter-spacing: 0; }
+
   @media (prefers-reduced-motion: reduce) {
-    .footer-link, .nl-button { transition: none; }
+    .footer-link, .nl-button, .footer-legal-link { transition: none; }
     footer a::after { transition: none; }
     .back-to-top { transition: none; }
   }

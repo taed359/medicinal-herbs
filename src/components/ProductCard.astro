@@ -4,6 +4,7 @@ interface Props {
   href: string; // required: product detail URL
   image?: string;
   alt?: string; // recommended explicit alt; falls back to "{name} product image"
+  category?: string; // optional localized product category shown above the name
   benefit?: string; // short line under name -- only rendered when it truly exists
   badge?: string; // optional small pill badge over image
   price?: string | number; // optional current price (no fake values)
@@ -12,7 +13,7 @@ interface Props {
   fit?: 'cover' | 'contain'; // defaults to 'contain' -- product packshots should never be cropped
 }
 
-const { name, href, image, alt, benefit, badge, price, originalPrice, cta, fit = 'contain' } = Astro.props;
+const { name, href, image, alt, category, benefit, badge, price, originalPrice, cta, fit = 'contain' } = Astro.props;
 const src = image ?? '/favicon.svg';
 const computedAlt = (alt && alt.trim().length > 0) ? alt : `${name} product image`;
 const formattedPrice = typeof price === 'number' ? price.toLocaleString() : price;
@@ -42,6 +43,10 @@ const formattedOriginalPrice = typeof originalPrice === 'number' ? originalPrice
        lines for a missing price or benefit. mt-auto keeps the CTA anchored
        to the bottom of the card even when a sibling card is taller. -->
   <div class="flex flex-1 flex-col p-4 sm:p-5">
+    {category && (
+      <p class="pc-category m-0">{category}</p>
+    )}
+
     <h3 class="pc-title m-0 font-serif text-heading">{name}</h3>
 
     {benefit && (
@@ -89,6 +94,21 @@ const formattedOriginalPrice = typeof originalPrice === 'number' ? originalPrice
 
   .pc-img {
     display: block;
+  }
+
+  .pc-category {
+    margin-bottom: 0.375rem;
+    color: var(--color-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  html[lang="zh"] .pc-category {
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   /* Subtle, premium product label -- not a marketplace sale sticker. */

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cao Ngũ Vị Tử — Thảo Dược</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#221F1A;
+    --paper:#F5F0E3;
+    --paper-2:#EFE8D6;
+    --pine:#2C4A3B;
+    --pine-dark:#1C3128;
+    --amber:#B9863F;
+    --amber-light:#E7CFA0;
+    --sage:#A9B79C;
+    --line: rgba(34,31,26,0.12);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Be Vietnam Pro', 'Noto Sans SC', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', 'Noto Serif SC', serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    color:var(--pine-dark);
+  }
+  .zh{ font-family:'Noto Serif SC', serif; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 32px; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  /* seal motif (đồng bộ mockup trang chủ) */
+  .seal{
+    width:74px; height:74px; border-radius:50%;
+    border:1.5px solid var(--amber);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; flex-shrink:0; background:var(--paper);
+  }
+  .seal::before{ content:''; position:absolute; inset:6px; border:1px solid var(--amber-light); border-radius:50%; }
+  .seal span{ font-family:'Noto Serif SC', serif; font-size:22px; color:var(--pine-dark); }
+
+  /* topbar + header (giữ nguyên từ trang chủ) */
+  .topbar{ background:var(--pine-dark); color:var(--paper-2); font-size:12.5px; letter-spacing:.04em; }
+  .topbar .wrap{ display:flex; justify-content:space-between; align-items:center; height:38px; }
+  .topbar .right{ display:flex; gap:22px; opacity:.85; }
+  header.site{ border-bottom:1px solid var(--line); background:var(--paper); position:sticky; top:0; z-index:20; }
+  header.site .wrap{ display:flex; align-items:center; justify-content:space-between; height:84px; }
+  .logo{ display:flex; align-items:center; gap:12px; }
+  .logo .mark{ width:34px; height:34px; border-radius:50%; background:var(--pine); position:relative; }
+  .logo .mark::after{ content:''; position:absolute; inset:8px; border:1px solid var(--paper); border-radius:50%; }
+  .logo .txt{ font-family:'Fraunces', serif; font-size:22px; color:var(--pine-dark); }
+  .logo .txt small{ display:block; font-family:'Be Vietnam Pro',sans-serif; font-size:9.5px; letter-spacing:.18em; color:var(--sage); font-weight:600; text-transform:uppercase; margin-top:1px; }
+  nav.main{ display:flex; gap:34px; font-size:14px; font-weight:500; }
+  nav.main a:hover{ color:var(--amber); }
+  .hdr-icons{ display:flex; gap:20px; align-items:center; font-size:18px; color:var(--pine-dark); }
+
+  /* breadcrumb */
+  .crumb{ padding:20px 0 0; font-size:12.5px; color:var(--sage); }
+  .crumb a:hover{ color:var(--amber); }
+  .crumb span{ margin:0 8px; }
+
+  /* ---------- PDP main ---------- */
+  .pdp{ padding:32px 0 96px; }
+  .pdp .wrap{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:flex-start; }
+
+  /* gallery */
+  .gallery .main-shot{
+    aspect-ratio:4/5; border-radius:6px; position:relative; overflow:hidden;
+    background:linear-gradient(155deg, #3C5C4B 0%, var(--pine) 45%, var(--pine-dark) 100%);
+    box-shadow:0 30px 60px -20px rgba(28,49,40,.3);
+    margin-bottom:16px;
+  }
+  .gallery .main-shot .label-card{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:60%; background:var(--paper); border-radius:3px; padding:26px 18px; text-align:center;
+    box-shadow:0 14px 30px rgba(0,0,0,.18);
+  }
+  .gallery .main-shot .mini-seal{ width:34px; height:34px; margin:0 auto 10px; border:1px solid var(--amber); border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif SC',serif; font-size:14px; color:var(--pine-dark);}
+  .gallery .main-shot .label-card h3{ font-size:15px; margin-bottom:4px; }
+  .gallery .main-shot .label-card p{ font-size:10px; letter-spacing:.1em; color:var(--sage); text-transform:uppercase; }
+  .thumbs{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .thumbs .t{ aspect-ratio:1/1; border-radius:4px; border:1.5px solid transparent; cursor:pointer; }
+  .thumbs .t:nth-child(1){ background:linear-gradient(155deg,#3C5C4B,var(--pine-dark)); border-color:var(--amber); }
+  .thumbs .t:nth-child(2){ background:linear-gradient(155deg,var(--amber-light),var(--amber)); }
+  .thumbs .t:nth-child(3){ background:linear-gradient(155deg,#EFE8D6,#DCD0AE); }
+  .thumbs .t:nth-child(4){ background:linear-gradient(155deg,var(--pine),#3C5C4B); }
+
+  /* info column */
+  .info .cat-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .info .cat{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--amber); font-weight:700; }
+  .info .sku{ font-size:11.5px; color:var(--sage); }
+  .info h1{ font-size:36px; line-height:1.15; margin-bottom:4px; }
+  .info .zh-name{ font-size:15px; color:var(--sage); margin-bottom:16px; }
+  .stars{ display:flex; align-items:center; gap:10px; margin-bottom:22px; font-size:13px; color:var(--sage); }
+  .stars .icons{ color:var(--amber); letter-spacing:2px; font-size:14px; }
+  .price-row{ display:flex; align-items:baseline; gap:12px; margin-bottom:24px; }
+  .price-row .now{ font-family:'Fraunces',serif; font-size:30px; font-weight:600; color:var(--pine-dark); }
+  .price-row .old{ font-size:15px; color:var(--sage); text-decoration:line-through; }
+  .price-row .save{ font-size:11.5px; font-weight:700; background:var(--amber-light); color:var(--pine-dark); padding:3px 9px; border-radius:2px; }
+
+  .desc{ font-size:14.5px; color:#4B4740; margin-bottom:28px; max-width:480px; }
+
+  .opt-block{ margin-bottom:26px; }
+  .opt-block .lbl{ font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--pine-dark); margin-bottom:10px; display:block; }
+  .size-pills{ display:flex; gap:10px; }
+  .size-pills .p{ padding:10px 18px; border:1.5px solid var(--line); border-radius:2px; font-size:13.5px; font-weight:600; color:var(--ink); }
+  .size-pills .p.active{ border-color:var(--pine); background:var(--pine); color:var(--paper); }
+
+  .qty-cart{ display:flex; gap:14px; margin-bottom:24px; }
+  .qty{ display:flex; align-items:center; border:1.5px solid var(--line); border-radius:2px; }
+  .qty button{ width:42px; height:52px; background:none; border:none; font-size:16px; color:var(--pine-dark); }
+  .qty span{ width:36px; text-align:center; font-weight:600; }
+  .btn{ padding:14px 28px; font-size:14px; font-weight:600; border-radius:2px; letter-spacing:.02em; border:none; }
+  .btn.primary{ background:var(--pine); color:var(--paper); flex:1; }
+  .btn.primary:hover{ background:var(--pine-dark); }
+  .btn.icon{ width:52px; border:1.5px solid var(--line); background:none; font-size:17px; color:var(--pine-dark); border-radius:2px; }
+
+  .trust-mini{ display:flex; flex-direction:column; gap:10px; padding:20px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:28px; }
+  .trust-mini .t{ display:flex; align-items:center; gap:10px; font-size:13px; color:#4B4740; }
+  .trust-mini .dot{ width:6px; height:6px; border-radius:50%; background:var(--amber); flex-shrink:0; }
+
+  .certs-inline{ display:flex; gap:18px; flex-wrap:wrap; }
+  .certs-inline .c{ display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:600; color:var(--pine-dark); }
+  .certs-inline .ic{ width:16px; height:16px; border:1.2px solid var(--amber); border-radius:50%; }
+
+  /* tabs */
+  .tabs{ padding:88px 0; border-top:1px solid var(--line); }
+  .tab-head{ display:flex; gap:44px; border-bottom:1px solid var(--line); margin-bottom:36px; }
+  .tab-head .tb{ padding-bottom:16px; font-size:14px; font-weight:600; color:var(--sage); border-bottom:2px solid transparent; }
+  .tab-head .tb.active{ color:var(--pine-dark); border-color:var(--amber); }
+  .tab-body{ display:grid; grid-template-columns:1fr 1fr; gap:56px; }
+  .tab-body p{ font-size:14.5px; color:#4B4740; margin-bottom:16px; max-width:480px; }
+  .ingredient-list{ display:flex; flex-direction:column; gap:0; }
+  .ingredient-list .row{ display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .ingredient-list .row .zh{ color:var(--sage); font-size:12.5px; }
+
+  /* usage steps (đồng bộ motif con dấu) */
+  .usage-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:8px; }
+  .usage-steps .step{ text-align:center; }
+  .usage-steps .seal{ margin:0 auto 16px; }
+  .usage-steps h4{ font-family:'Fraunces',serif; font-size:16px; color:var(--pine-dark); margin-bottom:8px; }
+  .usage-steps p{ font-size:13px; color:var(--sage); max-width:none; }
+
+  /* reviews */
+  .review-summary{ display:flex; gap:40px; align-items:center; margin-bottom:36px; }
+  .review-summary .big{ font-family:'Fraunces',serif; font-size:52px; color:var(--pine-dark); }
+  .review-summary .icons{ color:var(--amber); font-size:16px; letter-spacing:2px; }
+  .review{ padding:20px 0; border-bottom:1px solid var(--line); }
+  .review .who{ display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .review .who .icons{ color:var(--amber); font-size:12px; }
+  .review p{ font-size:13.5px; color:#4B4740; }
+
+  /* related products (giữ card style từ trang chủ) */
+  .related{ padding:0 0 96px; }
+  .sec-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:36px; }
+  .sec-head .lbl{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--amber); font-weight:700; margin-bottom:10px; display:block; }
+  .sec-head h2{ font-size:28px; }
+  .prod-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:22px; }
+  .card{ background:var(--paper-2); border:1px solid var(--line); }
+  .card .shot{ aspect-ratio:1/1; background:linear-gradient(160deg,#EFE8D6,#DCD0AE); position:relative; }
+  .card .shot .bottle{ position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:38%; height:60%; background:linear-gradient(160deg,var(--pine),var(--pine-dark)); border-radius:6px 6px 3px 3px; }
+  .card .shot .bottle::before{ content:''; position:absolute; left:50%; top:-8px; transform:translateX(-50%); width:34%; height:14px; background:var(--amber); border-radius:2px; }
+  .card .info2{ padding:18px 18px 22px; }
+  .card .info2 .cat{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); font-weight:700; margin-bottom:6px; }
+  .card .info2 h3{ font-size:16px; margin-bottom:6px; }
+  .card .info2 .zh-name{ font-size:12px; color:var(--sage); margin-bottom:10px; }
+  .card .info2 .row{ display:flex; justify-content:space-between; align-items:center; }
+  .card .info2 .price{ font-weight:700; font-family:'Fraunces',serif; font-size:16px; }
+  .card .info2 .add{ font-size:11.5px; font-weight:700; border-bottom:1px solid var(--ink); }
+
+  footer{ background:var(--pine-dark); color:var(--paper-2); padding:56px 0 28px; }
+  footer .wrap{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center; }
+  footer .logo .txt{ color:var(--paper); font-size:18px; }
+  .bottom-line{ font-size:12px; color:var(--sage); }
+
+  @media (max-width:900px){
+    .pdp .wrap{ grid-template-columns:1fr; }
+    .tab-body{ grid-template-columns:1fr; }
+    .usage-steps{ grid-template-columns:1fr; }
+    .prod-grid{ grid-template-columns:repeat(2,1fr); }
+    nav.main{ display:none; }
+    .info h1{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="wrap">
+      <span>Miễn phí vận chuyển cho đơn từ 990.000₫ · Nguyên liệu 100% tự nhiên</span>
+      <div class="right"><span>Tìm cửa hàng</span><span>🇻🇳 VI / 中文</span></div>
+    </div>
+  </div>
+
+  <header class="site">
+    <div class="wrap">
+      <div class="logo">
+        <div class="mark"></div>
+        <div class="txt">Thảo Dược<small>Trí tuệ cổ truyền · 1879</small></div>
+      </div>
+      <nav class="main">
+        <a href="#">Trang chủ</a>
+        <a href="#">Khuyến mãi</a>
+        <a href="#">Mua theo</a>
+        <a href="#">Câu chuyện</a>
+        <a href="#">Thảo dược & Sức khỏe</a>
+      </nav>
+      <div class="hdr-icons">
+        <span>⌕</span><span>☰</span><span>♡</span><span>🛍</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap crumb">
+    <a href="#">Trang chủ</a><span>/</span><a href="#">Cao thảo dược</a><span>/</span>Cao Ngũ Vị Tử
+  </div>
+
+  <section class="pdp">
+    <div class="wrap">
+
+      <div class="gallery">
+        <div class="main-shot">
+          <div class="label-card">
+            <div class="mini-seal">草</div>
+            <h3>Cao Ngũ Vị Tử</h3>
+            <p>Herbal Extract · No.05</p>
+          </div>
+        </div>
+        <div class="thumbs">
+          <div class="t"></div><div class="t"></div><div class="t"></div><div class="t"></div>
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="cat-row">
+          <span class="cat">Cao thảo dược</span>
+          <span class="sku">SKU: TD-CNVT-05</span>
+        </div>
+        <h1>Cao Ngũ Vị Tử</h1>
+        <div class="zh-name zh">五味子膏</div>
+        <div class="stars"><span class="icons">★★★★★</span>4.8 (126 đánh giá) · Đã bán 2.400+</div>
+
+        <div class="price-row">
+          <span class="now">420.000₫</span>
+          <span class="old">520.000₫</span>
+          <span class="save">Tiết kiệm 19%</span>
+        </div>
+
+        <p class="desc">Chiết xuất từ quả Ngũ vị tử theo bài thuốc cổ truyền, cô đặc thành cao mềm dễ hấp thụ — hỗ trợ bồi bổ khí huyết, an thần và tăng cường sức đề kháng khi dùng đều đặn mỗi ngày.</p>
+
+        <div class="opt-block">
+          <span class="lbl">Dung tích</span>
+          <div class="size-pills">
+            <div class="p">100g</div>
+            <div class="p active">250g</div>
+            <div class="p">500g</div>
+          </div>
+        </div>
+
+        <div class="qty-cart">
+          <div class="qty"><button>−</button><span>1</span><button>+</button></div>
+          <button class="btn primary">Thêm vào giỏ hàng</button>
+          <button class="btn icon">♡</button>
+        </div>
+
+        <div class="trust-mini">
+          <div class="t"><span class="dot"></span>Giao hàng 2–4 ngày toàn quốc, miễn phí từ 990.000₫</div>
+          <div class="t"><span class="dot"></span>Đổi trả trong 30 ngày nếu chưa mở nắp</div>
+          <div class="t"><span class="dot"></span>Tư vấn miễn phí từ lương y trước khi dùng</div>
+        </div>
+
+        <div class="certs-inline">
+          <div class="c"><span class="ic"></span>TGA liệt kê</div>
+          <div class="c"><span class="ic"></span>Chứng nhận NSF</div>
+          <div class="c"><span class="ic"></span>Chuẩn GMP</div>
+          <div class="c"><span class="ic"></span>Định danh khoa học</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="tabs">
+    <div class="wrap">
+      <div class="tab-head">
+        <div class="tb active">Mô tả & Cách dùng</div>
+        <div class="tb">Thành phần</div>
+        <div class="tb">Đánh giá (126)</div>
+      </div>
+
+      <div class="tab-body">
+        <div>
+          <p>Ngũ Vị Tử được thu hái tại vùng cao nguyên, phơi khô tự nhiên và cô đặc theo phương pháp gia truyền trong hơn 12 giờ để giữ trọn dược tính. Sản phẩm phù hợp cho người thường xuyên mệt mỏi, mất ngủ, cần bồi bổ khí huyết.</p>
+          <p>Dùng 1 thìa cà phê (khoảng 10g) pha với nước ấm vào buổi sáng, hoặc theo hướng dẫn của lương y tư vấn.</p>
+        </div>
+        <div class="usage-steps">
+          <div class="step"><div class="seal"><span>晨</span></div><h4>Buổi sáng</h4><p>Pha 1 thìa với nước ấm, dùng trước ăn sáng 30 phút.</p></div>
+          <div class="step"><div class="seal"><span>晚</span></div><h4>Buổi tối</h4><p>Có thể dùng thêm nửa liều nếu khó ngủ hoặc mệt mỏi.</p></div>
+          <div class="step"><div class="seal"><span>續</span></div><h4>Liên tục</h4><p>Dùng đều đặn tối thiểu 4 tuần để cảm nhận hiệu quả rõ rệt.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 0 88px; border-top:1px solid var(--line);">
+    <div class="wrap" style="padding-top:56px;">
+      <div class="sec-head"><div><span class="lbl">Được tin dùng</span><h2>Khách hàng nói gì</h2></div></div>
+      <div class="review-summary">
+        <span class="big">4.8</span>
+        <div><div class="icons">★★★★★</div><div style="font-size:12.5px; color:var(--sage); margin-top:4px;">Dựa trên 126 đánh giá</div></div>
+      </div>
+      <div class="review">
+        <div class="who">Ngọc Anh <span class="icons">★★★★★</span></div>
+        <p>Dùng được 3 tuần thấy ngủ ngon hơn hẳn, mùi vị dễ uống không quá đắng như các loại cao khác.</p>
+      </div>
+      <div class="review">
+        <div class="who">Minh Tuấn <span class="icons">★★★★★</span></div>
+        <p>Đóng gói cẩn thận, có tem chống giả rõ ràng. Sẽ ủng hộ tiếp cửa hàng.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="related">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><span class="lbl">Có thể bạn cũng thích</span><h2>Sản phẩm liên quan</h2></div>
+        <a href="#" style="font-size:13px; font-weight:600; border-bottom:1px solid var(--ink); padding-bottom:2px;">Xem tất cả →</a>
+      </div>
+      <div class="prod-grid">
+        <div class="card">
+          <div class="shot"><div class="bottle"></div></div>
+          <div class="info2"><div class="cat">Trà thảo mộc</div><h3>Trà An Thần</h3><div class="zh-name zh">安神茶</div>
+            <div class="row"><span class="price">150.000₫</span><span class="add">Thêm vào giỏ</span></div></div>
+        </div>
+        <div class="card">
+          <div class="shot"><div class="bottle"></div></div>
+          <div class="info2"><div class="cat">Dầu thực vật</div><h3>Dầu mè nguyên chất</h3><div class="zh-name zh">純芝麻油</div>
+            <div class="row"><span class="price">185.000₫</span><span class="add">Thêm vào giỏ</span></div></div>
+        </div>
+        <div class="card">
+          <div class="shot"><div class="bottle"></div></div>
+          <div class="info2"><div class="cat">Cao thảo dược</div><h3>Cao Kỷ Tử</h3><div class="zh-name zh">枸杞膏</div>
+            <div class="row"><span class="price">380.000₫</span><span class="add">Thêm vào giỏ</span></div></div>
+        </div>
+        <div class="card">
+          <div class="shot"><div class="bottle"></div></div>
+          <div class="info2"><div class="cat">Dầu thực vật</div><h3>Dầu dừa ép lạnh</h3><div class="zh-name zh">冷壓椰子油</div>
+            <div class="row"><span class="price">165.000₫</span><span class="add">Thêm vào giỏ</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="logo"><div class="mark"></div><div class="txt">Thảo Dược</div></div>
+      <div class="bottom-line">© 2026 — Thảo Dược. Bản quyền đã được bảo lưu.</div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -9,6 +9,44 @@
   --color-gold: #B27652;          /* Warm Earth / Terracotta (accent) */
   --color-gold-light: #806A52;    /* Natural Wood Brown */
 
+  /* Editorial/homepage accent palette (Stage 2H) -- ADDITIVE, not a
+   * replacement for --color-brand/--color-gold above. Those two remain
+   * exactly as-is and keep driving Header, Footer, ProductCard,
+   * ProductDetail, Pager, and ContactPage (confirmed via a full grep of
+   * every --color-brand/--color-gold consumer before adding anything
+   * here) -- none of that is touched by this stage. This second palette
+   * exists because the approved visual-reference mockup's pine-green and
+   * amber-gold are a genuinely different hue family from the project's
+   * existing brand-green/terracotta-gold, not just a different shade of
+   * the same one, and the mockup is now the primary visual reference for
+   * homepage/editorial composition specifically.
+   *
+   * --color-amber is DELIBERATELY darker than the mockup's literal
+   * #B9863F: that value only reaches ~2.8:1 contrast against
+   * --color-cream, well under the 4.5:1 WCAG AA text minimum (verified
+   * by computing relative luminance for both colors before choosing a
+   * replacement) -- unusable for the small eyebrow text it's meant to
+   * color. #8A6423 reaches ~4.7:1 against --color-cream while staying in
+   * the same golden-amber hue family.
+   *
+   * Stage 2I split what was previously a single decorative amber into
+   * two, since text-contrast rules don't bind the same way to purely
+   * decorative, non-text elements (WCAG 1.4.3 governs text; a thin
+   * accent line or dot conveys no information on its own and isn't
+   * subject to the same 4.5:1 requirement): --color-amber-decorative
+   * keeps the mockup's literal, more saturated #B9863F for exactly those
+   * decorative uses (e.g. Hero's eyebrow accent line), so the page still
+   * visibly carries the mockup's actual warm-gold character somewhere,
+   * not just the necessarily-muted text version. --color-amber-light
+   * stays the even paler #E7CFA0 for subtle fills/backgrounds. Never use
+   * -decorative or -light for text. */
+  --color-pine: #2C4A3B;
+  --color-pine-dark: #1C3128;
+  --color-amber: #8A6423;
+  --color-amber-decorative: #B9863F;
+  --color-amber-light: #E7CFA0;
+  --color-paper-2: #EFE8D6;       /* distinct secondary warm surface -- --color-cream-alt below is identical to --color-cream today, so this fills a real gap rather than duplicating it */
+
   --color-cream: #F6F1E8;         /* Natural Cream (background) */
   --color-cream-alt: #F6F1E8;     /* Alt cream */
 
@@ -36,11 +74,38 @@
   --radius-pill: 24px;
   --radius-badge: 4px;
   --radius-thumb: 8px;
+  /* Restrained radius for large-format editorial photography (hero,
+   * brand-story, future full-bleed moments) -- deliberately NOT the same
+   * value as --radius-card. Existing card-shaped surfaces (ProductCard,
+   * TrustCertifications tiles) keep --radius-card as-is; this token is
+   * for the flatter, more editorial image treatment those sections don't
+   * use. See design-system note near .bleed-grid below. */
+  --radius-editorial: 4px;
+  /* Compact, near-square control radius matching the mockup's button
+   * geometry (~2px) -- distinct from --radius-pill (24px), which
+   * Header's search field, Footer's newsletter form, Pager, ProductCard,
+   * and ProductDetail's add-to-cart button all still depend on (checked
+   * before adding this rather than touching that token's value). Used
+   * only by the new .btn-editorial-* classes below. */
+  --radius-editorial-btn: 2px;
 
   --shadow-card: 0px 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0px 6px 16px rgba(0, 0, 0, 0.08);
   /* Layout */
   --max-container: 90rem; /* 1440px target desktop width */
+  /* Editorial container for the homepage + Header/AnnouncementBar (see
+   * .container-editorial below). Originally set to the mockup's literal
+   * 1180px (Stage 2H/2J) -- widened here since that value was a visual
+   * REFERENCE, not a production constraint, and read as cramped on real
+   * desktop viewports (1280px+). This is now deliberately WIDER than
+   * --max-container (1536 > 1440) -- an intentional inversion of the
+   * original narrower-than-container-page relationship. The practical
+   * effect: homepage sections (and Header/AnnouncementBar) can render
+   * fractionally wider than non-homepage pages (contact, product
+   * listing/detail) at viewports beyond ~1536px, since those still use
+   * .container-page's 1440px cap. Verified this doesn't break any
+   * consumer's internal proportions -- see the Stage 2K report. */
+  --max-container-editorial: 96rem; /* 1536px */
 }
 
 /* Typography system, part 2: per-locale font stacks -----------------------
@@ -91,7 +156,7 @@ body {
   html { scroll-behavior: smooth; }
   body {
     @apply font-sans antialiased;
-    background-color: var(--color-surface);
+    background-color: var(--color-cream);
     color: var(--color-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -113,23 +178,49 @@ body {
   margin-right: auto;
   @apply px-4 sm:px-6 lg:px-8;
 }
-.eyebrow { @apply uppercase tracking-wider text-sm text-brand; }
+/* Narrower, mockup-matching container (Stage 2H) -- see
+   --max-container-editorial above. Same responsive gutter as
+   .container-page, only the max-width differs. Currently used by Hero
+   only; other sections keep .container-page unchanged. */
+.container-editorial {
+  width: 100%;
+  max-width: var(--max-container-editorial);
+  margin-left: auto;
+  margin-right: auto;
+  @apply px-4 sm:px-6 lg:px-8;
+}
+/* Stage 2H: changed from text-brand (green) to text-amber, matching the
+   visual-reference mockup's amber/gold eyebrow language. Safe to change
+   globally -- confirmed via a full grep that .eyebrow is used ONLY by
+   the seven homepage section components (Hero, BrandStory,
+   TrustCertifications, HealthGoals, NaturalOils, ExpertConsultation,
+   HealthReads), never by Header, Footer, admin, auth, or ContactPage, so
+   this doesn't ripple anywhere outside the homepage. ExpertConsultation
+   already carries its own higher-specificity `.ec-eyebrow.eyebrow` color
+   override for its dark panel (see that component) -- unaffected by
+   this change either way, since it overrides whatever color .eyebrow
+   resolves to. */
+.eyebrow { @apply uppercase tracking-wider text-sm text-amber; }
 .hr-soft { @apply border-t border-gold/20; }
 
 /* Locale-aware micro-typography for Simplified Chinese */
 /* Neutralize Latin-centric uppercase/tracking for zh */
 html[lang="zh"] .tm-label { text-transform: none !important; letter-spacing: normal !important; }
-html[lang="zh"] .hg-eyebrow,
-html[lang="zh"] .hr-eyebrow,
-html[lang="zh"] .tc-eyebrow,
-html[lang="zh"] .bs-eyebrow { letter-spacing: 0; text-transform: none; }
+/* .eyebrow: the shared eyebrow class (see Stage 1), now the only eyebrow
+ * treatment used anywhere on the homepage -- every section's former
+ * local eyebrow class (.hg-eyebrow, .hr-eyebrow, .tc-eyebrow,
+ * .bs-eyebrow, .no-eyebrow) has been migrated onto this one across the
+ * Hero through HealthReads redesign passes, so this single selector now
+ * covers the whole site instead of needing one entry per component. */
+html[lang="zh"] .eyebrow { letter-spacing: 0; text-transform: none; }
 
 /* Slight downscale for very narrow Chinese headings to avoid heavy wraps */
 @media (max-width: 360px) {
-  html[lang="zh"] .hg-heading,
-  html[lang="zh"] .hr-heading,
-  html[lang="zh"] .tc-heading,
-  html[lang="zh"] .bs-heading { font-size: 1.625rem; }
+  /* .text-heading-section: shared section-heading class (see Stage 1),
+   * now likewise the only section-heading treatment on the homepage,
+   * replacing every section's former local heading class
+   * (.hg-heading/.hr-heading/.tc-heading/.bs-heading/.no-heading). */
+  html[lang="zh"] .text-heading-section { font-size: 1.625rem; }
 }
 
 /* (Auto-generated color/border/bg/rounded/shadow utilities from @theme are used directly.) */
@@ -138,9 +229,163 @@ html[lang="zh"] .bs-eyebrow { letter-spacing: 0; text-transform: none; }
 .text-h3{ font-family: var(--font-sans); font-size: 1.25rem; line-height: 1.5; color: var(--color-heading); }
 .text-caption{ font-size: 0.75rem; line-height: 1.4; }
 
-/* Buttons */
+/* Editorial heading hierarchy ----------------------------------------------
+ * Four clearly separated scales, largest to smallest: hero display > section
+ * heading > card heading > eyebrow/metadata (body text uses the plain `p`
+ * rule above, already a comfortable reading size). These are the canonical
+ * classes new/redesigned sections should use going forward.
+ *
+ * .text-heading-section and .text-heading-card are not new sizes -- they
+ * codify sizes that already exist scattered across per-component <style>
+ * blocks (HealthGoals' .hg-heading, NaturalOils' .no-heading, HealthReads'
+ * .hr-heading, TrustCertifications' .tc-heading, BrandStory's .bs-heading
+ * all independently hardcode the same 1.75rem/2.25rem pair; ProductCard's
+ * .pc-title independently hardcodes the same 1.0625rem/1.1875rem pair).
+ * Only .text-display-hero is genuinely new -- nothing on the homepage
+ * today is sized clearly larger than a section heading, which is why the
+ * hero doesn't yet read as the strongest thing on the page. Migrating the
+ * five duplicated per-component classes onto these happens as each section
+ * is redesigned, not in this pass -- see the design-system audit.
+ *
+ * Known inconsistency, intentionally NOT fixed here: those same five
+ * components each define their own oversized ".xx-eyebrow" (1.25rem/
+ * 1.375rem) instead of using the .eyebrow utility below (0.875rem,
+ * matching Hero's actual eyebrow). Left alone for now to keep this pass
+ * additive-only; each component's eyebrow should converge on .eyebrow
+ * when that section is redesigned. */
+.text-display-hero{ font-size: 2.25rem; line-height: 1.1; }
+@media (min-width: 640px) { .text-display-hero{ font-size: 3.25rem; } }
+@media (min-width: 1024px) { .text-display-hero{ font-size: 4rem; } }
+
+/* Stage 2I: color changed from --color-heading (neutral near-black) to
+ * --color-pine-dark. Hero's own headline (.hero-heading, scoped locally
+ * in Hero.astro) already used pine-dark since Stage 2H; every other
+ * section's heading used this shared class with the neutral color,
+ * which read as a visible disconnect once compared side-by-side with
+ * Hero -- the mockup uses one heading color (pine-dark) everywhere.
+ * Confirmed via a full sitewide grep that .text-heading-section/
+ * .text-heading-card are consumed only by the six homepage section
+ * components, never Header, Footer, admin, auth, ContactPage, or Pager,
+ * so this is safe to change here rather than needing a new variant. */
+.text-heading-section{ font-size: 1.75rem; font-weight: 700; line-height: 1.25; color: var(--color-pine-dark); text-wrap: balance; }
+@media (min-width: 640px) { .text-heading-section{ font-size: 2.25rem; } }
+
+.text-heading-card{ font-size: 1.0625rem; font-weight: 600; line-height: 1.4; color: var(--color-pine-dark); text-wrap: balance; }
+@media (min-width: 640px) { .text-heading-card{ font-size: 1.1875rem; } }
+
+/* Editorial full-bleed grid --------------------------------------------
+ * Lets one child of a section (typically a large photo) extend toward the
+ * viewport edge on desktop while a sibling stays inside the exact same
+ * content column every other section uses (.container-page). Deliberately
+ * NOT the classic `width:100vw; margin-left:-50vw` bleed trick -- that
+ * overflows horizontally whenever a vertical scrollbar is present, which
+ * is exactly what "no horizontal overflow" rules out. This uses only
+ * percentage-relative grid tracks (never vw), so it can never exceed the
+ * viewport regardless of scrollbar width.
+ *
+ * --bleed-gutter mirrors .container-page's own responsive side padding
+ * (Tailwind's px-4/sm:px-6/lg:px-8 = 1rem/1.5rem/2rem) so the center track
+ * lines up exactly with normal .container-page content directly above or
+ * below it.
+ *
+ * Usage:
+ *   <div class="bleed-grid">
+ *     <div>...normal content, same column as .container-page...</div>
+ *     <div class="bleed-end">...photo, extends to the right viewport edge
+ *          on desktop...</div>
+ *   </div>
+ * `.bleed-end` extends its element to the right edge; `.bleed-start` to
+ * the left edge (for a mirrored composition). Below `lg` (1024px) --
+ * matching the breakpoint this site already treats as "real desktop" for
+ * other bleed-adjacent behavior (e.g. HealthGoals' carousel arrows) -- the
+ * grid collapses to a single column in source order and nothing bleeds,
+ * so mobile/tablet behave exactly like a normal stacked section. */
+.bleed-grid {
+  --bleed-gutter: 1rem;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--bleed-gutter), 1fr)
+    min(calc(var(--max-container) - (var(--bleed-gutter) * 2)), calc(100% - (var(--bleed-gutter) * 2)))
+    minmax(var(--bleed-gutter), 1fr);
+}
+@media (min-width: 640px) { .bleed-grid { --bleed-gutter: 1.5rem; } }
+@media (min-width: 1024px) { .bleed-grid { --bleed-gutter: 2rem; } }
+
+.bleed-grid > * { grid-column: 2; min-width: 0; }
+.bleed-grid > .bleed-end { grid-column: 2 / 4; }
+.bleed-grid > .bleed-start { grid-column: 1 / 3; }
+
+@media (max-width: 1023px) {
+  .bleed-grid { display: block; }
+  .bleed-grid > .bleed-end,
+  .bleed-grid > .bleed-start { grid-column: auto; }
+}
+
+/* Buttons -- three-tier CTA hierarchy -------------------------------------
+ * PRIMARY: filled brand-green pill. The single highest-intent action in a
+ *   given context (add to cart, submit a real form). There should rarely
+ *   be more than one primary CTA visible at once.
+ * SECONDARY: outlined pill. A real supporting action worth a button, but
+ *   not the main conversion ask of the section it lives in.
+ * TERTIARY: plain text + directional arrow, no fill, no border, no pill.
+ *   For "View all", "Learn more", and other informational/navigational
+ *   links that were previously (incorrectly) styled as secondary buttons
+ *   -- e.g. NaturalOils.astro's and HealthReads.astro's "view all" links,
+ *   corrected to .btn-tertiary alongside this change. Do not reach for
+ *   primary/secondary for anything that isn't a real decision point;
+ *   that's what made every CTA on the homepage look equally important.
+ */
 .btn{ display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; user-select:none; }
 .btn-primary{ background-color: var(--color-brand); color: var(--color-surface); border: 1px solid var(--color-brand); border-radius: var(--radius-pill); padding: 12px 28px; font-weight: 600; }
 .btn-primary:hover{ background-color: var(--color-brand-hover); }
+.btn-primary:focus-visible{ outline: 2px solid var(--color-brand); outline-offset: 2px; }
 .btn-secondary{ background-color: transparent; border: 1px solid var(--color-brand); color: var(--color-brand); border-radius: var(--radius-pill); padding: 10px 24px; font-weight: 600; }
 .btn-secondary:hover{ background-color: var(--color-brand); color: var(--color-surface); }
+.btn-secondary:focus-visible{ outline: 2px solid var(--color-brand); outline-offset: 2px; }
+
+.btn-tertiary{ gap: 0.4rem; background: transparent; border: 0; padding: 0; color: var(--color-brand); font-weight: 600; transition: color 0.2s ease; }
+.btn-tertiary:hover{ color: var(--color-brand-hover); }
+.btn-tertiary:focus-visible{ outline: 2px solid var(--color-brand); outline-offset: 3px; }
+.btn-tertiary-arrow{ display: inline-block; transition: transform 0.2s ease; }
+.btn-tertiary:hover .btn-tertiary-arrow{ transform: translateX(3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-tertiary, .btn-tertiary-arrow { transition: none; }
+}
+
+/* Editorial CTA variant (Stage 2H) -- for homepage/editorial contexts
+ * only (currently: Hero). Visually distinct from .btn-primary/
+ * .btn-secondary above: compact near-square geometry (--radius-editorial-
+ * btn, ~2px) and the pine/amber palette, matching the visual-reference
+ * mockup's button language. Deliberately NOT a change to .btn-primary/
+ * .btn-secondary themselves or to --radius-pill -- Header's search
+ * field, Footer's newsletter button, Pager, ProductCard, and
+ * ProductDetail's add-to-cart all still depend on the pill geometry for
+ * their own (non-editorial) contexts, confirmed before adding this
+ * rather than changing that shared token. Same tier semantics as the
+ * .btn-primary/.btn-secondary pair (primary = filled, strongest action;
+ * secondary = outlined, supporting action) -- only the geometry and
+ * palette differ. */
+.btn-editorial-primary {
+  background-color: var(--color-pine);
+  color: var(--color-cream);
+  border: 1px solid var(--color-pine);
+  border-radius: var(--radius-editorial-btn);
+  padding: 14px 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.btn-editorial-primary:hover { background-color: var(--color-pine-dark); border-color: var(--color-pine-dark); }
+.btn-editorial-primary:focus-visible { outline: 2px solid var(--color-pine-dark); outline-offset: 2px; }
+
+.btn-editorial-secondary {
+  background-color: transparent;
+  color: var(--color-heading);
+  border: 1px solid var(--color-heading);
+  border-radius: var(--radius-editorial-btn);
+  padding: 13px 27px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.btn-editorial-secondary:hover { background-color: var(--color-heading); color: var(--color-cream); }
+.btn-editorial-secondary:focus-visible { outline: 2px solid var(--color-pine-dark); outline-offset: 2px; }

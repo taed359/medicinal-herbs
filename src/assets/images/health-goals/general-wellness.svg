@@ -1,0 +1,23 @@
+<svg width="100%" viewBox="0 0 400 400" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Bieu tuong suc khoe tong the</title>
+<desc>Hai chiec la giao nhau nhu mam cay dang lon, tuong trung cho su can bang va suc khoe toan dien.</desc>
+<defs>
+  <linearGradient id="paperBg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F6F1E8"/>
+    <stop offset="100%" stop-color="#EFE8D6"/>
+  </linearGradient>
+</defs>
+<rect width="400" height="400" fill="url(#paperBg)"/>
+<circle cx="326" cy="76" r="112" fill="#E7CFA0" opacity="0.16"/>
+<circle cx="58" cy="336" r="86" fill="#2C4A3B" opacity="0.06"/>
+<circle cx="200" cy="200" r="88" fill="none" stroke="#B9863F" stroke-width="1.5"/>
+<circle cx="200" cy="200" r="72" fill="none" stroke="#E7CFA0" stroke-width="1"/>
+<path d="M200,236 C200,236 158,224 158,182 C158,152 184,138 200,150 C216,138 242,152 242,182 C242,224 200,236 200,236 Z"
+  fill="#2C4A3B" opacity="0.16"/>
+<path d="M200,232 C176,220 168,192 178,164 C186,142 200,150 200,178 C200,206 200,220 200,232 Z"
+  fill="#2C4A3B" transform="rotate(-8 200 200)"/>
+<path d="M200,232 C224,220 232,192 222,164 C214,142 200,150 200,178 C200,206 200,220 200,232 Z"
+  fill="#B9863F" transform="rotate(8 200 200)"/>
+<path d="M200,224 Q200,198 200,168" stroke="#F6F1E8" stroke-width="1.4" fill="none" opacity="0.85"/>
+<circle cx="200" cy="232" r="5.5" fill="#1C3128"/>
+</svg>

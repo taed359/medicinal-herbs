@@ -50,6 +50,7 @@ export interface TranslationSchema {
     navShopBy: string;
     navOurStory: string;
     navHealthReads: string;
+    findStoreLabel: string;
     searchPlaceholder: string;
     searchLabel: string;
     accountLabel: string;
@@ -135,6 +136,8 @@ export interface TranslationSchema {
     heading: string;
     ariaLabel: string;
     disclaimer: string;
+    statLabel: string;
+    ctaLabel: string;
     items: {
       tga: { title: string; subtitle: string; description: string };
       nsf: { title: string; subtitle: string; description: string };
@@ -142,6 +145,12 @@ export interface TranslationSchema {
       fda: { title: string; subtitle: string; description: string };
       fingerprinting: { title: string; subtitle: string; description: string };
     };
+  };
+  process: {
+    eyebrow: string;
+    heading: string;
+    lede: string;
+    steps: Array<{ title: string; description: string }>;
   };
   healthReads: {
     eyebrow: string;

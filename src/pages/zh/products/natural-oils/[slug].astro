@@ -20,7 +20,14 @@ const title = `${product.name} — ${t.common.siteName}`;
 // exists (see seed-coconut-oil-content.ts); Layout.astro falls back to the
 // generic site-wide description when a product has none yet.
 const description = product.shortDescription ?? undefined;
+
+// Related products: other published items in the same category, real
+// data only (same repository method NaturalOils.astro's own featured grid
+// already uses) -- excludes the current product and caps at 4.
+const relatedProducts = (await productRepository.listByCategory(product.categoryId, lang))
+  .filter((p) => p.id !== product.id)
+  .slice(0, 4);
 ---
 <Layout lang={lang} title={title} description={description}>
-  <ProductDetail lang={lang} product={product} />
+  <ProductDetail lang={lang} product={product} relatedProducts={relatedProducts} />
 </Layout>
