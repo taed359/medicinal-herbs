@@ -85,7 +85,7 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
 
     <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
       <div class="pd-gallery lg:sticky lg:top-28">
-        <div class="pd-gallery-stage">
+        <div class:list={['pd-gallery-stage', { 'pd-gallery-placeholder': !primaryImage }]}>
           <div class="pd-gallery-media">
             {
               primaryImage ? (
@@ -317,10 +317,11 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
         <ul class="pd-related-grid m-0 mt-6 grid list-none grid-cols-2 gap-4 p-0 sm:gap-5 lg:grid-cols-4" role="list">
           {relatedProductsList.map((p) => {
             const relatedHref = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
+            const isPlaceholder = !p.primaryImage;
             const relatedImage = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
             const relatedAlt = p.primaryImage?.alt || p.name;
             return (
-              <li class="h-full">
+              <li class:list={['h-full', { 'no-placeholder': isPlaceholder }]}>
                 <ProductCard
                   name={p.name}
                   category={catLabel}
@@ -355,6 +356,25 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
   .pd-gallery-media {
     width: min(100%, 36rem);
     height: min(100%, 36rem);
+  }
+
+  /* Placeholder state only (no real product photo yet -- see primaryImage
+     above): placeholder-bottle.svg already draws its own full-bleed
+     border and centered icon as a finished tile, the same reasoning
+     NaturalOils.astro's own .no-placeholder override already applies to
+     its grid cards. .pd-gallery-stage's default padding (clamp(1.25rem,
+     5vw, 3.5rem), see below) exists for a real product PHOTO that needs
+     breathing room -- applied to the placeholder instead, it was shrinking
+     the placeholder down into a small icon floating inside a mostly-empty
+     box, doubled up with the SVG's own drawn border. Cut the padding way
+     down so the SVG's border reads as the frame instead of a second one
+     nested inside .pd-gallery-stage's, and match the same slight opacity
+     used everywhere else this placeholder appears. */
+  .pd-gallery-placeholder {
+    padding: clamp(0.5rem, 2vw, 1rem);
+  }
+  .pd-gallery-placeholder .pd-gallery-media {
+    opacity: 0.82;
   }
 
   .pd-info {
@@ -732,6 +752,23 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
   .pd-zh .pd-tab-panel p,
   .pd-zh .pd-warnings p {
     line-height: 1.8;
+  }
+
+  /* Related Products placeholder handling -- same reasoning as
+     NaturalOils.astro's own .no-placeholder override (and
+     .pd-gallery-placeholder above): ProductCard's default packshot
+     padding (p-6 sm:p-8, see ProductCard.astro) is sized for a real
+     photo, not the placeholder SVG that already draws its own border/
+     icon. Unlike NaturalOils.astro this grid uses ProductCard's own
+     unstyled look with no base .pc-image override, so there's no
+     border-bottom to cancel here -- only the padding/opacity need it. */
+  .pd-related .no-placeholder :global(.pc-img) {
+    padding: 0;
+    opacity: 0.82;
+  }
+  .pd-related .no-placeholder :global(.pc-card:hover .pc-img),
+  .pd-related .no-placeholder :global(.pc-card:focus-visible .pc-img) {
+    transform: none;
   }
 
   @media (min-width: 640px) {
