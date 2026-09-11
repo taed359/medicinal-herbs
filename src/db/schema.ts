@@ -547,6 +547,18 @@ export const orderItems = pgTable('order_items', {
   unitPriceMinor: bigint('unit_price_minor', { mode: 'number' }).notNull(),
   quantity: integer('quantity').notNull(),
   lineTotalMinor: bigint('line_total_minor', { mode: 'number' }).notNull(),
+  // Image snapshot — same "never re-joined from the live catalog"
+  // reasoning as productName/sku/unitPriceMinor above: order confirmation
+  // (OrderConfirmationPage.astro) previously showed no image at all for
+  // order items (unlike the cart/checkout summary, which always shows the
+  // LIVE current image since it's still a cart, not a historical record).
+  // Nullable/all-4-or-nothing by convention: existing pre-migration order
+  // rows simply have no image (never break), and a product that had no
+  // image at the moment of purchase also legitimately has none here.
+  imageUrl: text('image_url'),
+  imageAlt: text('image_alt'),
+  imageWidth: integer('image_width'),
+  imageHeight: integer('image_height'),
 }, (table) => [
   index('idx_order_items_order').on(table.orderId),
   check('order_items_quantity_check', sql`${table.quantity} > 0`),

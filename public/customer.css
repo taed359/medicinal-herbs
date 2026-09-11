@@ -8,11 +8,25 @@
  *
  * The color/radius/shadow values below are copied BY VALUE from
  * src/styles/global.css's Tailwind v4 `@theme` block (--color-brand,
- * --color-cream, --radius-card, etc.) so this design reads as native to
- * the storefront -- not shared by reference, since that would mean
- * pulling the entire Tailwind build into these lightweight standalone
- * pages just for a handful of tokens. Keep these in sync by eye if the
- * storefront palette ever changes.
+ * --color-pine, --color-amber, --color-cream, --radius-card, etc.) so this
+ * design reads as native to the storefront -- not shared by reference,
+ * since that would mean pulling the entire Tailwind build into these
+ * lightweight standalone pages just for a handful of tokens. Keep these in
+ * sync by eye if the storefront palette ever changes.
+ *
+ * Visual language (2026-09-11 redesign) follows references/login/
+ * thao-duoc-login.html pixel-for-pixel where practical: sharp/editorial
+ * corners instead of pill buttons (this project's own brief explicitly
+ * says "avoid generic SaaS styling"), a small circular brand mark next to
+ * the wordmark instead of a large centered logo, an eyebrow label above
+ * the heading, and a decorative overlay (badge/seal/heading/body) on the
+ * image panel instead of a bare photo. The real product photo
+ * (Energy.webp) is kept as the panel's background rather than swapped for
+ * the mockup's flat color gradient -- authentic photography reads as more
+ * premium than a decorative illustration, and this project has previously
+ * gone out of its way to remove a fake placeholder that wasn't real
+ * photography (see claude/project-status.md) -- so the mockup's copy/
+ * layout was ported onto the real photo instead of replacing it.
  *
  * Typography follows the exact same by-value-copy approach: `@import
  * url("/fonts.css")` below loads a file that is byte-identical to
@@ -29,7 +43,19 @@
 :root {
   --auth-brand: #3F5B45;
   --auth-brand-hover: #294333;
-  --auth-gold: #B27652;
+  /* Deep pine + text-safe/decorative amber pair, copied by value from
+   * global.css's --color-pine / --color-pine-dark / --color-amber /
+   * --color-amber-decorative -- used for the logo mark and the image
+   * panel's dark scrim + accents, matching the reference mockup's own
+   * --pine/--pine-dark/--amber tokens (which happen to already be nearly
+   * identical values -- this reference was built against the real brand
+   * palette, not a generic one). */
+  --auth-pine: #2C4A3B;
+  --auth-pine-dark: #1C3128;
+  --auth-amber: #8A6423;
+  --auth-amber-decorative: #B9863F;
+  --auth-amber-light: #E7CFA0;
+  --auth-sage: #A9B79C;
   --auth-cream: #F6F1E8;
   --auth-surface: #FCFAF5;
   --auth-heading: #292D27;
@@ -49,9 +75,14 @@
    * reasoning as src/styles/global.css's identical pair of tokens. */
   --font-sans: "Be Vietnam Pro", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-serif: "Playfair Display", "Noto Serif SC", Georgia, "Times New Roman", serif;
-  --auth-radius-card: 12px;
+  /* Small pill radius stays for compact chip-style controls only (the
+   * language switcher trigger/menu, the "coming soon" tag) -- everything
+   * that reads as a primary control (inputs, the submit button, the
+   * social buttons) now uses the sharp editorial radius below instead,
+   * matching the reference mockup and this project's own "avoid generic
+   * SaaS styling" brief. */
   --auth-radius-pill: 24px;
-  --auth-radius-field: 10px;
+  --auth-radius-field: 3px;
   --auth-shadow: 0px 6px 20px rgba(41, 45, 39, 0.06);
 }
 
@@ -192,40 +223,57 @@ a { color: var(--auth-brand); }
   .auth-lang-switcher-caret { transition: none; }
 }
 
-/* Its own dedicated region at the top of the panel -- a fixed height, not
- * "logo sitting above a centered logo+form block." Full panel width (NOT
- * capped to the 440px form width) so a large mark has real room to be
- * centered in, independent of the form's narrower content column below. */
+/* Logo ----------------------------------------------------------------
+ * Small circular brand mark + wordmark, left-aligned near the top of the
+ * panel -- matches references/login/thao-duoc-login.html's own `.logo`
+ * treatment instead of the old large centered wordmark. A dedicated row,
+ * not centered in a tall banner area, so the eyebrow/heading below it can
+ * sit close underneath the way the reference does. */
 .auth-logo-area {
   flex-shrink: 0;
-  height: clamp(150px, 20vh, 220px);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 clamp(1.25rem, 5vw, 3rem);
+  padding: clamp(1.75rem, 4vh, 2.75rem) clamp(1.25rem, 5vw, 3rem) 0;
 }
 
-/* Placeholder text today, deliberately styled to already occupy the
- * space a real brand mark would -- large and centered, not a small
- * header-style wordmark. `.auth-logo img` is inert until a real image
- * replaces the text (see the task's own intended sizing), at which point
- * no other markup changes are needed. */
 .auth-logo {
-  display: inline-block;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
   color: var(--auth-heading);
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: clamp(2rem, 5vw, 3.25rem);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
   text-decoration: none;
 }
+
+.auth-logo-mark {
+  position: relative;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--auth-pine);
+}
+.auth-logo-mark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--auth-surface);
+  border-radius: 50%;
+}
+
+.auth-logo-text {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: -0.005em;
+}
+
+/* Real <img> logo path, kept for whenever a real brand mark image
+   replaces the text mark above -- inert until markup adds it. */
 .auth-logo img {
   display: block;
-  width: min(320px, 70%);
-  max-height: 150px;
-  margin: 0 auto;
+  width: min(160px, 40vw);
+  max-height: 2.25rem;
   object-fit: contain;
 }
 
@@ -238,7 +286,7 @@ a { color: var(--auth-brand); }
   flex-direction: column;
   align-items: center;
   min-height: 0;
-  padding: 0 clamp(1.25rem, 5vw, 3rem) clamp(1.5rem, 5vw, 2.5rem);
+  padding: clamp(1.5rem, 4vh, 2.5rem) clamp(1.25rem, 5vw, 3rem) clamp(1.5rem, 5vw, 2.5rem);
 }
 .auth-form-content > * {
   width: 100%;
@@ -269,38 +317,104 @@ a { color: var(--auth-brand); }
 }
 .auth-legal a:hover { color: var(--auth-brand); text-decoration: underline; }
 
-/* Edge-to-edge -- no margin, radius, border, or shadow. The image is the
- * entire right half, not a card image, and only crops via object-fit
- * (never distorted, never overlaid -- Energy.webp has no text on it, so
- * a dark overlay would only mute the one deliberate visual element these
- * pages have). */
+/* Image panel ---------------------------------------------------------
+ * Edge-to-edge real product photography (never distorted, never a plain
+ * decorative gradient) with a bottom-weighted scrim so the overlay copy
+ * stays legible against any part of the photo, and a badge/seal/heading/
+ * body block matching the reference mockup's own storytelling layout. */
 .auth-image-panel {
   position: relative;
   overflow: hidden;
-  background: var(--auth-cream);
+  display: flex;
+  align-items: flex-end;
+  background: var(--auth-pine-dark);
 }
 .auth-image-panel img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
+.auth-image-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(28, 49, 40, 0.12) 0%, rgba(28, 49, 40, 0.5) 62%, rgba(28, 49, 40, 0.86) 100%);
+}
+.auth-image-badge {
+  position: absolute;
+  top: clamp(1.5rem, 4vh, 2.75rem);
+  right: clamp(1.5rem, 4vw, 2.75rem);
+  z-index: 2;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(231, 207, 160, 0.45);
+  border-radius: var(--auth-radius-pill);
+  color: var(--auth-amber-light);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+:lang(zh) .auth-image-badge { letter-spacing: 0.02em; text-transform: none; }
+
+.auth-image-content {
+  position: relative;
+  z-index: 2;
+  max-width: 27rem;
+  padding: clamp(2rem, 5vw, 3.5rem);
+  color: var(--auth-surface);
+}
+.auth-image-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 1.5rem;
+  border: 1.5px solid var(--auth-amber-light);
+  border-radius: 50%;
+  color: var(--auth-amber-light);
+}
+.auth-image-heading {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.3vw, 1.85rem);
+  line-height: 1.35;
+}
+.auth-image-body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--auth-sage);
+}
 
 @media (max-width: 900px) {
   .auth-shell { grid-template-columns: 1fr; }
   .auth-image-panel { display: none; }
-  .auth-logo-area { height: clamp(110px, 16vh, 160px); padding: 0 1.25rem; }
-  .auth-logo { font-size: clamp(1.5rem, 8vw, 2.25rem); }
-  .auth-logo img { width: min(280px, 75vw); }
-  .auth-form-content { padding: 0 1.25rem 1.75rem; }
+  .auth-logo-area { padding: 1.25rem 1.25rem 0; }
+  .auth-logo-mark { width: 1.75rem; height: 1.75rem; }
+  .auth-logo-text { font-size: 1.15rem; }
+  .auth-form-content { padding: 1.25rem 1.25rem 1.75rem; }
   .auth-lang-switcher { top: 0.6rem; right: 0.6rem; }
 }
 
 /* Heading / copy ---------------------------------------------------------*/
-.auth-heading {
-  margin: 0 0 0.4rem;
-  font-size: 1.6rem;
+.auth-eyebrow {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--auth-amber);
+}
+:lang(zh) .auth-eyebrow { letter-spacing: 0.02em; text-transform: none; }
+
+.auth-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1.85rem;
+  font-weight: 600;
   color: var(--auth-heading);
   font-family: var(--font-serif);
 }
@@ -330,8 +444,8 @@ a { color: var(--auth-brand); }
   width: 100%;
   min-height: 2.85rem;
   padding: 0.6rem 1rem;
-  border: 1px solid var(--auth-border);
-  border-radius: var(--auth-radius-pill);
+  border: 1.5px solid var(--auth-border);
+  border-radius: var(--auth-radius-field);
   background: var(--auth-surface);
   color: var(--auth-heading);
   font: inherit;
@@ -396,7 +510,7 @@ a { color: var(--auth-brand); }
 .auth-field input {
   min-height: 2.85rem;
   padding: 0.6rem 0.85rem;
-  border: 1px solid var(--auth-border);
+  border: 1.5px solid var(--auth-border);
   border-radius: var(--auth-radius-field);
   background: var(--auth-surface);
   color: var(--auth-heading);
@@ -405,8 +519,8 @@ a { color: var(--auth-brand); }
   width: 100%;
 }
 .auth-field input:focus-visible {
-  outline: 2px solid var(--auth-brand);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--auth-amber-decorative);
 }
 
 .auth-password-row {
@@ -423,7 +537,7 @@ a { color: var(--auth-brand); }
   justify-content: center;
   width: 2.85rem;
   min-height: 2.85rem;
-  border: 1px solid var(--auth-border);
+  border: 1.5px solid var(--auth-border);
   border-radius: var(--auth-radius-field);
   background: var(--auth-surface);
   color: var(--auth-muted);
@@ -446,6 +560,24 @@ a { color: var(--auth-brand); }
 }
 .auth-inline-link-row a:hover { text-decoration: underline; }
 
+/* Remember-me + forgot-password row (login only) -- side by side, matching
+ * the reference mockup's `.row-between`. */
+.auth-row-between {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+.auth-row-between .auth-forgot-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--auth-brand);
+  text-decoration: none;
+}
+.auth-row-between .auth-forgot-link:hover { text-decoration: underline; }
+
 .auth-checkbox-row {
   display: flex;
   align-items: flex-start;
@@ -454,23 +586,42 @@ a { color: var(--auth-brand); }
   color: var(--auth-body);
 }
 .auth-checkbox-row input { width: auto; margin-top: 0.2rem; accent-color: var(--auth-brand); }
+/* Single-line variant (e.g. "remember me") -- vertically centers the
+   checkbox against its label instead of top-aligning for a multi-line
+   terms paragraph. */
+.auth-checkbox-row--inline { align-items: center; cursor: pointer; }
+.auth-checkbox-row--inline input { margin-top: 0; }
 
 /* Buttons ------------------------------------------------------------------*/
 .auth-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.9rem;
   margin-top: 0.35rem;
   padding: 0.7rem 1.5rem;
   border: 0;
-  border-radius: var(--auth-radius-pill);
+  border-radius: var(--auth-radius-field);
   background: var(--auth-brand);
   color: var(--auth-surface);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
   cursor: pointer;
 }
 .auth-submit:hover { background: var(--auth-brand-hover); }
 .auth-submit:disabled { opacity: 0.65; cursor: not-allowed; }
+/* Arrow accent, matching the reference mockup's "Đăng nhập →" primary CTA.
+ * A pseudo-element rather than markup so the loading/disabled label swap
+ * (submitButton.textContent = ...) in each page's own <script> never has
+ * to know about it -- it simply disappears while the button is disabled
+ * mid-submit and returns once re-enabled. */
+.auth-submit:not(:disabled)::after {
+  content: '\2192';
+  margin-left: 0.55rem;
+  font-weight: 400;
+}
 
 /* Feedback -------------------------------------------------------------- */
 .auth-error {

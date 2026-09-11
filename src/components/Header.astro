@@ -1,6 +1,7 @@
 ---
 import AnnouncementBar from './AnnouncementBar.astro';
 import { getTranslations, localeHomePath, localePath, type Locale } from '../i18n/utils';
+import { categoryRepository } from '../server/repositories';
 
 interface Props {
   lang: Locale;
@@ -9,6 +10,7 @@ const { lang } = Astro.props;
 
 const t = getTranslations(lang);
 const homeHref = localeHomePath(lang);
+const shopByCategories = await categoryRepository.listPublished(lang);
 
 // Customer session state, read the same way every other part of this app
 // reads it -- middleware already resolved it once and exposed it here.
@@ -79,12 +81,42 @@ const accountHref = `/customer/account?lang=${lang}`;
           {t.header.navSale}
           <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
         </a>
-        <a href="#" class="relative flex items-center gap-1 font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">
-          {t.header.navShopBy}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </a>
+        {shopByCategories.length > 0 ? (
+          <div class="relative" data-shop-by-menu>
+            <button
+              type="button"
+              data-shop-by-menu-trigger
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="shop-by-menu"
+              class="relative flex items-center gap-1 font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 cursor-pointer"
+            >
+              {t.header.navShopBy}
+              <svg class="account-menu-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+
+            <ul
+              id="shop-by-menu"
+              role="menu"
+              aria-label={t.header.shopByMenuLabel}
+              class="account-menu account-menu--left account-menu--hover"
+              data-shop-by-menu-list
+              hidden
+            >
+              {shopByCategories.map((category) => (
+                <li role="none">
+                  <a role="menuitem" href={localePath(lang, `products/${category.slug}`)} class="account-menu-item">
+                    {category.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <span class="font-sans text-sm font-medium text-pine-dark">{t.header.navShopBy}</span>
+        )}
         <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
         <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navHealthReads}</a>
         </nav>
@@ -322,17 +354,25 @@ const accountHref = `/customer/account?lang=${lang}`;
               <span class="inline-flex items-center rounded-badge bg-sale text-white text-[10px] leading-none px-1.5 py-1">%</span>
             </span>
           </a>
-          <button type="button" class="mobile-menu-row" data-mobile-shop-toggle aria-controls="mobile-shop-panel" aria-expanded="false">
-            <span>{t.header.navShopBy}</span>
-            <svg class="mobile-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <div id="mobile-shop-panel" class="mobile-accordion-panel" data-mobile-shop-panel hidden>
-            <a href={localePath(lang, t.naturalOils.collectionPath)} data-astro-reload class="mobile-menu-row mobile-menu-row-sub">
-              {t.naturalOils.eyebrow}
-            </a>
-          </div>
+          {shopByCategories.length > 0 ? (
+            <>
+              <button type="button" class="mobile-menu-row" data-mobile-shop-toggle aria-controls="mobile-shop-panel" aria-expanded="false">
+                <span>{t.header.navShopBy}</span>
+                <svg class="mobile-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <div id="mobile-shop-panel" class="mobile-accordion-panel" data-mobile-shop-panel hidden>
+                {shopByCategories.map((category) => (
+                  <a href={localePath(lang, `products/${category.slug}`)} data-astro-reload class="mobile-menu-row mobile-menu-row-sub">
+                    {category.name}
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : (
+            <span class="mobile-menu-row">{t.header.navShopBy}</span>
+          )}
           <a href="#" class="mobile-menu-row">{t.header.navOurStory}</a>
           <a href="#" class="mobile-menu-row">{t.header.navHealthReads}</a>
         </nav>
@@ -364,6 +404,29 @@ const accountHref = `/customer/account?lang=${lang}`;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Shop By dropdown sits mid-nav, not off the right-hand account icon --
+     hang it under its own trigger instead of the account menu's right edge. */
+  .account-menu--left { right: auto; left: 0; }
+
+  /* Shop By opens on hover, not click (see initShopByMenu below) -- a
+     quick fade + slide-down reads as more deliberate than the account
+     menu's instant show/hide, which suits a hover-triggered menu that can
+     open/close far more often per visit. Still driven by the [hidden]
+     attribute underneath (JS removes it, then adds .is-open on the next
+     frame so there's a starting state to transition from; closing removes
+     .is-open first and re-adds [hidden] only after the transition ends). */
+  .account-menu--hover {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 160ms ease-out, transform 160ms ease-out;
+    pointer-events: none;
+  }
+  .account-menu--hover.is-open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   .account-menu-item {
@@ -402,6 +465,7 @@ const accountHref = `/customer/account?lang=${lang}`;
 
   @media (prefers-reduced-motion: reduce) {
     .account-menu-caret { transition: none; }
+    .account-menu--hover { transition: none; }
   }
 
   .mobile-search-trigger [data-search-close-icon] { display: none; }
@@ -886,92 +950,120 @@ const accountHref = `/customer/account?lang=${lang}`;
 
   initAccountWidgets();
   document.addEventListener('astro:page-load', initAccountWidgets);
+
+  // Also refresh on a bfcache restore (browser Back/Forward) -- the same
+  // class of bug already fixed in cart-client.ts's own `pageshow`/
+  // `persisted` listener. A bfcache restore reanimates the EXACT frozen
+  // DOM from the moment the visitor navigated away -- no script re-runs,
+  // no `astro:page-load` fires -- so e.g. signing out, then pressing Back
+  // to a page that was bfcache'd while still logged in, left this header
+  // showing the stale authenticated name/"Tài khoản" state forever
+  // (nothing was ever going to re-check the session for it).
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) initAccountWidgets();
+  });
 </script>
 
 <script>
   // Desktop authenticated-account dropdown -- same interaction pattern as
   // AnnouncementBar.astro's locale switcher (open/close, arrow-key nav,
-  // outside click, Escape), scoped to [data-account-menu] instead. The
-  // trigger button itself is the existing account icon + name
-  // (data-account-user, toggled by initAccountWidgets above); this script
-  // only owns opening/closing the menu, never the guest/authed state.
+  // outside click, Escape), scoped to [data-account-menu]. The trigger
+  // button itself is the existing account icon + name (data-account-user,
+  // toggled by initAccountWidgets above); this script only owns opening/
+  // closing the menu, never the guest/authed state.
+  //
+  // The Shop By nav item used to share this exact mechanism, but it now
+  // opens on hover instead of click (see initShopByMenu below, its own
+  // separate script) -- this function is back to owning just the one
+  // account-menu instance. The two menus still can't both be open at
+  // once: closeShopByMenu() below is this function's half of that, and
+  // initShopByMenu has the matching call to close *this* menu.
+  function closeShopByMenu() {
+    const shopByMenu = document.querySelector<HTMLElement>('[data-shop-by-menu-list]');
+    const shopByTrigger = document.querySelector<HTMLButtonElement>('[data-shop-by-menu-trigger]');
+    if (shopByMenu && !shopByMenu.hidden) {
+      shopByMenu.classList.remove('is-open');
+      shopByMenu.hidden = true;
+      shopByTrigger?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   function initAccountMenus() {
-    const roots = document.querySelectorAll<HTMLElement>('[data-account-menu]');
+    const root = document.querySelector<HTMLElement>('[data-account-menu]');
+    if (!(root instanceof HTMLElement)) return;
+    if ((root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit) return;
+    (root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit = true;
 
-    roots.forEach((root) => {
-      if ((root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit) return;
-      (root as HTMLElement & { __accountMenuInit?: boolean }).__accountMenuInit = true;
+    const trigger = root.querySelector<HTMLButtonElement>('[data-account-menu-trigger]');
+    const menu = root.querySelector<HTMLElement>('[data-account-menu-list]');
+    if (!trigger || !menu) return;
 
-      const trigger = root.querySelector<HTMLButtonElement>('[data-account-menu-trigger]');
-      const menu = root.querySelector<HTMLElement>('[data-account-menu-list]');
-      if (!trigger || !menu) return;
+    const isOpen = () => !menu.hidden;
 
-      const isOpen = () => !menu.hidden;
+    const close = (opts: { focusTrigger?: boolean } = {}) => {
+      if (!isOpen()) return;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      if (opts.focusTrigger) trigger.focus();
+    };
 
-      const open = () => {
-        menu.hidden = false;
-        trigger.setAttribute('aria-expanded', 'true');
-      };
+    const open = () => {
+      closeShopByMenu();
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    };
 
-      const close = (opts: { focusTrigger?: boolean } = {}) => {
-        if (!isOpen()) return;
-        menu.hidden = true;
-        trigger.setAttribute('aria-expanded', 'false');
-        if (opts.focusTrigger) trigger.focus();
-      };
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (isOpen()) {
+        close();
+      } else {
+        open();
+      }
+    });
 
-      trigger.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (isOpen()) {
-          close();
-        } else {
-          open();
-        }
-      });
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' && !isOpen()) {
+        event.preventDefault();
+        open();
+        const first = menu.querySelector<HTMLElement>('[role="menuitem"]');
+        first?.focus();
+      }
+    });
 
-      trigger.addEventListener('keydown', (event) => {
-        if (event.key === 'ArrowDown' && !isOpen()) {
-          event.preventDefault();
-          open();
-          const first = menu.querySelector<HTMLElement>('[role="menuitem"]');
-          first?.focus();
-        }
-      });
+    menu.addEventListener('keydown', (event) => {
+      const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
 
-      menu.addEventListener('keydown', (event) => {
-        const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
-        const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = items[(currentIndex + 1 + items.length) % items.length];
+        next?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = items[(currentIndex - 1 + items.length) % items.length];
+        prev?.focus();
+      }
+    });
 
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          const next = items[(currentIndex + 1 + items.length) % items.length];
-          next?.focus();
-        } else if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          const prev = items[(currentIndex - 1 + items.length) % items.length];
-          prev?.focus();
-        }
-      });
+    // Any menu item activation (a real link, a "#" placeholder, or the
+    // Sign out button) dismisses the menu -- same pattern the mobile
+    // drawer already uses for its own nav links.
+    menu.querySelectorAll('[role="menuitem"]').forEach((item) => {
+      item.addEventListener('click', () => close());
+    });
 
-      // Any menu item activation (a real link, a "#" placeholder, or the
-      // Sign out button) dismisses the menu -- same pattern the mobile
-      // drawer already uses for its own nav links.
-      menu.querySelectorAll('[role="menuitem"]').forEach((item) => {
-        item.addEventListener('click', () => close());
-      });
+    document.addEventListener('click', (event) => {
+      if (!isOpen()) return;
+      if (!(event.target instanceof Node)) return;
+      if (!root.contains(event.target)) close();
+    });
 
-      document.addEventListener('click', (event) => {
-        if (!isOpen()) return;
-        if (!(event.target instanceof Node)) return;
-        if (!root.contains(event.target)) close();
-      });
-
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && isOpen()) {
-          event.preventDefault();
-          close({ focusTrigger: true });
-        }
-      });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && isOpen()) {
+        event.preventDefault();
+        close({ focusTrigger: true });
+      }
     });
   }
 
@@ -981,6 +1073,172 @@ const accountHref = `/customer/account?lang=${lang}`;
     initAccountMenus();
   }
   document.addEventListener('astro:page-load', initAccountMenus);
+</script>
+
+<script>
+  // Desktop "Shop By" nav dropdown -- opens on hover (modern mega-menu
+  // feel) instead of the account menu's click-to-toggle, since this is a
+  // primary nav item people expect to preview by just passing over it,
+  // not one they deliberately open. Still fully usable without a mouse:
+  // Tab focuses the trigger and opens it the same as hover, Escape closes
+  // it, and arrow keys move between category links -- hover is additive,
+  // never the only way in.
+  function initShopByMenu() {
+    const root = document.querySelector<HTMLElement>('[data-shop-by-menu]');
+    if (!(root instanceof HTMLElement)) return;
+    if ((root as HTMLElement & { __shopByMenuInit?: boolean }).__shopByMenuInit) return;
+    (root as HTMLElement & { __shopByMenuInit?: boolean }).__shopByMenuInit = true;
+
+    const trigger = root.querySelector<HTMLButtonElement>('[data-shop-by-menu-trigger]');
+    const menu = root.querySelector<HTMLElement>('[data-shop-by-menu-list]');
+    if (!trigger || !menu) return;
+
+    // Matches the CSS transition duration on .account-menu--hover.
+    const TRANSITION_MS = 160;
+    // How long to wait after the pointer leaves before actually closing --
+    // long enough that crossing the small visual gap between the trigger
+    // and the panel below it (or a brief, accidental mouse-out) doesn't
+    // snap the menu shut, short enough that it still feels responsive.
+    const CLOSE_GRACE_MS = 220;
+
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const isOpen = () => !menu.hidden;
+
+    const cancelPendingClose = () => {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    };
+
+    const open = () => {
+      cancelPendingClose();
+      if (isOpen()) return;
+      closeAccountMenu();
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      // Wait a frame so the browser paints the [hidden]-just-removed
+      // (pre-transition) state before .is-open kicks off the transition --
+      // added in the same frame, there'd be nothing to animate from.
+      requestAnimationFrame(() => menu.classList.add('is-open'));
+    };
+
+    const close = (opts: { focusTrigger?: boolean; immediate?: boolean } = {}) => {
+      cancelPendingClose();
+      if (!isOpen()) return;
+      menu.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      const finish = () => {
+        menu.hidden = true;
+      };
+      if (opts.immediate) {
+        finish();
+      } else {
+        hideTimer = setTimeout(finish, TRANSITION_MS);
+      }
+      if (opts.focusTrigger) trigger.focus();
+    };
+
+    const scheduleClose = () => {
+      cancelPendingClose();
+      closeTimer = setTimeout(() => close(), CLOSE_GRACE_MS);
+    };
+
+    // mouseenter/mouseleave on the wrapping root (not the trigger alone)
+    // -- the panel is a DOM descendant of root too, so moving from the
+    // trigger down into the panel never fires a leave in between.
+    root.addEventListener('mouseenter', open);
+    root.addEventListener('mouseleave', scheduleClose);
+
+    // Keyboard users don't hover: Tab-ing onto the trigger opens the menu
+    // the same way, and focus leaving the whole group (not just the
+    // trigger -- moving focus onto a category link inside the menu must
+    // NOT close it) closes it again.
+    trigger.addEventListener('focus', open);
+    root.addEventListener('focusout', (event) => {
+      const next = event.relatedTarget;
+      if (next instanceof Node && root.contains(next)) return;
+      close();
+    });
+
+    // Click still works too (touch/trackpad without real hover, or anyone
+    // who simply prefers to click) -- toggles, so a click can also close
+    // an already-open menu.
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (isOpen()) {
+        close();
+      } else {
+        open();
+      }
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' && !isOpen()) {
+        event.preventDefault();
+        open();
+        const first = menu.querySelector<HTMLElement>('[role="menuitem"]');
+        first?.focus();
+      }
+    });
+
+    menu.addEventListener('keydown', (event) => {
+      const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = items[(currentIndex + 1 + items.length) % items.length];
+        next?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = items[(currentIndex - 1 + items.length) % items.length];
+        prev?.focus();
+      }
+    });
+
+    menu.querySelectorAll('[role="menuitem"]').forEach((item) => {
+      item.addEventListener('click', () => close({ immediate: true }));
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!isOpen()) return;
+      if (!(event.target instanceof Node)) return;
+      if (!root.contains(event.target)) close();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && isOpen()) {
+        event.preventDefault();
+        close({ focusTrigger: true });
+      }
+    });
+  }
+
+  // The Shop By menu's half of the "only one nav dropdown open at a time"
+  // rule -- see closeShopByMenu() in the account-menu script above for
+  // the other half.
+  function closeAccountMenu() {
+    const accountMenu = document.querySelector<HTMLElement>('[data-account-menu-list]');
+    const accountTrigger = document.querySelector<HTMLButtonElement>('[data-account-menu-trigger]');
+    if (accountMenu && !accountMenu.hidden) {
+      accountMenu.hidden = true;
+      accountTrigger?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initShopByMenu);
+  } else {
+    initShopByMenu();
+  }
+  document.addEventListener('astro:page-load', initShopByMenu);
 </script>
 
 <script>

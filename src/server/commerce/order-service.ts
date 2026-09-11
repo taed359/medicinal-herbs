@@ -22,9 +22,11 @@ import {
   productVariantTranslations,
   products,
   productTranslations,
+  productImages,
+  productImageTranslations,
   inventory,
 } from '../../db/schema';
-import type { Locale, OrderView } from '../../domain/types';
+import type { Locale, OrderItemLineView, OrderView } from '../../domain/types';
 import { loadCartForCheckout, clearCart } from './cart-service';
 
 export class OrderError extends Error {
@@ -76,12 +78,24 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{ orderNumber:
   // checkout's locale — see schema.ts's order_items doc comment for why
   // this is captured now rather than joined live later.
   const variantIds = cartLines.map((l) => l.variantId);
+  // Same "snapshot now, never re-join live" reasoning extends to the
+  // image: order_items.image_url/alt/width/height (see schema.ts's doc
+  // comment on that table) freeze whatever the product's PRIMARY image
+  // was at the moment of purchase, so a later photo change/removal can
+  // never alter historical order confirmations. Left-joined (not inner)
+  // because a product with no primary image yet must still produce an
+  // order line -- it just snapshots no image, same as it shows no image
+  // anywhere else today.
   const snapshotRows = await db
     .select({
       variantId: productVariants.id,
       sku: productVariants.sku,
       variantLabel: productVariantTranslations.label,
       productName: productTranslations.name,
+      imageUrl: productImages.url,
+      imageWidth: productImages.width,
+      imageHeight: productImages.height,
+      imageAlt: productImageTranslations.alt,
     })
     .from(productVariants)
     .innerJoin(products, eq(products.id, productVariants.productId))
@@ -92,6 +106,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{ orderNumber:
     .leftJoin(
       productVariantTranslations,
       and(eq(productVariantTranslations.variantId, productVariants.id), eq(productVariantTranslations.locale, input.locale))
+    )
+    .leftJoin(productImages, and(eq(productImages.productId, products.id), eq(productImages.role, 'primary')))
+    .leftJoin(
+      productImageTranslations,
+      and(eq(productImageTranslations.imageId, productImages.id), eq(productImageTranslations.locale, input.locale))
     )
     .where(inArray(productVariants.id, variantIds));
   const snapshotMap = new Map(snapshotRows.map((r) => [r.variantId, r]));
@@ -179,6 +198,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<{ orderNumber:
           unitPriceMinor: line.priceMinor,
           quantity: line.quantity,
           lineTotalMinor: line.priceMinor * line.quantity,
+          imageUrl: snap?.imageUrl ?? undefined,
+          imageAlt: snap?.imageAlt ?? undefined,
+          imageWidth: snap?.imageWidth ?? undefined,
+          imageHeight: snap?.imageHeight ?? undefined,
         };
       })
     );
@@ -200,7 +223,7 @@ export async function getOrderByNumberForEmail(orderNumber: string, email: strin
   if (!order) return null;
   if (order.customerEmail.trim().toLowerCase() !== email.trim().toLowerCase()) return null;
 
-  const items = await db
+  const itemRows = await db
     .select({
       productName: orderItems.productName,
       variantLabel: orderItems.variantLabel,
@@ -208,10 +231,27 @@ export async function getOrderByNumberForEmail(orderNumber: string, email: strin
       unitPriceMinor: orderItems.unitPriceMinor,
       quantity: orderItems.quantity,
       lineTotalMinor: orderItems.lineTotalMinor,
+      imageUrl: orderItems.imageUrl,
+      imageAlt: orderItems.imageAlt,
+      imageWidth: orderItems.imageWidth,
+      imageHeight: orderItems.imageHeight,
     })
     .from(orderItems)
     .where(eq(orderItems.orderId, order.id))
     .orderBy(orderItems.id);
+
+  const items: OrderItemLineView[] = itemRows.map((row) => ({
+    productName: row.productName,
+    variantLabel: row.variantLabel,
+    sku: row.sku,
+    unitPriceMinor: row.unitPriceMinor,
+    quantity: row.quantity,
+    lineTotalMinor: row.lineTotalMinor,
+    image:
+      row.imageUrl != null && row.imageWidth != null && row.imageHeight != null
+        ? { url: row.imageUrl, alt: row.imageAlt ?? '', width: row.imageWidth, height: row.imageHeight }
+        : null,
+  }));
 
   return {
     orderNumber: order.orderNumber,

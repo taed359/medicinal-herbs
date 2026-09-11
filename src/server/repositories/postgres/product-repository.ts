@@ -321,6 +321,7 @@ class PostgresProductRepository implements ProductRepository {
         priceMinor: price?.priceMinor ?? null,
         compareAtMinor: price?.compareAtMinor ?? null,
         currency: price?.currency ?? null,
+        variantId: variantId ?? null,
       };
     });
   }

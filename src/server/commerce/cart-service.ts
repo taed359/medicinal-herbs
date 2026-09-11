@@ -241,23 +241,43 @@ export async function addItem(
 
   const cartId = await ensureCart(cookies, customerId);
 
+  // Soft, non-authoritative pre-check -- gives the visitor a fast
+  // "insufficient stock" message in the common case. It's fine that this
+  // read can be stale under a race (see the atomic write below): cart
+  // stock is never the final authority -- placeOrder() re-validates
+  // price/stock from scratch and decrements with a conditional
+  // `WHERE quantity >= needed` at order time (see order-service.ts), so
+  // a stale read here can never let an over-stock ORDER through, only,
+  // in a rare concurrent-request race, let a cart briefly hold slightly
+  // more than is truly available.
   const [existing] = await db
-    .select({ id: cartItems.id, quantity: cartItems.quantity })
+    .select({ quantity: cartItems.quantity })
     .from(cartItems)
     .where(and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)));
 
-  const newQuantity = (existing?.quantity ?? 0) + quantity;
-
   const availableStock = await getAvailableStock(variantId);
-  if (availableStock != null && newQuantity > availableStock) {
+  const projectedQuantity = (existing?.quantity ?? 0) + quantity;
+  if (availableStock != null && projectedQuantity > availableStock) {
     throw new CartError('insufficient_stock', 'Not enough stock available.', { availableStock });
   }
 
-  if (existing) {
-    await db.update(cartItems).set({ quantity: newQuantity, updatedAt: new Date() }).where(eq(cartItems.id, existing.id));
-  } else {
-    await db.insert(cartItems).values({ id: randomUUID(), cartId, variantId, quantity: newQuantity });
-  }
+  // Atomic insert-or-increment. Two concurrent addItem calls for the same
+  // (cartId, variantId) -- a double-click before the button's `disabled`
+  // took effect, two open tabs, a client retry on a flaky connection --
+  // used to both pass the SELECT above seeing no existing row, then race
+  // on INSERT: the loser hit `idx_cart_items_cart_variant`'s unique
+  // constraint and threw a 500 even though the winner's insert had
+  // already put the item in the cart correctly -- exactly the "it got
+  // added anyway but I still saw an error" bug. ON CONFLICT DO UPDATE
+  // makes the write itself race-safe: whichever request lands second
+  // increments the same row instead of failing to insert a duplicate.
+  await db
+    .insert(cartItems)
+    .values({ id: randomUUID(), cartId, variantId, quantity })
+    .onConflictDoUpdate({
+      target: [cartItems.cartId, cartItems.variantId],
+      set: { quantity: sql`${cartItems.quantity} + ${quantity}`, updatedAt: new Date() },
+    });
   await db.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cartId));
 
   return loadCartView(cartId, locale);

@@ -40,6 +40,7 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     data-error-empty-cart={t.checkout.errorEmptyCart}
     data-error-insufficient-stock={t.checkout.errorInsufficientStock}
     data-error-invalid-email={t.checkout.errorInvalidEmail}
+    data-error-required-field={t.checkout.errorRequiredField}
     data-error-generic={t.checkout.errorGeneric}
     data-label-default={t.checkout.placeOrderButton}
     data-label-placing={t.checkout.placingOrderLabel}
@@ -78,16 +79,19 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
             <h2 id="checkout-contact-heading" class="checkout-section-heading font-serif">{t.checkout.contactHeading}</h2>
             <div class="checkout-field">
               <label for="checkout-name">{t.checkout.fullNameLabel} <span aria-hidden="true">*</span></label>
-              <input id="checkout-name" name="customerName" type="text" autocomplete="name" required maxlength="200" />
+              <input id="checkout-name" name="customerName" type="text" autocomplete="name" required maxlength="200" aria-describedby="checkout-name-error" />
+              <p class="checkout-field-error" id="checkout-name-error" data-field-error hidden></p>
             </div>
             <div class="checkout-field-row">
               <div class="checkout-field">
                 <label for="checkout-email">{t.checkout.emailLabel} <span aria-hidden="true">*</span></label>
-                <input id="checkout-email" name="customerEmail" type="email" autocomplete="email" required maxlength="200" />
+                <input id="checkout-email" name="customerEmail" type="email" autocomplete="email" required maxlength="200" aria-describedby="checkout-email-error" />
+                <p class="checkout-field-error" id="checkout-email-error" data-field-error hidden></p>
               </div>
               <div class="checkout-field">
                 <label for="checkout-phone">{t.checkout.phoneLabel} <span aria-hidden="true">*</span></label>
-                <input id="checkout-phone" name="customerPhone" type="tel" autocomplete="tel" required maxlength="40" />
+                <input id="checkout-phone" name="customerPhone" type="tel" autocomplete="tel" required maxlength="40" aria-describedby="checkout-phone-error" />
+                <p class="checkout-field-error" id="checkout-phone-error" data-field-error hidden></p>
               </div>
             </div>
           </section>
@@ -96,7 +100,8 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
             <h2 id="checkout-shipping-heading" class="checkout-section-heading font-serif">{t.checkout.shippingHeading}</h2>
             <div class="checkout-field">
               <label for="checkout-address">{t.checkout.addressLabel} <span aria-hidden="true">*</span></label>
-              <input id="checkout-address" name="shippingAddressLine1" type="text" autocomplete="address-line1" required maxlength="400" />
+              <input id="checkout-address" name="shippingAddressLine1" type="text" autocomplete="address-line1" required maxlength="400" aria-describedby="checkout-address-error" />
+              <p class="checkout-field-error" id="checkout-address-error" data-field-error hidden></p>
             </div>
             <div class="checkout-field-row checkout-field-row-3">
               <div class="checkout-field">
@@ -109,7 +114,8 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
               </div>
               <div class="checkout-field">
                 <label for="checkout-province">{t.checkout.provinceLabel} <span aria-hidden="true">*</span></label>
-                <input id="checkout-province" name="shippingProvince" type="text" autocomplete="address-level1" required maxlength="200" />
+                <input id="checkout-province" name="shippingProvince" type="text" autocomplete="address-level1" required maxlength="200" aria-describedby="checkout-province-error" />
+                <p class="checkout-field-error" id="checkout-province-error" data-field-error hidden></p>
               </div>
             </div>
             <div class="checkout-field">
@@ -147,6 +153,7 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
           <button type="submit" class="btn btn-primary checkout-submit" data-checkout-submit>
             <span data-checkout-submit-label>{t.checkout.placeOrderButton}</span>
           </button>
+          <p class="checkout-lookup-reassurance">{t.checkout.orderLookupReassurance}</p>
         </form>
 
         <aside class="checkout-summary" aria-labelledby="checkout-summary-heading">
@@ -213,6 +220,7 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     const errEmptyCart = root.dataset.errorEmptyCart ?? '';
     const errInsufficientStock = root.dataset.errorInsufficientStock ?? '';
     const errInvalidEmail = root.dataset.errorInvalidEmail ?? '';
+    const errRequiredField = root.dataset.errorRequiredField ?? '';
     const errGeneric = root.dataset.errorGeneric ?? '';
 
     let currentCart: CartView | null = null;
@@ -275,6 +283,62 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
       if (submitLabelEl) submitLabelEl.textContent = submitting ? labelPlacing : labelDefault;
     }
 
+    // Inline, per-field validation -- previously the ONLY feedback for an
+    // invalid/missing required field was a single generic banner at the
+    // top of the form (still there for server-side/global errors like
+    // empty_cart/insufficient_stock), which meant filling out a long
+    // shipping address only to be told something-somewhere is wrong,
+    // with no indication which field. This mirrors each field's own
+    // <p data-field-error> (see the markup, linked via aria-describedby)
+    // instead of routing every problem through that one shared banner.
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function fieldErrorMessage(input: HTMLInputElement): string {
+      if (input.value.trim() === '') return errRequiredField;
+      if (input.type === 'email' && !emailPattern.test(input.value.trim())) return errInvalidEmail;
+      return '';
+    }
+
+    function setFieldError(input: HTMLInputElement, message: string) {
+      const wrapper = input.closest('.checkout-field');
+      const describedBy = input.getAttribute('aria-describedby');
+      const errorNode = describedBy ? document.getElementById(describedBy) : null;
+      if (wrapper instanceof HTMLElement) wrapper.classList.toggle('is-invalid', message.length > 0);
+      input.setAttribute('aria-invalid', message.length > 0 ? 'true' : 'false');
+      if (errorNode instanceof HTMLElement) {
+        errorNode.textContent = message;
+        errorNode.hidden = message.length === 0;
+      }
+    }
+
+    function validateField(input: HTMLInputElement): boolean {
+      const message = fieldErrorMessage(input);
+      setFieldError(input, message);
+      return message.length === 0;
+    }
+
+    const requiredInputs = Array.from(form?.querySelectorAll('input[required]') ?? []).filter(
+      (el): el is HTMLInputElement => el instanceof HTMLInputElement,
+    );
+    requiredInputs.forEach((input) => {
+      // Validate on blur (once the visitor has actually finished with the
+      // field), but clear/re-validate live on every keystroke afterwards
+      // so the red state doesn't linger a moment after it's been fixed.
+      input.addEventListener('blur', () => validateField(input));
+      input.addEventListener('input', () => {
+        if (input.getAttribute('aria-invalid') === 'true') validateField(input);
+      });
+    });
+
+    function validateAllRequiredFields(): HTMLInputElement | null {
+      let firstInvalid: HTMLInputElement | null = null;
+      for (const input of requiredInputs) {
+        const ok = validateField(input);
+        if (!ok && !firstInvalid) firstInvalid = input;
+      }
+      return firstInvalid;
+    }
+
     function applyState(cart: CartView) {
       currentCart = cart;
       if (!(loadingState instanceof HTMLElement) || !(emptyState instanceof HTMLElement) || !(layout instanceof HTMLElement)) return;
@@ -314,14 +378,15 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
           return;
         }
 
-        const data = new FormData(form);
-        const customerEmail = String(data.get('customerEmail') ?? '').trim();
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(customerEmail)) {
-          showFormError(errInvalidEmail);
-          form.querySelector<HTMLInputElement>('#checkout-email')?.focus();
+        const firstInvalid = validateAllRequiredFields();
+        if (firstInvalid) {
+          firstInvalid.focus();
+          firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
+
+        const data = new FormData(form);
+        const customerEmail = String(data.get('customerEmail') ?? '').trim();
 
         const body = {
           customerName: String(data.get('customerName') ?? '').trim(),
@@ -402,7 +467,7 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     align-items: start;
   }
 
-  .checkout-form { display: grid; gap: 2rem; }
+  .checkout-form { display: grid; gap: 2rem; counter-reset: checkout-section; }
 
   .checkout-form-error {
     margin: 0;
@@ -421,10 +486,30 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
   }
   .checkout-section:last-of-type { border-bottom: 0; padding-bottom: 0; }
 
+  .checkout-section { counter-increment: checkout-section; }
+
   .checkout-section-heading {
     font-size: 1.15rem;
     color: var(--color-heading);
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .checkout-section-heading::before {
+    content: counter(checkout-section);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-brand);
+    color: var(--color-cream);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-family: var(--font-sans, inherit);
   }
 
   .checkout-field { display: grid; gap: 0.5rem; }
@@ -463,6 +548,21 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     border-color: var(--color-brand);
   }
 
+  .checkout-field-error {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-sale);
+  }
+  .checkout-field.is-invalid input,
+  .checkout-field.is-invalid textarea {
+    border-color: var(--color-sale);
+  }
+  .checkout-field.is-invalid input:focus-visible,
+  .checkout-field.is-invalid textarea:focus-visible {
+    outline-color: var(--color-sale);
+    border-color: var(--color-sale);
+  }
+
   .checkout-payment-options { display: grid; gap: 0.85rem; }
   .checkout-payment-option {
     display: flex;
@@ -478,7 +578,17 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     border-color: var(--color-brand);
     background: color-mix(in oklab, var(--color-brand) 6%, transparent);
   }
-  .checkout-payment-option input { margin-top: 0.2rem; accent-color: var(--color-brand); flex-shrink: 0; }
+  .checkout-payment-option:has(input:focus-visible) {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .checkout-payment-option input {
+    margin-top: 0.2rem;
+    accent-color: var(--color-brand);
+    flex-shrink: 0;
+    width: 1.15em;
+    height: 1.15em;
+  }
   .checkout-payment-option-body { display: grid; gap: 0.25rem; }
   .checkout-payment-option-label { font-weight: 600; color: var(--color-heading); font-size: 0.9375rem; }
   .checkout-payment-option-desc { font-size: 0.8125rem; color: var(--color-muted); }
@@ -496,6 +606,12 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
   .checkout-bank-transfer-note p { margin: 0; }
 
   .checkout-required-note { font-size: 0.8125rem; color: var(--color-muted); margin: 0; }
+  .checkout-lookup-reassurance {
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    text-align: center;
+    margin: -0.75rem 0 0;
+  }
 
   .checkout-submit { width: 100%; min-height: 3.25rem; cursor: pointer; }
   .checkout-submit:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -551,6 +667,10 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
   @media (min-width: 640px) {
     .checkout-field-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .checkout-field-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 1023px) {
+    .checkout-summary { order: -1; }
   }
 
   @media (min-width: 1024px) {

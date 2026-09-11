@@ -8,15 +8,17 @@
  * fetchCart() after mount -- exactly the pattern Header's account widget
  * and CartDrawer already use.
  *
- * Deliberately NOT a copy-paste of CartDrawer's markup: this is a full
- * page layout (item list + summary sidebar side by side on desktop)
- * rather than an off-canvas panel, so it gets its own template/script/
- * styles, even though the underlying fetch/update/remove calls are the
- * exact same cart-client functions.
+ * Item-row hierarchy matches CartDrawer.astro's own (name+price on one
+ * row, qty/remove below) at a larger, full-page scale -- both take their
+ * cue from Hyva's Magento cart templates (cart-drawer.phtml, Magento_
+ * Checkout's cart/item/default.phtml): image left, name+price on one
+ * line, secondary controls on a row below, adapted to this project's own
+ * markup/CSS rather than copied verbatim.
  */
 import Layout from '../layouts/Layout.astro';
 import Breadcrumbs from './Breadcrumbs.astro';
 import { defaultLocale, getTranslations, isLocale, localePath, type Locale, type RouteLocale } from '../i18n/utils';
+import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
 
 interface Props {
   lang: RouteLocale;
@@ -37,6 +39,7 @@ const checkoutHref = localePath(lang, 'checkout');
     data-home-href={homeHref}
     data-stock-limit-note={t.cart.stockLimitNote}
     data-error-generic={t.cart.errorGeneric}
+    data-placeholder-image={naturalOilsPlaceholderImage.src}
   >
     <div class="container-page">
       <Breadcrumbs
@@ -61,6 +64,13 @@ const checkoutHref = localePath(lang, 'checkout');
       </div>
 
       <div class="cart-page-empty" data-cart-page-empty hidden>
+        <div class="cart-page-empty-icon-wrap" aria-hidden="true">
+          <svg class="cart-page-empty-icon" width="34" height="34" viewBox="0 0 24 24" fill="none">
+            <path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8.4a2 2 0 0 0 2-1.7L20.5 7H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="9.5" cy="20" r="1.4" fill="currentColor" />
+            <circle cx="17.5" cy="20" r="1.4" fill="currentColor" />
+          </svg>
+        </div>
         <p class="cart-page-empty-heading font-serif">{t.cart.emptyHeading}</p>
         <p class="cart-page-empty-body">{t.cart.emptyBody}</p>
         <a href={homeHref} data-astro-reload class="btn btn-primary mt-4">{t.cart.continueShopping}</a>
@@ -85,33 +95,38 @@ const checkoutHref = localePath(lang, 'checkout');
 
   <template id="cart-page-item-template">
     <li class="cart-page-item" data-cart-item>
-      <div class="cart-page-item-image" data-cart-item-image-wrap>
+      <a class="cart-page-item-image" data-cart-item-image-wrap data-cart-item-link href="#" tabindex="-1">
         <img data-cart-item-image alt="" loading="lazy" />
-      </div>
-      <div class="cart-page-item-info">
-        <p class="cart-page-item-name" data-cart-item-name></p>
+      </a>
+      <div class="cart-page-item-body">
+        <div class="cart-page-item-top">
+          <a class="cart-page-item-name" data-cart-item-name-link data-cart-item-link href="#">
+            <span data-cart-item-name></span>
+          </a>
+          <span class="cart-page-item-line-total" data-cart-item-line-total></span>
+        </div>
         <p class="cart-page-item-variant" data-cart-item-variant></p>
         <p class="cart-page-item-sku" data-cart-item-sku></p>
         <p class="cart-page-item-stock-note" data-cart-item-stock-note hidden></p>
+        <div class="cart-page-item-bottom">
+          <div class="cart-page-item-qty" data-cart-item-qty-control>
+            <button type="button" class="cart-page-item-qty-btn" data-cart-qty-decrease aria-label={`${t.cart.quantityLabel} −`}>−</button>
+            <span class="cart-page-item-qty-value" data-cart-item-qty></span>
+            <button type="button" class="cart-page-item-qty-btn" data-cart-qty-increase aria-label={`${t.cart.quantityLabel} +`}>+</button>
+          </div>
+          <button type="button" class="cart-page-item-remove" data-cart-item-remove aria-label={t.cart.removeLabel}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="cart-page-item-qty" data-cart-item-qty-control>
-        <button type="button" class="cart-page-item-qty-btn" data-cart-qty-decrease aria-label={`${t.cart.quantityLabel} −`}>−</button>
-        <span class="cart-page-item-qty-value" data-cart-item-qty></span>
-        <button type="button" class="cart-page-item-qty-btn" data-cart-qty-increase aria-label={`${t.cart.quantityLabel} +`}>+</button>
-      </div>
-      <div class="cart-page-item-line-total" data-cart-item-line-total></div>
-      <button type="button" class="cart-page-item-remove" data-cart-item-remove aria-label={t.cart.removeLabel}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <span>{t.cart.removeLabel}</span>
-      </button>
     </li>
   </template>
 </Layout>
 
 <script>
-  import { fetchCart, updateCartItem, removeCartItem, onCartChanged, formatMoney } from '../lib/cart-client';
+  import { fetchCart, updateCartItem, removeCartItem, onCartChanged, formatMoney, cartItemHref } from '../lib/cart-client';
   import type { CartView, CartItemView } from '../domain/types';
 
   function initCartPage() {
@@ -128,6 +143,7 @@ const checkoutHref = localePath(lang, 'checkout');
     const template = document.getElementById('cart-page-item-template');
     const stockLimitNoteTemplate = root.dataset.stockLimitNote ?? '';
     const errorGenericText = root.dataset.errorGeneric ?? '';
+    const placeholderImageSrc = root.dataset.placeholderImage ?? '';
 
     function stockNoteText(count: number): string {
       return stockLimitNoteTemplate.replace('{count}', String(count));
@@ -155,19 +171,35 @@ const checkoutHref = localePath(lang, 'checkout');
       const li = fragment.querySelector('[data-cart-item]');
       if (li instanceof HTMLElement) li.dataset.itemId = item.id;
 
+      // Image link stays tabindex="-1" (set in the template) -- it's a
+      // duplicate destination of the name link right next to it.
+      const href = cartItemHref(item);
+      fragment.querySelectorAll('[data-cart-item-link]').forEach((link) => {
+        if (link instanceof HTMLAnchorElement) link.href = href;
+      });
+
       const imageWrap = fragment.querySelector('[data-cart-item-image-wrap]');
       const img = fragment.querySelector('[data-cart-item-image]');
       if (img instanceof HTMLImageElement) {
         if (item.image) {
           img.src = item.image.url;
           img.alt = item.image.alt || item.productName;
-        } else if (imageWrap instanceof HTMLElement) {
-          imageWrap.remove();
+        } else {
+          // No real photo for this product yet -- same placeholder bottle
+          // every other listing already falls back to (see
+          // src/lib/product-image-fallback.ts), never an empty grid cell
+          // (removing the element here used to collapse the 2-column grid
+          // -- see CartDrawer.astro's own comment on this same fix).
+          img.src = placeholderImageSrc;
+          img.alt = '';
+          if (imageWrap instanceof HTMLElement) imageWrap.classList.add('cart-page-item-image-placeholder');
         }
       }
 
       const nameEl = fragment.querySelector('[data-cart-item-name]');
       if (nameEl) nameEl.textContent = item.productName;
+      const nameLink = fragment.querySelector('[data-cart-item-name-link]');
+      if (nameLink instanceof HTMLElement) nameLink.setAttribute('aria-label', item.productName);
 
       const variantEl = fragment.querySelector('[data-cart-item-variant]');
       if (variantEl instanceof HTMLElement) {
@@ -277,10 +309,29 @@ const checkoutHref = localePath(lang, 'checkout');
     100% { background-position: 0 50%; }
   }
 
+  /* Flex column + align-items:center, not text-align:center -- see
+     CartDrawer.astro's own empty-state comment: Tailwind's preflight sets
+     `svg { display: block }`, which takes the icon out of inline flow and
+     makes text-align on the ancestor a no-op for it. */
   .cart-page-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding: 4rem 1rem;
+    padding: 4.5rem 1.5rem;
   }
+  .cart-page-empty-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-brand) 8%, var(--color-cream));
+    color: var(--color-brand);
+  }
+  .cart-page-empty-icon { display: block; color: inherit; }
   .cart-page-empty-heading { font-size: 1.5rem; color: var(--color-heading); margin: 0; }
   .cart-page-empty-body { font-size: 0.95rem; color: var(--color-muted); margin: 0.6rem auto 0; max-width: 40ch; }
 
@@ -298,31 +349,86 @@ const checkoutHref = localePath(lang, 'checkout');
     border-top: 1px solid var(--color-border);
   }
 
+  /* Item row: image left (a real link), content grows right. Name +
+     line total share one row (mirrors Hyva's cart/item/default.phtml
+     "name ... qty x unit price / row total" line), qty stepper + remove
+     on the row below -- see this file's own top doc comment. */
   .cart-page-item {
     display: grid;
-    grid-template-columns: 5.5rem 1fr auto auto auto;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 0;
+    grid-template-columns: 7rem 1fr;
+    gap: 1.25rem;
+    padding: 1.5rem 0;
     border-bottom: 1px solid var(--color-border);
   }
 
   .cart-page-item-image {
-    width: 5.5rem;
-    height: 5.5rem;
+    /* Pinned explicitly -- belt-and-braces alongside always rendering an
+       <img> (real or placeholder) now, so this column can never again
+       collapse/shift via CSS Grid auto-placement. */
+    grid-column: 1;
+    display: block;
+    width: 7rem;
+    height: 7rem;
     border-radius: var(--radius-thumb);
     background: var(--color-cream);
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
-  .cart-page-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.5rem; }
+  .cart-page-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.65rem; }
+  .cart-page-item-image-placeholder img { padding: 1rem; opacity: 0.8; }
 
-  .cart-page-item-name { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-heading); line-height: 1.35; }
-  .cart-page-item-variant { margin: 0.2rem 0 0; font-size: 0.8125rem; color: var(--color-muted); }
+  .cart-page-item-body {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cart-page-item-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+  }
+
+  /* No underline -- color shift on hover, this site's link convention
+     (see NaturalOils.astro's card title / CartDrawer.astro's item name). */
+  .cart-page-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    line-height: 1.4;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .cart-page-item-name:hover,
+  .cart-page-item-name:focus-visible {
+    text-decoration: none;
+    color: var(--color-brand-hover);
+  }
+
+  .cart-page-item-line-total {
+    flex-shrink: 0;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--color-heading);
+    white-space: nowrap;
+  }
+
+  .cart-page-item-variant { margin: 0.25rem 0 0; font-size: 0.8125rem; color: var(--color-muted); }
   .cart-page-item-sku { margin: 0.15rem 0 0; font-size: 0.7rem; color: var(--color-muted); letter-spacing: 0.02em; }
   .cart-page-item-stock-note { margin: 0.3rem 0 0; font-size: 0.75rem; color: var(--color-amber, var(--color-body)); }
+
+  .cart-page-item-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 0.85rem;
+  }
 
   .cart-page-item-qty {
     display: inline-flex;
@@ -330,7 +436,6 @@ const checkoutHref = localePath(lang, 'checkout');
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
     overflow: hidden;
-    justify-self: start;
   }
   .cart-page-item-qty-btn {
     width: 2rem;
@@ -348,31 +453,23 @@ const checkoutHref = localePath(lang, 'checkout');
   .cart-page-item-qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .cart-page-item-qty-value { min-width: 1.75rem; text-align: center; font-size: 0.875rem; }
 
-  .cart-page-item-line-total {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-heading);
-    white-space: nowrap;
-    justify-self: end;
-  }
-
+  /* Icon-only remove, same convention as CartDrawer.astro's own. */
   .cart-page-item-remove {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
     background: transparent;
     border: 0;
-    padding: 0.35rem;
+    border-radius: 999px;
     color: var(--color-muted);
     cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
-  .cart-page-item-remove:hover { color: var(--color-sale); }
-  .cart-page-item-remove span {
-    position: absolute;
-    width: 1px; height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  .cart-page-item-remove:hover {
+    background: color-mix(in oklab, var(--color-sale) 10%, transparent);
+    color: var(--color-sale);
   }
 
   .cart-page-summary {

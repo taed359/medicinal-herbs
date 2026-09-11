@@ -22,8 +22,6 @@ const GOALS = await Promise.all(
   }))
 );
 
-const [featuredGoal, ...supportingGoals] = GOALS;
-
 const t = getTranslations(lang);
 
 // Every href below (mobile carousel AND the desktop grid) links to
@@ -94,68 +92,45 @@ const t = getTranslations(lang);
   </div>
 
   <!--
-    `lg` and up: an editorial discovery grid, not a stretched version of
-    the mobile carousel. One featured tile (the first goal) sits in its
-    own left column; the remaining eight goals form a self-contained
-    2-column x 4-row grid in the right column. This is a genuine two-
-    region DOM split (outer `.hg-layout` grid with exactly two items),
-    not a single 9-item grid with a spanning cell -- that's what lets
-    the two regions become equal-height siblings for free via CSS
-    Grid's default `align-items: stretch`, instead of needing any
-    gap-size algebra to force the alignment (see the .hg-layout /
-    .hg-feature-image comment below for the full reasoning). No goal is
-    being editorially "featured" for health-priority reasons -- this is
-    a positional layout rhythm, not a content judgment, which is also
-    why it stays correct regardless of which goal happens to be first
-    in GOALS.
+    `lg` and up: a uniform 3x3 editorial grid of all 9 goals -- the same
+    photo-then-label tile for every goal (image ratio, label size, hover
+    behavior all identical, see .hg-tile-image / .hg-tile-label below).
+    Earlier versions of this section singled out the first goal as a
+    larger "featured" tile (first a stretched-height photo, then a fixed
+    4:3 ratio, then a full-bleed hero overlay) -- all three read as
+    either oversized or as leaving dead space next to the smaller grid.
+    A uniform grid sidesteps that whole class of problem: no column ever
+    needs to match another column's height, because every tile already
+    has the same fixed aspect ratio and the same label footprint. It also
+    matches reality better -- no goal is being editorially "featured" for
+    health-priority reasons, so treating all nine the same is the more
+    honest layout, not just the simpler one.
   -->
   <div class="hidden lg:block">
     <div class="container-editorial">
-      <ul class="hg-layout m-0 p-0 list-none" role="list">
-        <li class="hg-feature-item">
-          <a href={localePath(lang, `health-goals/${featuredGoal.slug}`)} data-astro-reload class="hg-feature group block">
-            <div class="hg-tile-image hg-feature-image relative overflow-hidden">
-              <img
-                src={featuredGoal.imageSrc}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                class="h-full w-full object-cover"
-              />
-            </div>
-            <h3 class="hg-tile-label font-serif m-0">
-              <span class="hg-tile-label-text">{t.healthGoals.items[featuredGoal.key]}</span>
-              <span class="hg-tile-arrow" aria-hidden="true">→</span>
-            </h3>
-          </a>
-        </li>
-
-        <li class="hg-supporting-item">
-          <ul class="hg-supporting m-0 p-0 list-none" role="list">
-            {supportingGoals.map((goal) => {
-              const label = t.healthGoals.items[goal.key];
-              return (
-                <li class="hg-tile">
-                  <a href={localePath(lang, `health-goals/${goal.slug}`)} data-astro-reload class="group block">
-                    <div class="hg-tile-image relative overflow-hidden">
-                      <img
-                        src={goal.imageSrc}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        class="h-full w-full object-cover"
-                      />
-                    </div>
-                    <h3 class="hg-tile-label font-serif m-0">
-                      <span class="hg-tile-label-text">{label}</span>
-                      <span class="hg-tile-arrow" aria-hidden="true">→</span>
-                    </h3>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </li>
+      <ul class="hg-grid m-0 p-0 list-none" role="list">
+        {GOALS.map((goal) => {
+          const label = t.healthGoals.items[goal.key];
+          return (
+            <li class="hg-tile">
+              <a href={localePath(lang, `health-goals/${goal.slug}`)} data-astro-reload class="group block">
+                <div class="hg-tile-image relative overflow-hidden">
+                  <img
+                    src={goal.imageSrc}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <h3 class="hg-tile-label font-serif m-0">
+                  <span class="hg-tile-label-text">{label}</span>
+                  <span class="hg-tile-arrow" aria-hidden="true">→</span>
+                </h3>
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
   </div>
@@ -308,6 +283,7 @@ const t = getTranslations(lang);
     transform: translateX(2px);
   }
 
+
   .hg-card:focus-visible {
     outline: 2px solid var(--color-pine);
     outline-offset: 3px;
@@ -404,62 +380,27 @@ const t = getTranslations(lang);
     .hg-pagination :global(.swiper-pagination-bullet)::after { transition: none !important; }
   }
 
-  /* Desktop editorial grid (lg and up).
-
-     Alignment is solved by CSS Grid mechanics, not by gap-size algebra.
-     `.hg-layout` is a 2-column, single-row grid with exactly two grid
-     items: the featured tile and the 8-item supporting grid. For an
-     `auto`-sized grid row, track sizing is based on each item's own
-     natural (content) height -- and `.hg-supporting`'s natural height
-     (4 stacked rows of a square tile image + label, plus 3 inner gaps)
-     is inherently taller than `.hg-feature`'s natural content height,
-     since the featured image carries no fixed aspect-ratio of its own.
-     `align-items: stretch` (CSS Grid's own default -- not overridden
-     here) then stretches `.hg-feature-item` to match that same row
-     height automatically. Inside it, `.hg-feature` is a flex column
-     whose label keeps the exact same fixed footprint
-     (--hg-mt + --hg-label-min-h) as every supporting tile's label, and
-     whose image is `flex: 1 1 auto` -- so the image simply fills
-     whatever height the stretch handed it. Because both labels share
-     one fixed footprint and both columns are stretched to one shared
-     height, the two label bottoms land on the same line as a structural
-     consequence of the layout, not because of a solved equation -- so
-     this holds at any viewport, and the gap values below are free to be
-     chosen purely for visual rhythm instead of being derived from an
-     alignment constraint.
-
-     Column ratio (2fr : 1fr) and gap (1.5rem/24px, both here and inside
-     `.hg-supporting`) were chosen empirically to keep the resulting
-     featured-image aspect ratio in a natural photographic range
-     (~1:1.23-1:1.35 across 1280-1536px, close to a 4:5 portrait) rather
-     than the much taller ratio a naive equal-fr split would produce --
-     see the Stage report for the full width/ratio table. */
-  .hg-layout {
-    --hg-mt: 0.75rem;          /* gap between image bottom and label top */
-    --hg-label-min-h: 3.4rem;  /* 2 lines at 1.0625rem font-size / 1.6 line-height (zh, the taller of the two locales) */
+  /* Desktop editorial grid (lg and up): a uniform grid, not an
+     asymmetric one. Every tile shares the exact same fixed-ratio image
+     (.hg-tile-image, 1:1) and the exact same label footprint
+     (.hg-tile-label) -- there is no "featured" tile anymore (see the
+     template comment above for why three different attempts at treating
+     the first goal specially didn't work out: a derived stretched
+     height read as oversized, a fixed 4:3 ratio left dead space next to
+     the taller supporting grid, and a full-bleed hero overlay still read
+     as visually heavier/worse than just keeping every tile the same).
+     Three columns x three rows exactly fits the fixed list of 9 goals
+     with no leftover cells; if that list ever grows or shrinks,
+     `grid-template-columns` may need revisiting, but nothing else in
+     this rule depends on the count. */
+  .hg-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    column-gap: 1.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem 1.75rem;
   }
 
-  .hg-feature-item,
-  .hg-supporting-item {
+  .hg-tile {
     min-width: 0;
-  }
-
-  .hg-feature {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .hg-supporting {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(4, auto);
-    gap: 1.5rem;
   }
 
   .hg-tile-image {
@@ -470,50 +411,26 @@ const t = getTranslations(lang);
     transition: border-color 250ms ease;
   }
 
-  /* Overrides the fixed 1:1 ratio above: the featured image's height
-     instead comes from the grid-stretch + flex-fill mechanism described
-     above, so it must be free to take whatever height that hands it. */
-  .hg-feature-image {
-    aspect-ratio: auto;
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
   /* Label geometry (desktop grid) -- same reasoning as .hg-card-label
      above: a flex row that hugs its own content, so the arrow trails
      immediately after the title instead of being pinned to the tile's
-     far right edge (a fixed-column grid did that, and on the wide
-     featured tile it left a large empty gap after short titles). The
-     text item still shrinks/wraps via `flex: 0 1 auto` + `min-width: 0`
-     for the longest titles (zh) without forcing the row past the tile.
+     far right edge. The text item still shrinks/wraps via `flex: 0 1
+     auto` + `min-width: 0` for the longest titles (zh) without forcing
+     the row past the tile.
 
      min-height reserves 2 lines using zh's line-height (1.6, taller than
      vi's 1.4) as the universal value, so a 1-line title and a 2-line
      title -- in EITHER locale -- occupy an identical structural block,
-     and the row of images below always starts from the same baseline
-     regardless of which goal happens to render longer.
-
-     This exact same class (font-size/weight/min-height/grid) is shared
-     by the featured tile (.hg-feature) and every supporting tile --
-     there is no separate, larger typography for the featured label. Its
-     visual weight comes entirely from its larger photograph, never from
-     its title being a bigger heading.
-
-     margin-top and min-height below read from --hg-mt / --hg-label-min-h
-     (defined once, on .hg-layout, and inherited here since this element
-     is its descendant) rather than restating 0.75rem/3.4rem a second
-     time -- both the featured and supporting labels reading the same
-     two variables is what keeps their footprints identical, which is
-     what makes the two sides' bottom edges land on the same line under
-     the grid-stretch mechanism described on .hg-layout above. If this
-     label's own footprint diverged between the two sides, that
-     alignment would silently break. */
+     and every tile's image starts from the same baseline regardless of
+     which goal happens to render longer. Every tile in the grid now
+     shares this one class (there is no separate featured-tile label
+     anymore), which is what keeps the whole 3x3 grid's rows aligned. */
   .hg-tile-label {
     display: flex;
     align-items: flex-start;
     column-gap: 0.75rem;
-    margin-top: var(--hg-mt);
-    min-height: var(--hg-label-min-h);
+    margin-top: 0.75rem;
+    min-height: 3.4rem; /* 2 lines at 1.0625rem font-size / 1.6 line-height (zh) */
     font-size: 1.0625rem;
     font-weight: 500;
     line-height: 1.4;

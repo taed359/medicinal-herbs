@@ -63,7 +63,15 @@ const formattedOriginalPrice = typeof originalPrice === 'number' ? originalPrice
     )}
 
     {cta && (
-      <p class="pc-cta m-0 mt-3 sm:mt-4">
+      // mt-auto (not a fixed mt-3/mt-4) is what actually makes the
+      // comment above true: it consumes whatever extra height this
+      // column has (from .pc-card's own h-full + flex-1 above), so the
+      // CTA sits flush with the card's bottom edge even when a sibling
+      // card in the same row/grid renders a shorter info block (missing
+      // benefit/price). pt-3/pt-4 keeps a real visual gap above it even
+      // when there's no extra height to consume (mt-auto alone would
+      // collapse to 0 in that case).
+      <p class="pc-cta m-0 mt-auto pt-3 sm:pt-4">
         <span>{cta}</span>
         <span class="pc-cta-arrow inline-block" aria-hidden="true"> →</span>
       </p>

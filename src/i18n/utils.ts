@@ -49,6 +49,10 @@ export interface TranslationSchema {
     insufficientStockError: string;
     noPriceError: string;
     genericAddToCartError: string;
+    // "{percent}" token, same convention as elsewhere in this file --
+    // shown next to the price when a variant's compareAtMinor is a real,
+    // higher price than priceMinor (see ProductDetail.astro's savingsPercent).
+    savingsBadgeLabel: string;
   };
   header: {
     /** Rotates through each phrase (3s auto-advance, manual prev/next
@@ -70,6 +74,7 @@ export interface TranslationSchema {
     wishlistLabel: string;
     settingsLabel: string;
     accountMenuLabel: string;
+    shopByMenuLabel: string;
     logoutLabel: string;
     cartLabel: string;
     menuLabel: string;
@@ -323,15 +328,22 @@ export interface TranslationSchema {
       emailRequired: string;
       emailInvalid: string;
       passwordRequired: string;
+      // Shared copy for the decorative image panel's overlay text
+      // (badge + heading reuse hero.eyebrow/hero.title directly instead of
+      // duplicating them here -- only the auth-specific body line needs
+      // its own key). Same wording shown on all 5 customer auth pages.
+      imagePanelBody: string;
     };
     login: {
       title: string;
       metaDescription: string;
       heading: string;
+      eyebrow: string;
       subtitle: string;
       emailLabel: string;
       passwordLabel: string;
       forgotPasswordLink: string;
+      rememberMe: string;
       submit: string;
       submitLoading: string;
       invalidCredentials: string;
@@ -342,6 +354,7 @@ export interface TranslationSchema {
       title: string;
       metaDescription: string;
       heading: string;
+      eyebrow: string;
       subtitle: string;
       nameLabel: string;
       emailLabel: string;
@@ -482,6 +495,16 @@ export interface TranslationSchema {
     errorInsufficientStock: string;
     errorInvalidEmail: string;
     errorGeneric: string;
+    // Generic inline message shown under any required field left empty on
+    // blur/submit (see CheckoutPage.astro's client-side inline validation) --
+    // distinct from errorInvalidEmail, which is specifically about format.
+    errorRequiredField: string;
+    // Honest reassurance shown near the submit button: this project has no
+    // order-confirmation EMAIL (see src/server/email/customer-email.ts --
+    // that module is auth-only), so this only promises what's real: an
+    // order number, usable to look up order status later via the
+    // confirmation route's own guest lookup (order-service.ts).
+    orderLookupReassurance: string;
   };
   orderConfirmation: {
     pageTitle: string;
@@ -503,6 +526,26 @@ export interface TranslationSchema {
     continueShoppingButton: string;
     notFoundHeading: string;
     notFoundBody: string;
+    // Order-number "hero" box (see OrderConfirmationPage.astro) --
+    // pulls the order number out of the plain info panel into its own
+    // prominent, copy-able element, since there is no confirmation EMAIL
+    // in this project (see src/server/email/customer-email.ts -- auth
+    // only) and this page is the one place the customer can grab it from.
+    copyOrderNumberLabel: string;
+    orderNumberCopiedLabel: string;
+    saveOrderNumberNote: string;
+    copyAddressLabel: string;
+    addressCopiedLabel: string;
+    orderStatusPanelHeading: string;
+    // Short, honest 2-step "what happens next" list -- generic order
+    // lifecycle wording only (processing, then delivery); deliberately
+    // does NOT mention an email, a tracking link, or a delivery date,
+    // none of which this project actually sends/has.
+    nextStepsHeading: string;
+    nextStepProcessingTitle: string;
+    nextStepProcessingBody: string;
+    nextStepDeliveryTitle: string;
+    nextStepDeliveryBody: string;
   };
 }
 

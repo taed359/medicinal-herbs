@@ -28,6 +28,7 @@ export const vi: TranslationSchema = {
     wishlistLabel: 'Danh sách yêu thích',
     settingsLabel: 'Cài đặt',
     accountMenuLabel: 'Menu tài khoản',
+    shopByMenuLabel: 'Menu mua theo',
     logoutLabel: 'Đăng xuất',
     cartLabel: 'Giỏ hàng',
     menuLabel: 'Menu',
@@ -325,6 +326,7 @@ export const vi: TranslationSchema = {
     insufficientStockError: 'Chỉ còn {count} sản phẩm trong kho',
     noPriceError: 'Sản phẩm này hiện chưa có giá bán trực tuyến.',
     genericAddToCartError: 'Không thể thêm vào giỏ, vui lòng thử lại.',
+    savingsBadgeLabel: 'Tiết kiệm {percent}%',
   },
   seo: {
     description:
@@ -349,16 +351,20 @@ export const vi: TranslationSchema = {
       emailRequired: 'Vui lòng nhập email của bạn.',
       emailInvalid: 'Vui lòng nhập một địa chỉ email hợp lệ.',
       passwordRequired: 'Vui lòng nhập mật khẩu của bạn.',
+      imagePanelBody:
+        'Đăng nhập để theo dõi đơn hàng, nhận tư vấn riêng từ chuyên gia Y học cổ truyền và lưu lại sản phẩm yêu thích của bạn.',
     },
     login: {
       title: 'Đăng nhập — Thảo Dược',
       metaDescription:
         'Đăng nhập vào tài khoản Thảo Dược để quản lý hồ sơ, theo dõi đơn hàng và tiếp tục trải nghiệm mua sắm an toàn.',
-      heading: 'Đăng nhập',
+      heading: 'Đăng nhập tài khoản',
+      eyebrow: 'Chào mừng trở lại',
       subtitle: 'Đăng nhập hoặc tạo tài khoản để tiếp tục.',
       emailLabel: 'Email',
       passwordLabel: 'Mật khẩu',
       forgotPasswordLink: 'Quên mật khẩu?',
+      rememberMe: 'Ghi nhớ đăng nhập',
       submit: 'Đăng nhập',
       submitLoading: 'Đang đăng nhập…',
       invalidCredentials: 'Email hoặc mật khẩu không đúng.',
@@ -370,6 +376,7 @@ export const vi: TranslationSchema = {
       metaDescription:
         'Tạo tài khoản Thảo Dược để quản lý hồ sơ, theo dõi đơn hàng và có trải nghiệm mua sắm nhanh hơn, cá nhân hóa hơn.',
       heading: 'Tạo tài khoản',
+      eyebrow: 'Bắt đầu hành trình',
       subtitle: 'Tham gia để theo dõi đơn hàng và thanh toán nhanh hơn.',
       nameLabel: 'Họ và tên',
       emailLabel: 'Email',
@@ -499,6 +506,8 @@ export const vi: TranslationSchema = {
     errorInsufficientStock: 'Một số sản phẩm không còn đủ hàng, vui lòng kiểm tra lại giỏ hàng.',
     errorInvalidEmail: 'Email không hợp lệ.',
     errorGeneric: 'Không thể đặt hàng, vui lòng thử lại.',
+    errorRequiredField: 'Vui lòng nhập thông tin này.',
+    orderLookupReassurance: 'Sau khi đặt hàng, bạn sẽ nhận được mã đơn hàng để tra cứu tình trạng bất cứ lúc nào.',
   },
   orderConfirmation: {
     pageTitle: 'Đặt hàng thành công',
@@ -520,5 +529,16 @@ export const vi: TranslationSchema = {
     continueShoppingButton: 'Tiếp tục mua sắm',
     notFoundHeading: 'Không tìm thấy đơn hàng',
     notFoundBody: 'Vui lòng kiểm tra lại mã đơn hàng và email đã dùng khi đặt hàng.',
+    copyOrderNumberLabel: 'Sao chép',
+    orderNumberCopiedLabel: 'Đã sao chép!',
+    saveOrderNumberNote: 'Lưu lại mã này để tra cứu đơn hàng bất cứ lúc nào.',
+    copyAddressLabel: 'Sao chép',
+    addressCopiedLabel: 'Đã sao chép!',
+    orderStatusPanelHeading: 'Trạng thái đơn hàng',
+    nextStepsHeading: 'Tiếp theo là gì?',
+    nextStepProcessingTitle: 'Xác nhận đơn hàng',
+    nextStepProcessingBody: 'Chúng tôi kiểm tra và xác nhận đơn hàng của bạn.',
+    nextStepDeliveryTitle: 'Đóng gói & giao hàng',
+    nextStepDeliveryBody: 'Đơn hàng được đóng gói cẩn thận và giao đến địa chỉ bạn cung cấp.',
   },
 };

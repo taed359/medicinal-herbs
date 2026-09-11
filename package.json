@@ -19,6 +19,9 @@
     "db:seed:wholesale-products": "tsx src/server/seed/seed-wholesale-products.ts",
     "db:seed:wholesale-products-specialty": "tsx src/server/seed/seed-wholesale-products-specialty.ts",
     "db:fix:milk-oil-zh-names": "tsx src/server/seed/fix-milk-oil-zh-names.ts",
+    "db:seed:product-icons": "tsx src/server/seed/seed-product-icons.ts",
+    "db:seed:product-certifications": "tsx src/server/seed/seed-product-certifications.ts",
+    "db:seed:natural-oils-variant-sizes": "tsx src/server/seed/seed-natural-oils-variant-sizes.ts",
     "seed:admin": "tsx scripts/seed-admin.ts",
     "postbuild": "pagefind --site .vercel/output/static"
   },

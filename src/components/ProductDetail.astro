@@ -2,7 +2,7 @@
 import type { Locale } from '../i18n/utils';
 import { getTranslations, localePath } from '../i18n/utils';
 import Breadcrumbs from './Breadcrumbs.astro';
-import ProductCard from './ProductCard.astro';
+import HerbProductCard from './HerbProductCard.astro';
 import type { CategoryView, ProductDetailView, ProductSummaryView } from '../domain/types';
 import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
 import { Image } from 'astro:assets';
@@ -61,14 +61,75 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
   }).format(minorUnits);
 }
 
+// Gallery: real data the admin product form already captures (role:
+// 'gallery'/'thumbnail' rows alongside the one 'primary' image -- see
+// admin-product-repository.ts's gallery-image handling) that this page
+// never rendered until now, only ever showing primaryImage. Primary image
+// always leads; the rest follow their own sortOrder. Thumbnails are
+// skipped entirely in the template below when there's nothing to switch
+// to (a product with only its primary image, or none).
+const orderedImages = primaryImage
+  ? [
+      primaryImage,
+      ...product.images
+        .filter((img) => img.id !== primaryImage.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    ]
+  : [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+
+// Savings badge: a pure computation over the default variant's own real
+// priceMinor/compareAtMinor -- never shown unless compareAtMinor is a
+// real, higher price already set on the variant (AdminProductForm's
+// pricing controls), nothing invented.
+const savingsPercent =
+  hasPrice && defaultVariant?.compareAtMinor != null && defaultVariant.compareAtMinor > defaultVariant.priceMinor!
+    ? Math.round((1 - defaultVariant.priceMinor! / defaultVariant.compareAtMinor) * 100)
+    : null;
+
+// Variant/size picker: also real, already-captured data -- the admin
+// product form already supports multiple variants per product (see
+// AdminProductVariantInput / admin-product-repository.ts) that this page
+// never exposed either, silently picking one variant and rendering its
+// label as static text only. Scoped deliberately narrow for this first
+// pass: only shown when EVERY variant has a real price, so switching
+// never also has to swap the purchase form for the "contact us"
+// price-on-request link below -- that's a separate concern left for a
+// later, focused change rather than risking the add-to-cart flow here.
+const showVariantPicker = product.variants.length > 1 && product.variants.every((v) => v.priceMinor != null);
+const variantsForScript = showVariantPicker
+  ? product.variants.map((v) => ({
+      id: v.id,
+      label: v.label,
+      sku: v.sku,
+      stock: v.inventoryQuantity,
+      price: formatPrice(v.priceMinor!, v.currency ?? 'VND', lang),
+      originalPrice: v.compareAtMinor != null ? formatPrice(v.compareAtMinor, v.currency ?? 'VND', lang) : null,
+      savingsText:
+        v.compareAtMinor != null && v.compareAtMinor > v.priceMinor!
+          ? t.productDetail.savingsBadgeLabel.replace(
+              '{percent}',
+              String(Math.round((1 - v.priceMinor! / v.compareAtMinor) * 100)),
+            )
+          : null,
+    }))
+  : [];
+// Escaped so a literal "</script" can never appear inside this JSON and
+// prematurely close the <script> tag it's embedded in below.
+const variantsJson = JSON.stringify(variantsForScript).replace(/</g, '\\u003c');
+
 // Mirrors NaturalOils.astro's own `products = items.map(...)` exactly --
 // same reason: most real products today have no seeded price yet, and
-// ProductCard already omits its price block when `price` is undefined.
+// HerbProductCard already renders a "Contact us" link instead of a price
+// block when formattedPrice/canAddToCart is undefined/false.
 const relatedProductsList = relatedProducts.map((p) => ({
   ...p,
   formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
   formattedOriginalPrice:
     p.compareAtMinor != null ? formatPrice(p.compareAtMinor, p.currency ?? 'VND', lang) : undefined,
+  // Same rule NaturalOils.astro's own products = items.map(...) uses --
+  // a real price AND a real default variant is required for a working
+  // Add to Cart button, never a fake price or a 404-bound button.
+  canAddToCart: p.priceMinor != null && p.variantId != null,
 }));
 
 // Which of the two content tabs ("Mo ta & Cach dung" / "Thanh phan") this
@@ -113,6 +174,7 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
                   decoding="async"
                   fetchpriority="high"
                   data-pagefind-meta="image[src]"
+                  data-pd-main-image
                 />
               ) : (
                 <Image
@@ -129,6 +191,24 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
             }
           </div>
         </div>
+
+        {orderedImages.length > 1 && (
+          <div class="pd-thumbs mt-4" role="group" aria-label={name}>
+            {orderedImages.map((img, i) => (
+              <button
+                type="button"
+                class:list={['pd-thumb', { 'is-active': i === 0 }]}
+                data-pd-thumb
+                data-image-src={img.url}
+                data-image-alt={img.alt || name}
+                aria-label={img.alt || name}
+                aria-current={i === 0}
+              >
+                <img src={img.url} alt="" width={img.width} height={img.height} loading="lazy" decoding="async" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div class="pd-info">
@@ -136,19 +216,35 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
         <h1 id="product-name" class="pd-title font-serif m-0 mt-3">{name}</h1>
 
         {defaultVariant && (
-          <div class="pd-price-row mt-7">
+          <div class="pd-price-row mt-7" data-pd-price-row>
             {hasPrice ? (
               <>
-                <span class="pd-price" data-pagefind-meta="price">{formatPrice(defaultVariant.priceMinor!, defaultVariant.currency ?? 'VND', lang)}</span>
-                {defaultVariant.compareAtMinor != null && (
-                  <del class="pd-original-price">{formatPrice(defaultVariant.compareAtMinor, defaultVariant.currency ?? 'VND', lang)}</del>
+                <span class="pd-price" data-pagefind-meta="price" data-pd-price>{formatPrice(defaultVariant.priceMinor!, defaultVariant.currency ?? 'VND', lang)}</span>
+                {(defaultVariant.compareAtMinor != null || showVariantPicker) && (
+                  // Always present (just hidden) once the variant picker
+                  // can switch to a variant that DOES have a compareAtMinor
+                  // even when the default one doesn't -- the picker script
+                  // below only ever toggles `hidden`, it never creates
+                  // this element, so it has to already exist.
+                  <del class="pd-original-price" data-pd-original-price hidden={defaultVariant.compareAtMinor == null}>
+                    {defaultVariant.compareAtMinor != null
+                      ? formatPrice(defaultVariant.compareAtMinor, defaultVariant.currency ?? 'VND', lang)
+                      : ''}
+                  </del>
+                )}
+                {(savingsPercent != null || showVariantPicker) && (
+                  <span class="pd-savings-badge" data-pd-savings hidden={savingsPercent == null}>
+                    {savingsPercent != null
+                      ? t.productDetail.savingsBadgeLabel.replace('{percent}', String(savingsPercent))
+                      : ''}
+                  </span>
                 )}
               </>
             ) : (
               // Real variant/SKU exists but no price row is active for it
               // (e.g. bulk/wholesale packaging sold by quote) -- show the
               // "contact us" label instead of hiding the price row outright.
-              <span class="pd-price" data-pagefind-meta="price">{t.product.priceOnRequest}</span>
+              <span class="pd-price" data-pagefind-meta="price" data-pd-price>{t.product.priceOnRequest}</span>
             )}
           </div>
         )}
@@ -217,22 +313,50 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
         {defaultVariant && (
           <>
             <dl class="pd-meta mt-6">
-              {defaultVariant.label && (
+              {(defaultVariant.label || showVariantPicker) && (
                 <div>
                   <dt>{t.productDetail.packSizeLabel}</dt>
-                  <dd>{defaultVariant.label}</dd>
+                  <dd data-pd-pack-size>{defaultVariant.label}</dd>
                 </div>
               )}
               <div>
                 <dt>{t.productDetail.skuLabel}</dt>
-                <dd>{defaultVariant.sku}</dd>
+                <dd data-pd-sku>{defaultVariant.sku}</dd>
               </div>
             </dl>
+
+            {showVariantPicker && (
+              // Real, already-captured variant data (see the
+              // showVariantPicker/variantsForScript comment above this
+              // component's frontmatter) -- switching a pill updates the
+              // price row, savings badge, SKU and pack-size dd's above,
+              // and the add-to-cart form's variant id/stock below, all via
+              // the <script data-pd-variants> JSON payload and the
+              // "Variant picker" script further down this file.
+              <div class="pd-variant-picker mt-6" data-pd-variant-picker>
+                <span class="pd-quantity-label text-sm">{t.productDetail.packSizeLabel}</span>
+                <div class="pd-variant-pills" role="group" aria-label={t.productDetail.packSizeLabel}>
+                  {product.variants.map((v) => (
+                    <button
+                      type="button"
+                      class:list={['pd-variant-pill', { 'is-active': v.id === defaultVariant?.id }]}
+                      data-pd-variant-pill
+                      data-variant-id={v.id}
+                      aria-pressed={v.id === defaultVariant?.id}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <script type="application/json" data-pd-variants set:html={variantsJson} />
+              </div>
+            )}
 
             {hasPrice ? (
               <form
                 class="pd-purchase mt-8"
                 data-add-to-cart-form
+                data-pd-purchase-form
                 data-variant-id={defaultVariant.id}
                 data-available-stock={defaultVariant.inventoryQuantity ?? ''}
                 data-label-default={t.productDetail.addToCartLabel}
@@ -366,16 +490,18 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
             const relatedImage = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
             const relatedAlt = p.primaryImage?.alt || p.name;
             return (
-              <li class:list={['h-full', { 'no-placeholder': isPlaceholder }]}>
-                <ProductCard
+              <li class="h-full">
+                <HerbProductCard
+                  lang={lang}
                   name={p.name}
-                  category={catLabel}
+                  categoryLabel={catLabel}
                   href={relatedHref}
-                  cta={t.product.ctaViewDetails}
                   image={relatedImage}
                   alt={relatedAlt}
-                  price={p.formattedPrice}
-                  originalPrice={p.formattedOriginalPrice}
+                  isPlaceholder={isPlaceholder}
+                  formattedPrice={p.formattedPrice}
+                  variantId={p.variantId}
+                  canAddToCart={p.canAddToCart}
                 />
               </li>
             );
@@ -420,6 +546,44 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
   }
   .pd-gallery-placeholder .pd-gallery-media {
     opacity: 0.82;
+  }
+
+  .pd-thumbs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .pd-thumb {
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-thumb, var(--radius-card));
+    background: var(--color-cream);
+    cursor: pointer;
+    transition: border-color 180ms ease;
+  }
+
+  .pd-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 0.35rem;
+  }
+
+  .pd-thumb:hover {
+    border-color: color-mix(in oklab, var(--color-brand) 45%, transparent);
+  }
+
+  .pd-thumb.is-active {
+    border-color: var(--color-brand);
+  }
+
+  .pd-thumb:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
   }
 
   .pd-info {
@@ -474,6 +638,18 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
   .pd-original-price {
     color: var(--color-muted);
     font-size: 0.95rem;
+  }
+
+  .pd-savings-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    color: var(--color-heading);
+    background: var(--color-cream);
+    border-radius: var(--radius-badge, 4px);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
   }
 
   .pd-divider {
@@ -606,6 +782,41 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
 
   .pd-purchase {
     display: block;
+  }
+
+  .pd-variant-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+  }
+
+  .pd-variant-pill {
+    padding: 0.55rem 1.1rem;
+    color: var(--color-heading);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-badge, 4px);
+    background: var(--color-surface);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+
+  .pd-variant-pill:hover {
+    border-color: var(--color-brand);
+  }
+
+  .pd-variant-pill.is-active {
+    color: var(--color-cream);
+    border-color: var(--color-brand);
+    background: var(--color-brand);
+  }
+
+  .pd-variant-pill:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
   }
 
   .pd-quantity-label {
@@ -799,23 +1010,6 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
     line-height: 1.8;
   }
 
-  /* Related Products placeholder handling -- same reasoning as
-     NaturalOils.astro's own .no-placeholder override (and
-     .pd-gallery-placeholder above): ProductCard's default packshot
-     padding (p-6 sm:p-8, see ProductCard.astro) is sized for a real
-     photo, not the placeholder SVG that already draws its own border/
-     icon. Unlike NaturalOils.astro this grid uses ProductCard's own
-     unstyled look with no base .pc-image override, so there's no
-     border-bottom to cancel here -- only the padding/opacity need it. */
-  .pd-related .no-placeholder :global(.pc-img) {
-    padding: 0;
-    opacity: 0.82;
-  }
-  .pd-related .no-placeholder :global(.pc-card:hover .pc-img),
-  .pd-related .no-placeholder :global(.pc-card:focus-visible .pc-img) {
-    transform: none;
-  }
-
   @media (min-width: 640px) {
     .pd-title { font-size: 2.5rem; }
 
@@ -885,12 +1079,118 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
       });
     });
   });
+
+  // Gallery: swap the main image when a thumbnail is clicked (see
+  // orderedImages/[data-pd-thumb] in the frontmatter/template above).
+  // Scoped per .pd-gallery instance rather than assuming a single one on
+  // the page.
+  document.querySelectorAll<HTMLElement>('.pd-gallery').forEach((gallery) => {
+    const mainImage = gallery.querySelector<HTMLImageElement>('[data-pd-main-image]');
+    const thumbs = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-pd-thumb]'));
+    if (!mainImage || thumbs.length === 0) return;
+
+    thumbs.forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        const src = thumb.dataset.imageSrc;
+        if (!src) return;
+        mainImage.src = src;
+        mainImage.alt = thumb.dataset.imageAlt ?? mainImage.alt;
+        thumbs.forEach((t) => {
+          t.classList.toggle('is-active', t === thumb);
+          t.setAttribute('aria-current', String(t === thumb));
+        });
+      });
+    });
+  });
+
+  // Variant/size picker: swap the price row, savings badge, SKU and
+  // pack-size dd's, and the add-to-cart form's variant id/stock -- see
+  // showVariantPicker/variantsForScript in the frontmatter above. The
+  // JSON payload embedded next to the pills (data-pd-variants) is this
+  // script's only source of per-variant data; nothing here is invented,
+  // and no variant with a missing price ever reaches this payload (see
+  // showVariantPicker's every(...) check), so the purchase form itself
+  // never needs to be swapped out for the "contact us" link mid-switch.
+  document.querySelectorAll<HTMLElement>('[data-pd-variant-picker]').forEach((picker) => {
+    const dataScript = picker.querySelector<HTMLScriptElement>('script[data-pd-variants]');
+    const pills = Array.from(picker.querySelectorAll<HTMLButtonElement>('[data-pd-variant-pill]'));
+    if (!dataScript || pills.length === 0) return;
+
+    type PdVariant = {
+      id: string;
+      label: string;
+      sku: string;
+      stock: number | null;
+      price: string;
+      originalPrice: string | null;
+      savingsText: string | null;
+    };
+    let variants: PdVariant[];
+    try {
+      variants = JSON.parse(dataScript.textContent ?? '[]');
+    } catch {
+      return;
+    }
+
+    const info = picker.closest('.pd-info');
+    const priceEl = info?.querySelector<HTMLElement>('[data-pd-price]');
+    const originalPriceEl = info?.querySelector<HTMLElement>('[data-pd-original-price]');
+    const savingsEl = info?.querySelector<HTMLElement>('[data-pd-savings]');
+    const skuEl = info?.querySelector<HTMLElement>('[data-pd-sku]');
+    const packSizeEl = info?.querySelector<HTMLElement>('[data-pd-pack-size]');
+    const form = info?.querySelector<HTMLFormElement>('[data-pd-purchase-form]');
+
+    pills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const variant = variants.find((v) => v.id === pill.dataset.variantId);
+        if (!variant) return;
+
+        pills.forEach((p) => {
+          const isActive = p === pill;
+          p.classList.toggle('is-active', isActive);
+          p.setAttribute('aria-pressed', String(isActive));
+        });
+
+        if (priceEl) priceEl.textContent = variant.price;
+        if (skuEl) skuEl.textContent = variant.sku;
+        if (packSizeEl) packSizeEl.textContent = variant.label;
+
+        if (originalPriceEl instanceof HTMLElement) {
+          originalPriceEl.hidden = !variant.originalPrice;
+          originalPriceEl.textContent = variant.originalPrice ?? '';
+        }
+        if (savingsEl instanceof HTMLElement) {
+          savingsEl.hidden = !variant.savingsText;
+          savingsEl.textContent = variant.savingsText ?? '';
+        }
+        if (form) {
+          form.dataset.variantId = variant.id;
+          form.dataset.availableStock = variant.stock != null ? String(variant.stock) : '';
+        }
+      });
+    });
+  });
 </script>
 <script>
   import { addToCart, requestOpenCartDrawer } from '../lib/cart-client';
 
+  // This page's own MAIN purchase form only -- explicitly skips any form
+  // living inside a HerbProductCard's [data-add-to-cart-card] wrapper
+  // (the related-products grid below renders several). Those are wired
+  // by HerbProductCard.astro's own script instead, which is scoped the
+  // opposite way (only INSIDE [data-add-to-cart-card]) for exactly this
+  // reason -- see its own comment. Without this split, both scripts'
+  // querySelectorAll('[data-add-to-cart-form]') would match the SAME
+  // elements and each attach its own 'submit' listener, so one click
+  // fired two POSTs and silently added quantity 2 instead of 1 (this
+  // page's form also needs the real quantity-input value, which
+  // HerbProductCard's generic handler doesn't know about -- so this
+  // form specifically must stay owned by this script, not by a shared
+  // wired-flag race that either script could "win").
   document.querySelectorAll('[data-add-to-cart-form]').forEach((form) => {
-    if (!(form instanceof HTMLFormElement)) return;
+    if (!(form instanceof HTMLFormElement) || form.dataset.wired === 'true') return;
+    if (form.closest('[data-add-to-cart-card]')) return;
+    form.dataset.wired = 'true';
     const variantId = form.dataset.variantId;
     if (!variantId) return;
 

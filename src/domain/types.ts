@@ -105,6 +105,12 @@ export interface ProductSummaryView {
   priceMinor: number | null;
   compareAtMinor: number | null;
   currency: string | null;
+  /** Default variant id, for a listing card that wants to add straight
+   *  to cart without a trip through the product detail page (see
+   *  NaturalOils.astro). Null only if the product genuinely has no
+   *  default variant yet (shouldn't happen for a published product, but
+   *  the repository can't guarantee it). */
+  variantId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +146,17 @@ export interface CartView {
   currency: string;
 }
 
+// A frozen copy of the product's primary image at the moment of
+// purchase (see schema.ts's order_items doc comment) -- deliberately NOT
+// the full LocalizedImage shape (no id/role/sortOrder): this isn't a
+// live product_images row, just url/alt/width/height snapshotted once.
+export interface OrderItemImageSnapshot {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
 export interface OrderItemLineView {
   productName: string;
   variantLabel: string | null;
@@ -147,6 +164,9 @@ export interface OrderItemLineView {
   unitPriceMinor: number;
   quantity: number;
   lineTotalMinor: number;
+  /** null for any order placed before this snapshot existed, or whose
+   *  product had no primary image yet at the moment of purchase. */
+  image: OrderItemImageSnapshot | null;
 }
 
 export interface OrderView {

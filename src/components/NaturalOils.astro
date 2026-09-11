@@ -1,9 +1,9 @@
 ---
-import ProductCard from './ProductCard.astro';
 import type { Locale } from '../i18n/utils';
 import { getTranslations, localePath } from '../i18n/utils';
 import type { ProductSummaryView } from '../domain/types';
 import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
+import HerbProductCard from './HerbProductCard.astro';
 
 interface Props {
   lang: Locale;
@@ -23,33 +23,23 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
   }).format(minorUnits);
 }
 
-// IMPORTANT, discovered by inspecting the real data flow before touching
-// this component: of the 4 real featured products this section queries
-// (coconut/sunflower/sesame/olive oil), only coconut oil currently has a
-// seeded price (see seed-coconut-oil-content.ts) -- the other 3 have
-// priceMinor === null, exactly like seed-natural-oils.ts's own comment
-// documents ("No pricing ... rows were created"). ProductCard already
-// renders its price block conditionally (`{price && (...)}`), so passing
-// `undefined` through for the 3 unpriced products correctly omits the
-// price line for them rather than showing a fake or blank value -- this
-// is the same pattern ProductDetail.astro's own `hasPrice` check already
-// relies on for the same reason.
-//
-// No "Add to Cart" CTA is added here, deliberately: there is no working
-// cart feature anywhere in this codebase to wire it to. ProductDetail.
-// astro's own add-to-cart button already exists purely as an inert stub
-// (`<form ... onsubmit="return false">`, no cart API route anywhere), and
-// Header.astro's cart icon links to `href="#"`. Adding a functional-
-// looking "Add to cart" button to this grid would present capability
-// that doesn't exist. Each card's existing "view details" link (leading
-// to the real, working product detail route) remains the one real,
-// honest commerce action available today.
+// Of the 4 real featured products this section queries (coconut/
+// sunflower/sesame/olive oil), only coconut oil currently has a seeded
+// price (see seed-coconut-oil-content.ts) -- the other 3 have
+// priceMinor === null. A card with a real price + a real default variant
+// gets a working "Add to cart" button (wired client-side below); a card
+// without a price gets a "Contact us" link instead, the same rule
+// ProductDetail.astro's own `hasPrice` check already uses -- never a
+// fake price or a button that would just 404 against a nonexistent
+// pricing row.
 const products = items.map((p) => ({
   ...p,
   formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
-  formattedOriginalPrice:
-    p.compareAtMinor != null ? formatPrice(p.compareAtMinor, p.currency ?? 'VND', lang) : undefined,
+  href: localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`),
+  canAddToCart: p.priceMinor != null && p.variantId != null,
 }));
+
+const categoryLabel = t.naturalOils.eyebrow;
 ---
 <section id="products" class="natural-oils-section" aria-labelledby="natural-oils-heading">
   <div class="container-editorial">
@@ -75,21 +65,22 @@ const products = items.map((p) => ({
       tabindex="0"
     >
       {products.map((p) => {
-        const href = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
         const isPlaceholder = !p.primaryImage;
         const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
         const alt = p.primaryImage?.alt || p.name;
         return (
-          <li class:list={['no-slide h-full', { 'no-placeholder': isPlaceholder }]}>
-            <ProductCard
+          <li class="no-slide h-full">
+            <HerbProductCard
+              lang={lang}
               name={p.name}
-              category={t.naturalOils.eyebrow}
-              href={href}
-              cta={t.product.ctaViewDetails}
+              categoryLabel={categoryLabel}
+              href={p.href}
               image={image}
               alt={alt}
-              price={p.formattedPrice}
-              originalPrice={p.formattedOriginalPrice}
+              isPlaceholder={isPlaceholder}
+              formattedPrice={p.formattedPrice}
+              variantId={p.variantId}
+              canAddToCart={p.canAddToCart}
             />
           </li>
         );
@@ -159,105 +150,6 @@ const products = items.map((p) => ({
 
   @media (min-width: 1024px) {
     .natural-oils-section { padding-block: 1.75rem; }
-  }
-
-  /* Homepage-only convergence toward the reference's restrained product
-     tiles. ProductCard itself remains unchanged for collection pages. */
-  .natural-oils-section :global(.pc-card) {
-    background: var(--color-paper-2);
-    border-color: color-mix(in srgb, var(--color-pine-dark) 12%, var(--color-cream));
-    border-radius: var(--radius-editorial);
-    box-shadow: none;
-  }
-
-  .natural-oils-section :global(.pc-card:hover),
-  .natural-oils-section :global(.pc-card:focus-visible) {
-    border-color: color-mix(in srgb, var(--color-amber-decorative) 55%, var(--color-cream));
-    box-shadow: none;
-  }
-
-  .natural-oils-section :global(.pc-image) {
-    background: var(--color-paper-2);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2));
-  }
-
-  .natural-oils-section :global(.pc-img) {
-    padding: 2rem;
-    transition: none;
-  }
-
-  .natural-oils-section .no-placeholder :global(.pc-image) {
-    border-bottom: none;
-  }
-
-  .natural-oils-section .no-placeholder :global(.pc-img) {
-    padding: 0;
-    opacity: 0.82;
-  }
-
-  .natural-oils-section .no-placeholder :global(.pc-card:hover .pc-img),
-  .natural-oils-section .no-placeholder :global(.pc-card:focus-visible .pc-img) {
-    transform: none;
-  }
-
-  .natural-oils-section :global(.pc-card > div:last-child) {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-content: start;
-    column-gap: 0.75rem;
-    min-height: 8.25rem;
-    padding: 1.125rem 1.125rem 1.375rem;
-  }
-
-  .natural-oils-section :global(.pc-category),
-  .natural-oils-section :global(.pc-title),
-  .natural-oils-section :global(.pc-benefit) {
-    grid-column: 1 / -1;
-  }
-
-  .natural-oils-section :global(.pc-category) {
-    margin-bottom: 0.375rem;
-    color: var(--color-amber);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-  }
-
-  .natural-oils-section :global(.pc-title) {
-    color: var(--color-pine-dark);
-    font-size: 1.125rem;
-    font-weight: 500;
-    line-height: 1.4;
-  }
-
-  /* The price wrapper -- placed in column 1 of its own row; see the
-     grid comment above `.pc-card > div:last-child`. */
-  .natural-oils-section :global(.pc-card > div:last-child > .mt-3) {
-    grid-column: 1;
-    align-self: end;
-    margin-top: 0.625rem;
-  }
-
-  .natural-oils-section :global(.pc-price) {
-    color: var(--color-pine-dark);
-    font-family: var(--font-serif);
-    font-size: 1.0625rem;
-    font-weight: 600;
-  }
-
-  /* Column 2 of the price/CTA row -- see the grid comment above
-     `.pc-card > div:last-child`. `margin-top: auto` was ProductCard's
-     own trick for pinning the CTA to the card's bottom edge in its
-     default flex-column layout; that no longer applies once this is a
-     grid row placed right under the price, so it's replaced with the
-     same fixed gap the price wrapper uses (`.mt-3` above), which keeps
-     the two aligned on one line. */
-  .natural-oils-section :global(.pc-cta) {
-    grid-column: 2;
-    align-self: end;
-    margin-top: 0.625rem;
-    color: var(--color-pine-dark);
-    font-size: 0.8125rem;
   }
 
   html[lang="zh"] .no-heading.text-heading-section { letter-spacing: 0; }

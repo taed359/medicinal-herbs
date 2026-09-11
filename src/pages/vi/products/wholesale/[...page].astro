@@ -1,11 +1,11 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import Layout from '../../../../layouts/Layout.astro';
-import ProductCard from '../../../../components/ProductCard.astro';
+import HerbProductCard from '../../../../components/HerbProductCard.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import Pager from '../../../../components/Pager.astro';
 import { productRepository } from '../../../../server/repositories';
-import { getTranslations, localePath } from '../../../../i18n/utils';
+import { getTranslations, localePath, type Locale } from '../../../../i18n/utils';
 import { naturalOilsPlaceholderImage } from '../../../../lib/product-image-fallback';
 
 const lang = 'vi' as const;
@@ -17,6 +17,29 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 const { page } = Astro.props;
 const t = getTranslations(lang);
+
+// Mirrors NaturalOils.astro's own formatPrice + products mapping exactly
+// -- ProductSummaryView already carries primaryImage/priceMinor/
+// compareAtMinor/currency/variantId (see that type's own doc comment:
+// "for a listing card that wants to add straight to cart... see
+// NaturalOils.astro"), but this paginated listing never used any of it
+// until now -- it rendered a bare link-only ProductCard with no price
+// and no cart button at all.
+function formatPrice(minorUnits: number, currency: string, locale: Locale): string {
+  return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'vi-VN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(minorUnits);
+}
+
+const categoryLabel = t.wholesale.eyebrow;
+const products = page.data.map((p) => ({
+  ...p,
+  formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
+  href: localePath(lang, `${t.wholesale.collectionPath}/${p.slug}`),
+  canAddToCart: p.priceMinor != null && p.variantId != null,
+}));
 ---
 <Layout lang={lang} title={`${t.wholesale.eyebrow} — ${t.common.siteName}`}>
   <section class="py-8 sm:py-10" aria-labelledby="collection-heading">
@@ -34,14 +57,29 @@ const t = getTranslations(lang);
         <h2 id="collection-heading" class="no-heading m-0">{t.wholesale.heading}</h2>
       </div>
 
-      <ul class="m-0 grid list-none grid-cols-2 max-[379px]:grid-cols-1 gap-4 p-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-5 lg:gap-6">
-        {page.data.map((p) => {
-          const href = localePath(lang, `${t.wholesale.collectionPath}/${p.slug}`);
+      <ul
+        class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
+        role="list"
+        tabindex="0"
+      >
+        {products.map((p) => {
+          const isPlaceholder = !p.primaryImage;
           const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
           const alt = p.primaryImage?.alt || p.name;
           return (
-            <li>
-              <ProductCard name={p.name} href={href} cta={t.product.ctaViewDetails} image={image} alt={alt} />
+            <li class="no-slide h-full">
+              <HerbProductCard
+                lang={lang}
+                name={p.name}
+                categoryLabel={categoryLabel}
+                href={p.href}
+                image={image}
+                alt={alt}
+                isPlaceholder={isPlaceholder}
+                formattedPrice={p.formattedPrice}
+                variantId={p.variantId}
+                canAddToCart={p.canAddToCart}
+              />
             </li>
           );
         })}
@@ -59,6 +97,19 @@ const t = getTranslations(lang);
 </Layout>
 
 <style>
+  /* Products only: mobile horizontal scroll, grid from sm+ (2 cols),
+     4 cols on lg -- same .no-track/.no-slide pattern as NaturalOils.astro's
+     homepage rail, so this paginated listing feels like the same product
+     row rather than a visually different grid. */
+  .no-track { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .no-track::-webkit-scrollbar { display: none; }
+  .no-slide { flex: 0 0 82%; scroll-snap-align: start; }
+  @media (min-width: 480px) { .no-slide { flex-basis: 68%; } }
+  @media (min-width: 640px) {
+    .no-track { gap: 1.375rem; }
+    .no-slide { flex: unset; scroll-snap-align: unset; }
+  }
+
   .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
   @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }
   .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }

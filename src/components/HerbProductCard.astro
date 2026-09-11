@@ -1,0 +1,319 @@
+---
+/**
+ * Bespoke product-tile card -- the shared "no-card" markup originally
+ * built for NaturalOils.astro's featured-products grid, extracted here so
+ * every place that shows this same editorial card (the homepage grid AND
+ * ProductDetail.astro's own related-products grid) renders and behaves
+ * identically instead of two hand-maintained copies drifting apart.
+ * Editorial styling matches references/login/thao-duoc-mockup.html's
+ * #products card (and its own PDP's related-products card, which reuses
+ * that exact same treatment) -- paper-2 surface, thin hairline border, no
+ * shadow, no hover-lift, price + a minimal underlined "Add to cart" CTA.
+ *
+ * Deliberately not ProductCard.astro's markup: Add to Cart needs a real
+ * <button> inside a <form>, which can't nest inside ProductCard's
+ * whole-card <a> wrapper without breaking HTML validity/a11y. This card
+ * uses two separate links (image, title) instead of one wrapping link.
+ */
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+  name: string;
+  categoryLabel: string;
+  href: string;
+  image: string;
+  alt: string;
+  isPlaceholder?: boolean;
+  // Present only when there's a real price to show -- canAddToCart should
+  // never be true without one (see both call sites' own canAddToCart
+  // checks), but the card itself stays defensive about it too.
+  formattedPrice?: string;
+  variantId?: string | null;
+  canAddToCart: boolean;
+}
+const {
+  lang,
+  name,
+  categoryLabel,
+  href,
+  image,
+  alt,
+  isPlaceholder = false,
+  formattedPrice,
+  variantId,
+  canAddToCart,
+} = Astro.props;
+const t = getTranslations(lang);
+const contactHref = localePath(lang, 'contact');
+---
+<article class="no-card h-full" data-add-to-cart-card>
+  <a href={href} data-astro-reload class="no-card-media" aria-label={name}>
+    <img
+      src={image}
+      alt={alt}
+      class:list={['no-card-img', { 'no-card-img-placeholder': isPlaceholder }]}
+      loading="lazy"
+      decoding="async"
+    />
+  </a>
+
+  <div class="no-card-info">
+    <p class="no-card-cat m-0">{categoryLabel}</p>
+    <a href={href} data-astro-reload class="no-card-title-link">
+      <h3 class="no-card-title font-serif m-0">{name}</h3>
+    </a>
+
+    {canAddToCart && formattedPrice ? (
+      <div class="no-card-row">
+        <span class="no-card-price" data-pagefind-meta="price">{formattedPrice}</span>
+        <form
+          class="no-card-add-form"
+          data-add-to-cart-form
+          data-variant-id={variantId}
+          data-label-default={t.productDetail.addToCartLabel}
+          data-label-adding={t.productDetail.addingToCartLabel}
+          data-label-added={t.productDetail.addedToCartLabel}
+          data-error-insufficient-stock={t.productDetail.insufficientStockError}
+          data-error-no-price={t.productDetail.noPriceError}
+          data-error-generic={t.productDetail.genericAddToCartError}
+        >
+          <button type="submit" class="no-card-add" data-add-to-cart-button>
+            <span data-add-to-cart-label>{t.productDetail.addToCartLabel}</span>
+          </button>
+        </form>
+      </div>
+    ) : (
+      <div class="no-card-row no-card-row-contact">
+        <a href={contactHref} data-astro-reload class="no-card-contact">
+          {t.productDetail.contactForPriceCta}
+        </a>
+      </div>
+    )}
+
+    <p class="no-card-error" data-add-to-cart-error hidden role="alert"></p>
+  </div>
+</article>
+
+<script>
+  import { addToCart, requestOpenCartDrawer } from '../lib/cart-client';
+
+  // Scoped to forms INSIDE a HerbProductCard's own [data-add-to-cart-card]
+  // wrapper -- not every [data-add-to-cart-form] on the page. A PDP also
+  // has its own standalone purchase form (see ProductDetail.astro's own
+  // add-to-cart script) carrying the same data-add-to-cart-form attribute
+  // but outside any [data-add-to-cart-card]; without this scoping, this
+  // script and that one would each attach their own 'submit' listener to
+  // EVERY matching form on the page (both scripts' selectors would match
+  // the same elements), so a single click fired two POSTs -- one from
+  // each listener -- silently adding quantity 2 instead of 1.
+  document.querySelectorAll('[data-add-to-cart-card] [data-add-to-cart-form]').forEach((form) => {
+    if (!(form instanceof HTMLFormElement) || form.dataset.wired === 'true') return;
+    form.dataset.wired = 'true';
+    const variantId = form.dataset.variantId;
+    if (!variantId) return;
+
+    const submitButton = form.querySelector('[data-add-to-cart-button]');
+    const labelEl = form.querySelector('[data-add-to-cart-label]');
+    const errorEl = form.closest('[data-add-to-cart-card]')?.querySelector('[data-add-to-cart-error]');
+
+    const labelDefault = form.dataset.labelDefault ?? '';
+    const labelAdding = form.dataset.labelAdding ?? labelDefault;
+    const labelAdded = form.dataset.labelAdded ?? labelDefault;
+    const errorNoPrice = form.dataset.errorNoPrice ?? '';
+    const errorInsufficientStockTemplate = form.dataset.errorInsufficientStock ?? '';
+    const errorGeneric = form.dataset.errorGeneric ?? '';
+
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function setLabel(text: string) {
+      if (labelEl) labelEl.textContent = text;
+    }
+
+    function showError(message: string) {
+      if (!(errorEl instanceof HTMLElement)) return;
+      errorEl.textContent = message;
+      errorEl.hidden = message.length === 0;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!(submitButton instanceof HTMLButtonElement)) return;
+
+      showError('');
+      submitButton.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      setLabel(labelAdding);
+      if (resetTimer) clearTimeout(resetTimer);
+
+      const result = await addToCart(variantId, 1);
+
+      submitButton.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+
+      if (result.ok) {
+        setLabel(labelAdded);
+        requestOpenCartDrawer();
+        resetTimer = setTimeout(() => setLabel(labelDefault), 2000);
+        return;
+      }
+
+      setLabel(labelDefault);
+      if (result.error.error === 'no_price') {
+        showError(errorNoPrice);
+      } else if (result.error.error === 'insufficient_stock') {
+        const available = result.error.availableStock ?? 0;
+        showError(errorInsufficientStockTemplate.replace('{count}', String(available)));
+      } else {
+        showError(errorGeneric);
+      }
+    });
+  });
+</script>
+
+<style>
+  .no-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-paper-2);
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 12%, var(--color-cream));
+    border-radius: var(--radius-editorial);
+    overflow: hidden;
+  }
+
+  .no-card-media {
+    display: block;
+    aspect-ratio: 1 / 1;
+    background: var(--color-paper-2);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2));
+    /* No underline, no color shift on this link -- it's an image, not text. */
+    text-decoration: none;
+  }
+  .no-card-media:hover,
+  .no-card-media:focus-visible {
+    text-decoration: none;
+  }
+
+  .no-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2rem;
+  }
+  .no-card-img-placeholder {
+    padding: 0;
+    opacity: 0.82;
+  }
+
+  .no-card-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1.125rem 1.125rem 1.375rem;
+  }
+
+  .no-card-cat {
+    margin-bottom: 0.375rem;
+    color: var(--color-amber);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  html[lang='zh'] .no-card-cat { letter-spacing: 0; text-transform: none; }
+
+  /* Title link: color-only affordance on hover, NEVER an underline --
+     this is a card heading, not inline body-copy prose. */
+  .no-card-title-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+  .no-card-title-link:hover,
+  .no-card-title-link:focus-visible {
+    text-decoration: none;
+  }
+  .no-card-title-link:hover .no-card-title,
+  .no-card-title-link:focus-visible .no-card-title {
+    color: var(--color-brand-hover);
+  }
+
+  .no-card-title {
+    color: var(--color-pine-dark);
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: color 0.2s ease;
+  }
+  html[lang='zh'] .no-card-title { letter-spacing: 0; line-height: 1.6; }
+
+  .no-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 0.875rem;
+  }
+  .no-card-row-contact { justify-content: flex-start; }
+
+  .no-card-price {
+    color: var(--color-pine-dark);
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .no-card-add-form { flex-shrink: 0; }
+
+  /* Minimal underlined text CTA -- matches references/login/thao-duoc-
+     mockup.html's own #products ".add" treatment exactly (small bold
+     label, hairline underline, no filled background) rather than a
+     generic filled pill button. Still a real <button type="submit">
+     (form semantics/keyboard behavior unchanged), just styled quiet --
+     the price carries the visual weight on this card, not the CTA. */
+  .no-card-add {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--color-brand);
+    border: 0;
+    border-bottom: 1px solid var(--color-brand);
+    border-radius: 0;
+    padding: 0.3rem 0.0625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .no-card-add:hover,
+  .no-card-add:focus-visible {
+    color: var(--color-brand-hover);
+    border-color: var(--color-brand-hover);
+  }
+  .no-card-add:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 3px; }
+  .no-card-add[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+  .no-card-contact {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-brand);
+    text-decoration: none;
+  }
+  .no-card-contact:hover,
+  .no-card-contact:focus-visible {
+    text-decoration: none;
+    color: var(--color-brand-hover);
+  }
+
+  .no-card-error {
+    margin: 0.625rem 0 0;
+    font-size: 0.75rem;
+    color: var(--color-sale);
+  }
+</style>

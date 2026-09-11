@@ -59,7 +59,7 @@ const homeHref = localePath(lang, '');
 
       <div class="confirmation-content" data-confirmation-content hidden>
         <div class="confirmation-check" aria-hidden="true">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <svg width="72" height="72" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="11" fill="var(--color-brand)" />
             <path d="M7 12.5l3 3 7-7" stroke="var(--color-surface)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -67,26 +67,49 @@ const homeHref = localePath(lang, '');
         <h1 id="confirmation-page-title" class="confirmation-heading font-serif">{t.orderConfirmation.heading}</h1>
         <p class="confirmation-thank-you" data-confirmation-thank-you data-template={t.orderConfirmation.thankYouBody}></p>
 
+        <div class="confirmation-order-number-card">
+          <span class="confirmation-order-number-label">{t.orderConfirmation.orderNumberLabel}</span>
+          <div class="confirmation-order-number-row">
+            <strong class="confirmation-order-number-value" data-confirmation-order-number></strong>
+            <button
+              type="button"
+              class="confirmation-copy-btn"
+              data-confirmation-copy-btn
+              data-copy-label={t.orderConfirmation.copyOrderNumberLabel}
+              data-copied-label={t.orderConfirmation.orderNumberCopiedLabel}
+              aria-label={t.orderConfirmation.copyOrderNumberLabel}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-copy-icon>
+                <rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+                <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" />
+              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden data-copied-icon>
+                <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="confirmation-copy-btn-label-stack">
+                <span data-copy-btn-label-copy>{t.orderConfirmation.copyOrderNumberLabel}</span>
+                <span data-copy-btn-label-copied>{t.orderConfirmation.orderNumberCopiedLabel}</span>
+              </span>
+            </button>
+          </div>
+          <p class="confirmation-save-note">{t.orderConfirmation.saveOrderNumberNote}</p>
+        </div>
+
         <div class="confirmation-layout">
           <div class="confirmation-main">
-            <section class="confirmation-panel" aria-labelledby="confirmation-order-heading">
-              <div class="confirmation-panel-row">
-                <span>{t.orderConfirmation.orderNumberLabel}</span>
-                <strong data-confirmation-order-number></strong>
+            <section class="confirmation-panel confirmation-panel--items" aria-labelledby="confirmation-items-heading">
+              <div class="confirmation-items-heading-row">
+                <div class="confirmation-panel-heading-group">
+                  <span class="confirmation-panel-icon-badge" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                      <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  <h2 id="confirmation-items-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.itemsHeading}</h2>
+                </div>
+                <span class="confirmation-items-count" data-confirmation-items-count aria-hidden="true"></span>
               </div>
-              <div class="confirmation-panel-row">
-                <span>{t.orderConfirmation.statusLabel}</span>
-                <strong data-confirmation-status></strong>
-              </div>
-              <div class="confirmation-panel-row">
-                <span>{t.orderConfirmation.paymentMethodLabel}</span>
-                <strong data-confirmation-payment-method></strong>
-              </div>
-              <p class="confirmation-bank-note" data-confirmation-bank-note hidden>{t.orderConfirmation.bankTransferPlaceholderNote}</p>
-            </section>
-
-            <section class="confirmation-panel" aria-labelledby="confirmation-items-heading">
-              <h2 id="confirmation-items-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.itemsHeading}</h2>
               <ul class="confirmation-items" data-confirmation-items></ul>
               <div class="confirmation-totals">
                 <div class="confirmation-panel-row">
@@ -103,13 +126,106 @@ const homeHref = localePath(lang, '');
                 </div>
               </div>
             </section>
+
+            <section class="confirmation-panel confirmation-panel--compact" aria-labelledby="confirmation-order-heading">
+              <div class="confirmation-panel-heading-group">
+                <span class="confirmation-panel-icon-badge" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M9 11l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <h2 id="confirmation-order-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.orderStatusPanelHeading}</h2>
+              </div>
+              <div class="confirmation-panel-row">
+                <span>{t.orderConfirmation.statusLabel}</span>
+                <span class="confirmation-status-badge" data-confirmation-status></span>
+              </div>
+              <div class="confirmation-panel-row">
+                <span>{t.orderConfirmation.paymentMethodLabel}</span>
+                <strong data-confirmation-payment-method></strong>
+              </div>
+              <p class="confirmation-bank-note" data-confirmation-bank-note hidden>{t.orderConfirmation.bankTransferPlaceholderNote}</p>
+            </section>
           </div>
 
           <aside class="confirmation-panel confirmation-shipping" aria-labelledby="confirmation-shipping-heading">
-            <h2 id="confirmation-shipping-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.shippingToHeading}</h2>
-            <p class="confirmation-address" data-confirmation-address></p>
+            <div class="confirmation-shipping-header">
+              <div class="confirmation-shipping-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="var(--color-brand)" stroke-width="1.6" stroke-linejoin="round" />
+                  <circle cx="12" cy="9.5" r="2.4" stroke="var(--color-brand)" stroke-width="1.6" />
+                </svg>
+              </div>
+              <h2 id="confirmation-shipping-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.shippingToHeading}</h2>
+            </div>
+
+            <div class="confirmation-shipping-details">
+              <div class="confirmation-shipping-row">
+                <svg class="confirmation-shipping-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6" />
+                  <path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <span class="confirmation-shipping-name" data-confirmation-shipping-name></span>
+              </div>
+              <div class="confirmation-shipping-row">
+                <svg class="confirmation-shipping-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                  <circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.6" />
+                </svg>
+                <span class="confirmation-shipping-line" data-confirmation-shipping-address></span>
+              </div>
+              <div class="confirmation-shipping-row">
+                <svg class="confirmation-shipping-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4.5 5.5c0-.6.4-1 1-1H8c.5 0 .9.3 1 .8l.7 3a1 1 0 0 1-.3 1L8 10.7a12 12 0 0 0 5.3 5.3l1.4-1.4a1 1 0 0 1 1-.3l3 .7c.5.1.8.5.8 1v2.5c0 .6-.4 1-1 1C10.9 19.5 4.5 13.1 4.5 5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                </svg>
+                <a class="confirmation-shipping-line confirmation-shipping-phone" data-confirmation-shipping-phone></a>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="confirmation-copy-btn confirmation-shipping-copy-btn"
+              data-confirmation-copy-address-btn
+              data-copy-label={t.orderConfirmation.copyAddressLabel}
+              data-copied-label={t.orderConfirmation.addressCopiedLabel}
+              aria-label={t.orderConfirmation.copyAddressLabel}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" data-copy-icon>
+                <rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+                <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" />
+              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden data-copied-icon>
+                <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="confirmation-copy-btn-label-stack">
+                <span data-copy-btn-label-copy>{t.orderConfirmation.copyAddressLabel}</span>
+                <span data-copy-btn-label-copied>{t.orderConfirmation.addressCopiedLabel}</span>
+              </span>
+            </button>
           </aside>
         </div>
+
+        <section class="confirmation-next-steps" aria-labelledby="confirmation-next-steps-heading">
+          <h2 id="confirmation-next-steps-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.nextStepsHeading}</h2>
+          <ol class="confirmation-steps m-0 p-0">
+            <li class="confirmation-step">
+              <span class="confirmation-step-marker" aria-hidden="true">1</span>
+              <span>
+                <p class="confirmation-step-title">{t.orderConfirmation.nextStepProcessingTitle}</p>
+                <p class="confirmation-step-body">{t.orderConfirmation.nextStepProcessingBody}</p>
+              </span>
+            </li>
+            <li class="confirmation-step">
+              <span class="confirmation-step-marker" aria-hidden="true">2</span>
+              <span>
+                <p class="confirmation-step-title">{t.orderConfirmation.nextStepDeliveryTitle}</p>
+                <p class="confirmation-step-body">{t.orderConfirmation.nextStepDeliveryBody}</p>
+              </span>
+            </li>
+          </ol>
+        </section>
 
         <a href={homeHref} data-astro-reload class="btn btn-secondary confirmation-continue-btn">{t.orderConfirmation.continueShoppingButton}</a>
       </div>
@@ -118,6 +234,9 @@ const homeHref = localePath(lang, '');
 
   <template id="confirmation-item-template">
     <li class="confirmation-item">
+      <div class="confirmation-item-image" data-item-image-wrap>
+        <img data-item-image alt="" loading="lazy" decoding="async" />
+      </div>
       <div class="confirmation-item-info">
         <p class="confirmation-item-name" data-item-name></p>
         <p class="confirmation-item-variant" data-item-variant></p>
@@ -146,11 +265,16 @@ const homeHref = localePath(lang, '');
     const paymentMethodEl = root.querySelector('[data-confirmation-payment-method]');
     const bankNoteEl = root.querySelector('[data-confirmation-bank-note]');
     const itemsList = root.querySelector('[data-confirmation-items]');
+    const itemsCountEl = root.querySelector('[data-confirmation-items-count]');
     const subtotalEl = root.querySelector('[data-confirmation-subtotal]');
     const shippingFeeEl = root.querySelector('[data-confirmation-shipping-fee]');
     const totalEl = root.querySelector('[data-confirmation-total]');
-    const addressEl = root.querySelector('[data-confirmation-address]');
+    const shippingNameEl = root.querySelector('[data-confirmation-shipping-name]');
+    const shippingAddressEl = root.querySelector('[data-confirmation-shipping-address]');
+    const shippingPhoneEl = root.querySelector('[data-confirmation-shipping-phone]');
     const itemTemplate = document.getElementById('confirmation-item-template');
+    const copyButton = root.querySelector('[data-confirmation-copy-btn]');
+    const copyAddressButton = root.querySelector('[data-confirmation-copy-address-btn]');
 
     const statusPendingLabel = root.dataset.statusPendingLabel ?? '';
     const codLabel = root.dataset.codLabel ?? '';
@@ -164,6 +288,26 @@ const homeHref = localePath(lang, '');
     function renderItem(item: OrderView['items'][number], currency: string): Node | null {
       if (!(itemTemplate instanceof HTMLTemplateElement)) return null;
       const fragment = itemTemplate.content.cloneNode(true) as DocumentFragment;
+
+      // Older orders placed before this snapshot existed (or whose
+      // product had no primary image at purchase time) have `image: null`
+      // -- remove the slot entirely rather than show a broken/empty img.
+      const itemRoot = fragment.querySelector('.confirmation-item');
+      const imageWrap = fragment.querySelector('[data-item-image-wrap]');
+      const img = fragment.querySelector('[data-item-image]');
+      if (img instanceof HTMLImageElement && item.image) {
+        img.src = item.image.url;
+        img.alt = item.image.alt || item.productName;
+        img.width = item.image.width;
+        img.height = item.image.height;
+      } else {
+        // No image slot for this row: drop the reserved image column too,
+        // so the name/qty text gets the full row width instead of being
+        // squeezed into a 3rem-wide grid track.
+        if (imageWrap instanceof HTMLElement) imageWrap.remove();
+        if (itemRoot instanceof HTMLElement) itemRoot.classList.add('confirmation-item--no-image');
+      }
+
       const nameEl = fragment.querySelector('[data-item-name]');
       if (nameEl) nameEl.textContent = item.productName;
       const variantEl = fragment.querySelector('[data-item-variant]');
@@ -190,7 +334,9 @@ const homeHref = localePath(lang, '');
         !(subtotalEl instanceof HTMLElement) ||
         !(shippingFeeEl instanceof HTMLElement) ||
         !(totalEl instanceof HTMLElement) ||
-        !(addressEl instanceof HTMLElement)
+        !(shippingNameEl instanceof HTMLElement) ||
+        !(shippingAddressEl instanceof HTMLElement) ||
+        !(shippingPhoneEl instanceof HTMLAnchorElement)
       ) {
         return;
       }
@@ -209,14 +355,80 @@ const homeHref = localePath(lang, '');
         const node = renderItem(item, o.currency);
         if (node) itemsList.appendChild(node);
       }
+      if (itemsCountEl instanceof HTMLElement) {
+        // Sum of quantities, not number of distinct product lines -- same
+        // convention as the header cart badge (see cart-service.ts's
+        // itemCount: items.reduce((sum, i) => sum + i.quantity, 0)), so a
+        // single product bought x5 reads as "5" here too, not "1".
+        const totalQuantity = o.items.reduce((sum, item) => sum + item.quantity, 0);
+        itemsCountEl.textContent = String(totalQuantity);
+      }
 
       subtotalEl.textContent = formatMoney(o.subtotalMinor, o.currency);
       shippingFeeEl.textContent = o.shippingFeeMinor > 0 ? formatMoney(o.shippingFeeMinor, o.currency) : (shippingFeeEl.dataset.freeLabel ?? '');
       totalEl.textContent = formatMoney(o.totalMinor, o.currency);
 
       const addressParts = [o.shippingAddressLine1, o.shippingWard, o.shippingDistrict, o.shippingProvince].filter(Boolean);
-      addressEl.textContent = `${o.customerName} — ${addressParts.join(', ')} — ${o.customerPhone}`;
+      shippingNameEl.textContent = o.customerName;
+      shippingAddressEl.textContent = addressParts.join(', ');
+      shippingPhoneEl.textContent = o.customerPhone;
+      // Tap-to-call on mobile -- strip everything but digits and a leading
+      // "+" so a phone number typed with spaces ("0901 234 567") still
+      // produces a valid tel: URI.
+      const dialablePhone = o.customerPhone.replace(/(?!^\+)[^\d]/g, '');
+      shippingPhoneEl.href = dialablePhone ? `tel:${dialablePhone}` : '';
     }
+
+    // Shared copy-to-clipboard wiring for both copy buttons on this page
+    // (order number, shipping info) -- label text swap ("Sao chep" ->
+    // "Da sao chep!") is CSS-driven via the .is-copied class (see
+    // .confirmation-copy-btn-label-stack rules): both label strings stay
+    // in the DOM at all times so each button's width is fixed to the
+    // wider of the two from first paint, and clicking never changes the
+    // button's width -- so the row it sits in never reflows/wraps the
+    // moment the label changes.
+    function wireCopyButton(button: Element | null, getValue: () => string) {
+      if (!(button instanceof HTMLButtonElement)) return;
+      const copyIcon = button.querySelector('[data-copy-icon]');
+      const copiedIcon = button.querySelector('[data-copied-icon]');
+      const copyLabel = button.dataset.copyLabel ?? '';
+      const copiedLabel = button.dataset.copiedLabel ?? '';
+      let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+      button.addEventListener('click', async () => {
+        const value = getValue();
+        if (!value || !navigator.clipboard) return;
+        try {
+          await navigator.clipboard.writeText(value);
+        } catch {
+          return; // Clipboard permission denied/unavailable -- fail silently, never claim success.
+        }
+        button.classList.add('is-copied');
+        button.setAttribute('aria-label', copiedLabel);
+        if (copyIcon instanceof HTMLElement) copyIcon.hidden = true;
+        if (copiedIcon instanceof HTMLElement) copiedIcon.hidden = false;
+        if (resetTimer) clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+          button.classList.remove('is-copied');
+          button.setAttribute('aria-label', copyLabel);
+          if (copyIcon instanceof HTMLElement) copyIcon.hidden = false;
+          if (copiedIcon instanceof HTMLElement) copiedIcon.hidden = true;
+        }, 2000);
+      });
+    }
+
+    // This project sends no confirmation EMAIL (see
+    // src/server/email/customer-email.ts, which is auth-only), so this
+    // page is the one place the customer can grab their order number
+    // and shipping details from -- one-tap copy (mobile especially)
+    // beats asking them to carefully select/retype text by hand.
+    wireCopyButton(copyButton, () => (orderNumberEl instanceof HTMLElement ? orderNumberEl.textContent ?? '' : ''));
+    wireCopyButton(copyAddressButton, () => {
+      const name = shippingNameEl instanceof HTMLElement ? shippingNameEl.textContent ?? '' : '';
+      const address = shippingAddressEl instanceof HTMLElement ? shippingAddressEl.textContent ?? '' : '';
+      const phone = shippingPhoneEl instanceof HTMLElement ? shippingPhoneEl.textContent ?? '' : '';
+      return [name, address, phone].filter(Boolean).join('\n');
+    });
 
     const params = new URLSearchParams(window.location.search);
     const orderNumber = params.get('order');
@@ -247,7 +459,16 @@ const homeHref = localePath(lang, '');
 </script>
 
 <style>
-  .confirmation-check { display: flex; justify-content: center; margin-bottom: 1rem; }
+  .confirmation-check {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    animation: confirmation-check-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes confirmation-check-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+  }
 
   .confirmation-heading {
     text-align: center;
@@ -262,6 +483,81 @@ const homeHref = localePath(lang, '');
     color: var(--color-body);
     max-width: 46ch;
     margin: 0.75rem auto 0;
+  }
+
+  .confirmation-order-number-card {
+    max-width: 26rem;
+    margin: 1.75rem auto 0;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-card);
+    background: var(--color-cream);
+    text-align: center;
+  }
+  .confirmation-order-number-label {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+  .confirmation-order-number-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .confirmation-order-number-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-heading);
+    letter-spacing: 0.02em;
+  }
+  .confirmation-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-heading);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+  .confirmation-copy-btn:hover { border-color: var(--color-brand); }
+  .confirmation-copy-btn:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  .confirmation-copy-btn.is-copied {
+    background: var(--color-brand);
+    border-color: var(--color-brand);
+    color: var(--color-cream);
+  }
+  /* Both label strings are always in the DOM, stacked in the same grid
+     cell, so the button's width is fixed to the wider of the two from
+     first paint -- toggling .is-copied only swaps which one is visible,
+     it never changes the button's (and so the row's) width. This is what
+     stops the copy button from jumping to a new line when clicked. */
+  .confirmation-copy-btn-label-stack {
+    display: grid;
+  }
+  .confirmation-copy-btn-label-stack > span {
+    grid-area: 1 / 1;
+    white-space: nowrap;
+    visibility: hidden;
+  }
+  .confirmation-copy-btn-label-stack > [data-copy-btn-label-copy] { visibility: visible; }
+  .confirmation-copy-btn.is-copied .confirmation-copy-btn-label-stack > [data-copy-btn-label-copy] {
+    visibility: hidden;
+  }
+  .confirmation-copy-btn.is-copied .confirmation-copy-btn-label-stack > [data-copy-btn-label-copied] {
+    visibility: visible;
+  }
+  .confirmation-save-note {
+    margin: 0.6rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
   }
 
   .cart-skeleton-row {
@@ -295,7 +591,84 @@ const homeHref = localePath(lang, '');
     border-radius: var(--radius-card);
     background: var(--color-surface);
   }
+  /* The items panel is the main event of this page ("what did I just buy")
+     -- a brand-colored top edge + a touch of elevation makes it read as
+     the primary card, while the order-status panel next to it stays flat
+     and secondary. */
+  .confirmation-panel--items {
+    border-top: 3px solid var(--color-brand);
+    box-shadow: 0 12px 28px -18px rgba(41, 45, 39, 0.35);
+  }
+  .confirmation-panel--compact { padding: 1.15rem 1.5rem; }
   .confirmation-panel-heading { font-size: 1.1rem; color: var(--color-heading); margin: 0 0 1rem; }
+  /* Shared icon badge + heading layout, reused by the items panel and the
+     order-status panel so every panel heading on this page follows the
+     same "icon in a cream circle, then heading" language already
+     established by the shipping panel. */
+  .confirmation-panel-icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-cream);
+    color: var(--color-brand);
+  }
+  .confirmation-panel-heading-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .confirmation-panel-heading-group .confirmation-panel-heading { margin: 0; }
+  .confirmation-items-heading-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .confirmation-items-heading-row .confirmation-panel-heading { margin: 0; }
+  .confirmation-items-heading-row .confirmation-panel-heading-group { margin-bottom: 0; }
+  .confirmation-items-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-brand);
+    color: var(--color-cream);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .confirmation-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-cream);
+    color: var(--color-heading);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .confirmation-status-badge::before {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-brand);
+    animation: confirmation-status-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes confirmation-status-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
   .confirmation-panel-row {
     display: flex;
@@ -318,27 +691,116 @@ const homeHref = localePath(lang, '');
     color: var(--color-body);
   }
 
-  .confirmation-items { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.85rem; }
-  .confirmation-item { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--color-border); }
+  .confirmation-items { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 1rem; }
+  .confirmation-item {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
   .confirmation-item:last-child { border-bottom: 0; padding-bottom: 0; }
-  .confirmation-item-name { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--color-heading); }
-  .confirmation-item-variant { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
-  .confirmation-item-qty { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
-  .confirmation-item-total { font-size: 0.9rem; font-weight: 600; color: var(--color-heading); white-space: nowrap; }
+  .confirmation-item--no-image { grid-template-columns: 1fr auto; }
+  .confirmation-item-image {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .confirmation-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.3rem; }
+  .confirmation-item-name { margin: 0; font-size: 0.9375rem; font-weight: 600; color: var(--color-heading); line-height: 1.4; }
+  .confirmation-item-variant { margin: 0.2rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
+  .confirmation-item-qty { margin: 0.2rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
+  .confirmation-item-total { font-size: 0.9375rem; font-weight: 700; color: var(--color-brand); white-space: nowrap; }
 
   .confirmation-totals { margin-top: 0.5rem; }
   .confirmation-total-row { font-size: 1rem; font-weight: 700; color: var(--color-heading); }
   .confirmation-total-row span:last-child { font-size: 1.15rem; }
 
-  .confirmation-address { margin: 0; font-size: 0.9rem; color: var(--color-body); line-height: 1.6; }
+  .confirmation-shipping-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+  }
+  .confirmation-shipping-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-cream);
+  }
+  .confirmation-shipping-header .confirmation-panel-heading { margin: 0; }
+  .confirmation-shipping-details {
+    display: grid;
+    gap: 0.75rem;
+    padding-bottom: 1.1rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+  .confirmation-shipping-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .confirmation-shipping-row-icon {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    color: var(--color-muted);
+  }
+  .confirmation-shipping-name { margin: 0; font-size: 0.9375rem; font-weight: 700; color: var(--color-heading); line-height: 1.5; }
+  .confirmation-shipping-line { margin: 0; font-size: 0.875rem; color: var(--color-body); line-height: 1.5; }
+  .confirmation-shipping-phone {
+    color: var(--color-body);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 180ms ease, color 180ms ease;
+  }
+  .confirmation-shipping-phone:hover,
+  .confirmation-shipping-phone:focus-visible {
+    color: var(--color-brand);
+    border-bottom-color: var(--color-brand);
+  }
+  .confirmation-shipping-copy-btn { width: 100%; justify-content: center; }
+
+  .confirmation-next-steps { margin: 0 0 2rem; }
+  .confirmation-steps { list-style: none; display: grid; gap: 1rem; margin-top: 1rem; }
+  .confirmation-step { display: flex; gap: 0.9rem; align-items: flex-start; }
+  .confirmation-step-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-cream);
+    color: var(--color-heading);
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+  .confirmation-step-title { margin: 0; font-size: 0.9375rem; font-weight: 600; color: var(--color-heading); }
+  .confirmation-step-body { margin: 0.15rem 0 0; font-size: 0.8125rem; color: var(--color-muted); }
 
   .confirmation-continue-btn { display: block; width: fit-content; margin: 0 auto; }
 
   @media (min-width: 1024px) {
     .confirmation-layout { grid-template-columns: minmax(0, 1fr) 20rem; gap: 2rem; }
+    .confirmation-shipping { position: sticky; top: 6rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .cart-skeleton-row { animation: none; }
+    .confirmation-check { animation: none; }
+    .confirmation-status-badge::before { animation: none; }
   }
 </style>

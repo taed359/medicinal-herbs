@@ -43,6 +43,13 @@
       "when": 1789156120325,
       "tag": "0005_colorful_hannibal_king",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789164564724,
+      "tag": "0006_daffy_proemial_gods",
+      "breakpoints": true
     }
   ]
 }

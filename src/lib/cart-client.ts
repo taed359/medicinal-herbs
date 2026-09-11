@@ -24,6 +24,18 @@ function currentLocale(): 'vi' | 'zh' {
   return document.documentElement.lang === 'zh' ? 'zh' : 'vi';
 }
 
+/** Product detail URL for a cart/listing line -- routes are
+ *  `/{locale}/products/{categoryId}/{slug}/` (categoryId IS the
+ *  collection's URL segment today, e.g. "natural-oils"/"wholesale" --
+ *  see src/pages/{vi,zh}/products/*). This is the client-side equivalent
+ *  of the `localePath()` helper used server-side (not available in the
+ *  browser); used by CartDrawer.astro, CartPage.astro, and any other
+ *  client-rendered list that needs to link a cart line back to its
+ *  product. */
+export function cartItemHref(item: { categoryId: string; productSlug: string }): string {
+  return `/${currentLocale()}/products/${item.categoryId}/${item.productSlug}/`;
+}
+
 function dispatchCartChanged(cart: CartView): void {
   document.dispatchEvent(new CustomEvent<CartView>(CART_CHANGED_EVENT, { detail: cart }));
 }
@@ -72,6 +84,34 @@ export async function fetchCart(): Promise<CartView> {
   const cart = (await res.json()) as CartView;
   dispatchCartChanged(cart);
   return cart;
+}
+
+// Refresh the cart whenever the browser restores this page from the
+// back-forward cache (bfcache) -- e.g. the visitor adds an item on
+// another product page, then presses Back. A bfcache restore reanimates
+// the EXACT DOM/JS state that existed the moment they navigated away --
+// no script re-runs, no `astro:page-load`, nothing -- so every cart
+// badge/drawer/page they see stays frozen on whatever the cart looked
+// like before they left, even though the server-side cart has since
+// changed (reported: "back về history thì cart vẫn đang là 4" after
+// adding a 5th item elsewhere). `pageshow`'s `persisted` flag is how a
+// page tells a bfcache restore apart from a normal, fresh load -- a
+// plain unconditional refetch here would also double-fetch on every
+// ordinary page load, since other init code (CartDrawer.astro's own
+// `initCartDrawer`) already fetches once on a real load.
+//
+// This module is a singleton (loaded via <script type="module">, and
+// CartDrawer.astro -- which imports it -- is mounted once in
+// Layout.astro, so it's present on every page), so this top-level
+// listener registers exactly once per real page load and, like
+// `onCartChanged`'s own `document`-level subscription, persists across
+// Astro soft-navigations without needing an `astro:page-load` re-init.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      fetchCart().catch(() => {});
+    }
+  });
 }
 
 export async function addToCart(variantId: string, quantity = 1): Promise<CartResult> {
