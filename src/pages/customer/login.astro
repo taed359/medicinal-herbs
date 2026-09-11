@@ -213,6 +213,14 @@ const langHrefs: Record<AuthLocale, string> = {
             });
 
             if (res.ok) {
+              // Reconcile any guest cart built up before login with the
+              // customer's own cart (see api/cart/merge.ts) -- best-effort,
+              // never blocks a successful sign-in on a merge failure.
+              try {
+                await fetch('/api/cart/merge', { method: 'POST', credentials: 'same-origin' });
+              } catch {
+                // Ignored -- see above.
+              }
               window.location.href = redirectTarget;
               return;
             }

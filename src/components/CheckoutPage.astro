@@ -1,0 +1,567 @@
+---
+/**
+ * Checkout page (/vi/checkout, /zh/checkout) -- guest checkout allowed
+ * (see claude/project-status.md's "Cart & Checkout" section), payment is
+ * COD or manual bank transfer only, no gateway/webhook anywhere. Same
+ * "static shell, client-populated" posture as CartPage.astro/CartDrawer:
+ * cart contents and the submit flow are entirely client-side against
+ * POST /api/checkout (src/pages/api/checkout.ts), which is the single
+ * source of truth for validation -- this form's own client-side checks
+ * are a UX nicety, never trusted instead of the server's.
+ *
+ * On success the page redirects to the confirmation route with the new
+ * order number and the email the order was placed under (order lookup
+ * there requires both -- see api/orders/[orderNumber].ts).
+ */
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import { defaultLocale, getTranslations, isLocale, localePath, type Locale, type RouteLocale } from '../i18n/utils';
+
+interface Props {
+  lang: RouteLocale;
+  uiLang?: Locale;
+}
+const { lang, uiLang: requestedUiLang } = Astro.props;
+const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
+const t = getTranslations(uiLang);
+const homeHref = localePath(lang, '');
+const cartHref = localePath(lang, 'cart');
+const confirmationHref = localePath(lang, 'checkout/confirmation');
+---
+<Layout lang={lang} uiLang={uiLang} title={`${t.checkout.pageTitle} — ${t.common.siteName}`} noindex={true}>
+  <section
+    class="checkout-page py-8 sm:py-10"
+    aria-labelledby="checkout-page-title"
+    data-checkout-page
+    data-locale={uiLang}
+    data-home-href={homeHref}
+    data-cart-href={cartHref}
+    data-confirmation-href={confirmationHref}
+    data-error-empty-cart={t.checkout.errorEmptyCart}
+    data-error-insufficient-stock={t.checkout.errorInsufficientStock}
+    data-error-invalid-email={t.checkout.errorInvalidEmail}
+    data-error-generic={t.checkout.errorGeneric}
+    data-label-default={t.checkout.placeOrderButton}
+    data-label-placing={t.checkout.placingOrderLabel}
+  >
+    <div class="container-page">
+      <Breadcrumbs
+        lang={uiLang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: t.cart.title, href: cartHref },
+          { label: t.checkout.pageTitle, current: true },
+        ]}
+      />
+
+      <header class="checkout-page-title">
+        <h1 id="checkout-page-title" class="font-serif m-0">{t.checkout.heading}</h1>
+      </header>
+
+      <div class="checkout-page-loading" data-checkout-loading aria-hidden="true">
+        <div class="cart-skeleton-row"></div>
+        <div class="cart-skeleton-row"></div>
+      </div>
+
+      <div class="checkout-page-empty" data-checkout-empty hidden>
+        <p class="checkout-page-empty-heading font-serif">{t.checkout.emptyCartHeading}</p>
+        <p class="checkout-page-empty-body">{t.checkout.emptyCartBody}</p>
+        <a href={homeHref} data-astro-reload class="btn btn-primary mt-4">{t.cart.continueShopping}</a>
+      </div>
+
+      <div class="checkout-page-layout" data-checkout-layout hidden>
+        <form class="checkout-form" data-checkout-form novalidate>
+          <p class="checkout-form-error" data-checkout-error hidden role="alert"></p>
+
+          <section aria-labelledby="checkout-contact-heading" class="checkout-section">
+            <h2 id="checkout-contact-heading" class="checkout-section-heading font-serif">{t.checkout.contactHeading}</h2>
+            <div class="checkout-field">
+              <label for="checkout-name">{t.checkout.fullNameLabel} <span aria-hidden="true">*</span></label>
+              <input id="checkout-name" name="customerName" type="text" autocomplete="name" required maxlength="200" />
+            </div>
+            <div class="checkout-field-row">
+              <div class="checkout-field">
+                <label for="checkout-email">{t.checkout.emailLabel} <span aria-hidden="true">*</span></label>
+                <input id="checkout-email" name="customerEmail" type="email" autocomplete="email" required maxlength="200" />
+              </div>
+              <div class="checkout-field">
+                <label for="checkout-phone">{t.checkout.phoneLabel} <span aria-hidden="true">*</span></label>
+                <input id="checkout-phone" name="customerPhone" type="tel" autocomplete="tel" required maxlength="40" />
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="checkout-shipping-heading" class="checkout-section">
+            <h2 id="checkout-shipping-heading" class="checkout-section-heading font-serif">{t.checkout.shippingHeading}</h2>
+            <div class="checkout-field">
+              <label for="checkout-address">{t.checkout.addressLabel} <span aria-hidden="true">*</span></label>
+              <input id="checkout-address" name="shippingAddressLine1" type="text" autocomplete="address-line1" required maxlength="400" />
+            </div>
+            <div class="checkout-field-row checkout-field-row-3">
+              <div class="checkout-field">
+                <label for="checkout-ward">{t.checkout.wardLabel}</label>
+                <input id="checkout-ward" name="shippingWard" type="text" autocomplete="address-level3" maxlength="200" />
+              </div>
+              <div class="checkout-field">
+                <label for="checkout-district">{t.checkout.districtLabel}</label>
+                <input id="checkout-district" name="shippingDistrict" type="text" autocomplete="address-level2" maxlength="200" />
+              </div>
+              <div class="checkout-field">
+                <label for="checkout-province">{t.checkout.provinceLabel} <span aria-hidden="true">*</span></label>
+                <input id="checkout-province" name="shippingProvince" type="text" autocomplete="address-level1" required maxlength="200" />
+              </div>
+            </div>
+            <div class="checkout-field">
+              <label for="checkout-note">{t.checkout.noteLabel}</label>
+              <textarea id="checkout-note" name="note" rows="3" maxlength="1000" placeholder={t.checkout.notePlaceholder}></textarea>
+            </div>
+          </section>
+
+          <section aria-labelledby="checkout-payment-heading" class="checkout-section">
+            <h2 id="checkout-payment-heading" class="checkout-section-heading font-serif">{t.checkout.paymentHeading}</h2>
+            <div class="checkout-payment-options" role="radiogroup" aria-labelledby="checkout-payment-heading">
+              <label class="checkout-payment-option">
+                <input type="radio" name="paymentMethod" value="cod" checked />
+                <span class="checkout-payment-option-body">
+                  <span class="checkout-payment-option-label">{t.checkout.paymentCodLabel}</span>
+                  <span class="checkout-payment-option-desc">{t.checkout.paymentCodDescription}</span>
+                </span>
+              </label>
+              <label class="checkout-payment-option">
+                <input type="radio" name="paymentMethod" value="bank_transfer" />
+                <span class="checkout-payment-option-body">
+                  <span class="checkout-payment-option-label">{t.checkout.paymentBankTransferLabel}</span>
+                  <span class="checkout-payment-option-desc">{t.checkout.paymentBankTransferDescription}</span>
+                </span>
+              </label>
+            </div>
+            <div class="checkout-bank-transfer-note" data-checkout-bank-note hidden>
+              <p class="checkout-bank-transfer-heading">{t.checkout.bankTransferInstructionsHeading}</p>
+              <p>{t.checkout.bankTransferPlaceholderNote}</p>
+            </div>
+          </section>
+
+          <p class="checkout-required-note">{t.checkout.requiredFieldsNote}</p>
+
+          <button type="submit" class="btn btn-primary checkout-submit" data-checkout-submit>
+            <span data-checkout-submit-label>{t.checkout.placeOrderButton}</span>
+          </button>
+        </form>
+
+        <aside class="checkout-summary" aria-labelledby="checkout-summary-heading">
+          <h2 id="checkout-summary-heading" class="checkout-summary-heading font-serif">{t.checkout.orderSummaryHeading}</h2>
+          <ul class="checkout-summary-items" data-checkout-summary-items></ul>
+          <div class="checkout-summary-row">
+            <span>{t.checkout.subtotalLabel}</span>
+            <span data-checkout-subtotal>—</span>
+          </div>
+          <div class="checkout-summary-row">
+            <span>{t.checkout.shippingFeeLabel}</span>
+            <span>{t.checkout.shippingFeeFreeLabel}</span>
+          </div>
+          <div class="checkout-summary-row checkout-summary-total">
+            <span>{t.checkout.totalLabel}</span>
+            <span data-checkout-total>—</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <template id="checkout-summary-item-template">
+    <li class="checkout-summary-item">
+      <div class="checkout-summary-item-image" data-summary-item-image-wrap>
+        <img data-summary-item-image alt="" loading="lazy" />
+      </div>
+      <div class="checkout-summary-item-info">
+        <p class="checkout-summary-item-name" data-summary-item-name></p>
+        <p class="checkout-summary-item-variant" data-summary-item-variant></p>
+        <p class="checkout-summary-item-qty" data-summary-item-qty></p>
+      </div>
+      <div class="checkout-summary-item-total" data-summary-item-total></div>
+    </li>
+  </template>
+</Layout>
+
+<script>
+  import { fetchCart, formatMoney } from '../lib/cart-client';
+  import type { CartView, CartItemView } from '../domain/types';
+
+  function initCheckoutPage() {
+    const root = document.querySelector('[data-checkout-page]');
+    if (!(root instanceof HTMLElement) || root.dataset.initialized === 'true') return;
+    root.dataset.initialized = 'true';
+
+    const loadingState = root.querySelector('[data-checkout-loading]');
+    const emptyState = root.querySelector('[data-checkout-empty]');
+    const layout = root.querySelector('[data-checkout-layout]');
+    const summaryItemsList = root.querySelector('[data-checkout-summary-items]');
+    const subtotalEl = root.querySelector('[data-checkout-subtotal]');
+    const totalEl = root.querySelector('[data-checkout-total]');
+    const summaryTemplate = document.getElementById('checkout-summary-item-template');
+    const form = root.querySelector('[data-checkout-form]');
+    const submitButton = root.querySelector('[data-checkout-submit]');
+    const submitLabelEl = root.querySelector('[data-checkout-submit-label]');
+    const errorEl = root.querySelector('[data-checkout-error]');
+    const bankNote = root.querySelector('[data-checkout-bank-note]');
+
+    const locale = root.dataset.locale === 'zh' ? 'zh' : 'vi';
+    const confirmationHref = root.dataset.confirmationHref ?? '';
+    const labelDefault = root.dataset.labelDefault ?? '';
+    const labelPlacing = root.dataset.labelPlacing ?? labelDefault;
+    const errEmptyCart = root.dataset.errorEmptyCart ?? '';
+    const errInsufficientStock = root.dataset.errorInsufficientStock ?? '';
+    const errInvalidEmail = root.dataset.errorInvalidEmail ?? '';
+    const errGeneric = root.dataset.errorGeneric ?? '';
+
+    let currentCart: CartView | null = null;
+
+    function renderSummaryItem(item: CartItemView): Node | null {
+      if (!(summaryTemplate instanceof HTMLTemplateElement)) return null;
+      const fragment = summaryTemplate.content.cloneNode(true) as DocumentFragment;
+
+      const imageWrap = fragment.querySelector('[data-summary-item-image-wrap]');
+      const img = fragment.querySelector('[data-summary-item-image]');
+      if (img instanceof HTMLImageElement) {
+        if (item.image) {
+          img.src = item.image.url;
+          img.alt = item.image.alt || item.productName;
+        } else if (imageWrap instanceof HTMLElement) {
+          imageWrap.remove();
+        }
+      }
+
+      const nameEl = fragment.querySelector('[data-summary-item-name]');
+      if (nameEl) nameEl.textContent = item.productName;
+
+      const variantEl = fragment.querySelector('[data-summary-item-variant]');
+      if (variantEl instanceof HTMLElement) {
+        if (item.variantLabel) variantEl.textContent = item.variantLabel;
+        else variantEl.remove();
+      }
+
+      const qtyEl = fragment.querySelector('[data-summary-item-qty]');
+      if (qtyEl) qtyEl.textContent = `× ${item.quantity}`;
+
+      const totalEl2 = fragment.querySelector('[data-summary-item-total]');
+      if (totalEl2) totalEl2.textContent = formatMoney(item.lineTotalMinor, item.currency);
+
+      return fragment;
+    }
+
+    function renderSummary(cart: CartView) {
+      if (!(summaryItemsList instanceof HTMLElement) || !(subtotalEl instanceof HTMLElement) || !(totalEl instanceof HTMLElement)) return;
+      summaryItemsList.innerHTML = '';
+      for (const item of cart.items) {
+        const node = renderSummaryItem(item);
+        if (node) summaryItemsList.appendChild(node);
+      }
+      // No shipping-fee calculation yet (see order-service.ts) -- total
+      // mirrors subtotal exactly, same as the server's own computation.
+      subtotalEl.textContent = formatMoney(cart.subtotalMinor, cart.currency);
+      totalEl.textContent = formatMoney(cart.subtotalMinor, cart.currency);
+    }
+
+    function showFormError(message: string) {
+      if (!(errorEl instanceof HTMLElement)) return;
+      errorEl.textContent = message;
+      errorEl.hidden = message.length === 0;
+      if (message.length > 0) errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function setSubmitting(submitting: boolean) {
+      if (submitButton instanceof HTMLButtonElement) submitButton.disabled = submitting;
+      if (submitLabelEl) submitLabelEl.textContent = submitting ? labelPlacing : labelDefault;
+    }
+
+    function applyState(cart: CartView) {
+      currentCart = cart;
+      if (!(loadingState instanceof HTMLElement) || !(emptyState instanceof HTMLElement) || !(layout instanceof HTMLElement)) return;
+      loadingState.hidden = true;
+      if (cart.items.length === 0) {
+        layout.hidden = true;
+        emptyState.hidden = false;
+        return;
+      }
+      emptyState.hidden = true;
+      layout.hidden = false;
+      renderSummary(cart);
+    }
+
+    fetchCart()
+      .then(applyState)
+      .catch(() => {
+        if (loadingState instanceof HTMLElement) loadingState.hidden = true;
+        showFormError(errGeneric);
+      });
+
+    form?.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        if (!(bankNote instanceof HTMLElement)) return;
+        const selected = form.querySelector<HTMLInputElement>('input[name="paymentMethod"]:checked');
+        bankNote.hidden = selected?.value !== 'bank_transfer';
+      });
+    });
+
+    if (form instanceof HTMLFormElement) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        showFormError('');
+
+        if (!currentCart || currentCart.items.length === 0) {
+          showFormError(errEmptyCart);
+          return;
+        }
+
+        const data = new FormData(form);
+        const customerEmail = String(data.get('customerEmail') ?? '').trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(customerEmail)) {
+          showFormError(errInvalidEmail);
+          form.querySelector<HTMLInputElement>('#checkout-email')?.focus();
+          return;
+        }
+
+        const body = {
+          customerName: String(data.get('customerName') ?? '').trim(),
+          customerEmail,
+          customerPhone: String(data.get('customerPhone') ?? '').trim(),
+          shippingAddressLine1: String(data.get('shippingAddressLine1') ?? '').trim(),
+          shippingWard: String(data.get('shippingWard') ?? '').trim() || undefined,
+          shippingDistrict: String(data.get('shippingDistrict') ?? '').trim() || undefined,
+          shippingProvince: String(data.get('shippingProvince') ?? '').trim(),
+          note: String(data.get('note') ?? '').trim() || undefined,
+          paymentMethod: String(data.get('paymentMethod') ?? 'cod'),
+        };
+
+        setSubmitting(true);
+        try {
+          const res = await fetch(`/api/checkout?locale=${locale}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+            credentials: 'same-origin',
+          });
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.orderNumber) {
+            window.location.href = `${confirmationHref}?order=${encodeURIComponent(json.orderNumber)}&email=${encodeURIComponent(customerEmail)}`;
+            return;
+          }
+          setSubmitting(false);
+          const code = json.error as string | undefined;
+          if (code === 'empty_cart') showFormError(errEmptyCart);
+          else if (code === 'insufficient_stock') showFormError(errInsufficientStock);
+          else if (code === 'invalid_customer_email') showFormError(errInvalidEmail);
+          else showFormError(errGeneric);
+          // Refresh cart state -- an insufficient_stock rejection means
+          // the cart the summary shows is now stale.
+          fetchCart().then(applyState).catch(() => {});
+        } catch {
+          setSubmitting(false);
+          showFormError(errGeneric);
+        }
+      });
+    }
+  }
+
+  initCheckoutPage();
+  document.addEventListener('astro:page-load', initCheckoutPage);
+</script>
+
+<style>
+  .checkout-page-title h1 {
+    color: var(--color-heading);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 2rem;
+  }
+
+  .cart-skeleton-row {
+    height: 6.5rem;
+    border-radius: var(--radius-card);
+    background: linear-gradient(90deg, var(--color-cream) 25%, var(--color-border) 37%, var(--color-cream) 63%);
+    background-size: 400% 100%;
+    animation: checkout-skeleton-shimmer 1.4s ease infinite;
+    margin-bottom: 0.85rem;
+  }
+  @keyframes checkout-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .checkout-page-empty { text-align: center; padding: 4rem 1rem; }
+  .checkout-page-empty-heading { font-size: 1.5rem; color: var(--color-heading); margin: 0; }
+  .checkout-page-empty-body { font-size: 0.95rem; color: var(--color-muted); margin: 0.6rem auto 0; max-width: 40ch; }
+
+  .checkout-page-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .checkout-form { display: grid; gap: 2rem; }
+
+  .checkout-form-error {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-thumb);
+    background: color-mix(in oklab, var(--color-sale) 10%, transparent);
+    color: var(--color-sale);
+    font-size: 0.875rem;
+  }
+
+  .checkout-section {
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid var(--color-border);
+    display: grid;
+    gap: 1.1rem;
+  }
+  .checkout-section:last-of-type { border-bottom: 0; padding-bottom: 0; }
+
+  .checkout-section-heading {
+    font-size: 1.15rem;
+    color: var(--color-heading);
+    margin: 0;
+  }
+
+  .checkout-field { display: grid; gap: 0.5rem; }
+  .checkout-field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
+  }
+
+  .checkout-field label {
+    color: var(--color-heading);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .checkout-field input,
+  .checkout-field textarea {
+    width: 100%;
+    min-width: 0;
+    color: var(--color-body);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-thumb);
+    background: var(--color-surface);
+    font: inherit;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .checkout-field input { min-height: 3rem; padding: 0.7rem 0.875rem; }
+  .checkout-field textarea { resize: vertical; min-height: 6rem; padding: 0.875rem; line-height: 1.6; }
+  .checkout-field textarea::placeholder { color: var(--color-muted); }
+
+  .checkout-field input:focus-visible,
+  .checkout-field textarea:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-color: var(--color-brand);
+  }
+
+  .checkout-payment-options { display: grid; gap: 0.85rem; }
+  .checkout-payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    cursor: pointer;
+    transition: border-color 180ms ease, background-color 180ms ease;
+  }
+  .checkout-payment-option:has(input:checked) {
+    border-color: var(--color-brand);
+    background: color-mix(in oklab, var(--color-brand) 6%, transparent);
+  }
+  .checkout-payment-option input { margin-top: 0.2rem; accent-color: var(--color-brand); flex-shrink: 0; }
+  .checkout-payment-option-body { display: grid; gap: 0.25rem; }
+  .checkout-payment-option-label { font-weight: 600; color: var(--color-heading); font-size: 0.9375rem; }
+  .checkout-payment-option-desc { font-size: 0.8125rem; color: var(--color-muted); }
+
+  .checkout-bank-transfer-note {
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    font-size: 0.8125rem;
+    color: var(--color-body);
+    display: grid;
+    gap: 0.3rem;
+  }
+  .checkout-bank-transfer-heading { font-weight: 600; color: var(--color-heading); margin: 0; }
+  .checkout-bank-transfer-note p { margin: 0; }
+
+  .checkout-required-note { font-size: 0.8125rem; color: var(--color-muted); margin: 0; }
+
+  .checkout-submit { width: 100%; min-height: 3.25rem; cursor: pointer; }
+  .checkout-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .checkout-summary {
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .checkout-summary-heading { font-size: 1.15rem; color: var(--color-heading); margin: 0 0 1.1rem; }
+
+  .checkout-summary-items { list-style: none; margin: 0 0 1.1rem; padding: 0; display: grid; gap: 0.9rem; }
+  .checkout-summary-item {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .checkout-summary-item-image {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .checkout-summary-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.3rem; }
+  .checkout-summary-item-name { margin: 0; font-size: 0.8125rem; font-weight: 600; color: var(--color-heading); line-height: 1.3; }
+  .checkout-summary-item-variant { margin: 0.1rem 0 0; font-size: 0.7rem; color: var(--color-muted); }
+  .checkout-summary-item-qty { margin: 0.1rem 0 0; font-size: 0.7rem; color: var(--color-muted); }
+  .checkout-summary-item-total { font-size: 0.8125rem; font-weight: 600; color: var(--color-heading); white-space: nowrap; }
+
+  .checkout-summary-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--color-body);
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .checkout-summary-row:first-of-type { border-top: 1px solid var(--color-border); }
+  .checkout-summary-total {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .checkout-summary-total span:last-child { font-size: 1.25rem; }
+
+  @media (min-width: 640px) {
+    .checkout-field-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .checkout-field-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1024px) {
+    .checkout-page-layout {
+      grid-template-columns: minmax(0, 1fr) 22rem;
+      gap: 3rem;
+    }
+    .checkout-summary { position: sticky; top: 6rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart-skeleton-row { animation: none; }
+  }
+</style>

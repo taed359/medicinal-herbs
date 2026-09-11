@@ -1,0 +1,502 @@
+---
+/**
+ * Site-wide cart drawer -- mounted once in Layout.astro, available on
+ * every page. Same off-canvas interaction pattern as Header.astro's own
+ * mobile navigation drawer (backdrop, focus trap, Escape, body-scroll
+ * lock) -- deliberately mirrored rather than shared, since that drawer's
+ * styles are scoped to Header.astro's own <style> block -- but slides in
+ * from the RIGHT and is available at every breakpoint (not `md:hidden`;
+ * a cart drawer is a desktop-common pattern too, unlike the hamburger
+ * menu it's modeled on).
+ *
+ * Renders no cart DATA at build/server time -- Astro pages are prerendered
+ * (see astro.config.mjs), so a cart drawer that shipped items baked into
+ * the HTML would be either empty (build time) or wrong (every visitor
+ * would see the same baked cart). Instead this renders the empty/loading
+ * shell only; src/lib/cart-client.ts's `fetchCart()` populates it
+ * client-side the same way Header's own account widget resolves session
+ * state client-side (see Header.astro's initAccountWidgets script) for
+ * exactly the same reason.
+ */
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const t = getTranslations(lang);
+const cartHref = localePath(lang, 'cart');
+const checkoutHref = localePath(lang, 'checkout');
+const homeHref = localePath(lang, '');
+---
+<div
+  id="cart-drawer"
+  class="cart-drawer"
+  data-cart-drawer
+  data-state="closed"
+  aria-hidden="true"
+  data-stock-limit-note={t.cart.stockLimitNote}
+>
+  <div class="cart-drawer-backdrop" data-cart-drawer-backdrop aria-hidden="true"></div>
+
+  <aside
+    class="cart-drawer-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label={t.cart.drawerAriaLabel}
+    tabindex="-1"
+    data-cart-drawer-panel
+  >
+    <div class="cart-drawer-topbar">
+      <h2 class="cart-drawer-title font-serif m-0">{t.cart.title}</h2>
+      <button type="button" class="cart-drawer-icon-button" aria-label={t.cart.drawerCloseLabel} data-cart-drawer-close>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="cart-drawer-body" data-cart-drawer-body>
+      <div class="cart-drawer-loading" data-cart-loading-state aria-hidden="true">
+        <div class="cart-skeleton-row"></div>
+        <div class="cart-skeleton-row"></div>
+      </div>
+
+      <div class="cart-drawer-empty" data-cart-empty-state hidden>
+        <p class="cart-drawer-empty-heading font-serif">{t.cart.emptyHeading}</p>
+        <p class="cart-drawer-empty-body">{t.cart.emptyBody}</p>
+        <a href={homeHref} data-astro-reload data-cart-drawer-close-link class="btn btn-secondary mt-4">{t.cart.continueShopping}</a>
+      </div>
+
+      <ul class="cart-drawer-items" data-cart-items-list hidden></ul>
+    </div>
+
+    <div class="cart-drawer-footer" data-cart-drawer-footer hidden>
+      <div class="cart-drawer-subtotal-row">
+        <span>{t.cart.subtotalLabel}</span>
+        <span class="cart-drawer-subtotal" data-cart-subtotal>—</span>
+      </div>
+      <p class="cart-drawer-subtotal-note">{t.cart.subtotalNote}</p>
+      <a href={cartHref} data-astro-reload class="btn btn-secondary cart-drawer-btn">{t.cart.viewCartButton}</a>
+      <a href={checkoutHref} data-astro-reload class="btn btn-primary cart-drawer-btn">{t.cart.checkoutButton}</a>
+    </div>
+  </aside>
+</div>
+
+<template id="cart-item-template">
+  <li class="cart-item" data-cart-item>
+    <div class="cart-item-image" data-cart-item-image-wrap>
+      <img data-cart-item-image alt="" loading="lazy" />
+    </div>
+    <div class="cart-item-info">
+      <p class="cart-item-name" data-cart-item-name></p>
+      <p class="cart-item-variant" data-cart-item-variant></p>
+      <p class="cart-item-stock-note" data-cart-item-stock-note hidden></p>
+      <div class="cart-item-controls">
+        <div class="cart-item-qty" data-cart-item-qty-control>
+          <button type="button" class="cart-item-qty-btn" data-cart-qty-decrease aria-label={`${t.cart.quantityLabel} −`}>−</button>
+          <span class="cart-item-qty-value" data-cart-item-qty></span>
+          <button type="button" class="cart-item-qty-btn" data-cart-qty-increase aria-label={`${t.cart.quantityLabel} +`}>+</button>
+        </div>
+        <button type="button" class="cart-item-remove" data-cart-item-remove>{t.cart.removeLabel}</button>
+      </div>
+    </div>
+    <div class="cart-item-line-total" data-cart-item-line-total></div>
+  </li>
+</template>
+
+<script>
+  import { fetchCart, updateCartItem, removeCartItem, onCartChanged, onOpenCartDrawerRequested } from '../lib/cart-client';
+  import { formatMoney } from '../lib/cart-client';
+  import type { CartView, CartItemView } from '../domain/types';
+
+  function initCartDrawer() {
+    const drawer = document.querySelector('[data-cart-drawer]');
+    if (!(drawer instanceof HTMLElement) || drawer.dataset.initialized === 'true') return;
+    drawer.dataset.initialized = 'true';
+
+    const panel = drawer.querySelector('[data-cart-drawer-panel]');
+    const backdrop = drawer.querySelector('[data-cart-drawer-backdrop]');
+    const closeButton = drawer.querySelector('[data-cart-drawer-close]');
+    const emptyState = drawer.querySelector('[data-cart-empty-state]');
+    const loadingState = drawer.querySelector('[data-cart-loading-state]');
+    const itemsList = drawer.querySelector('[data-cart-items-list]');
+    const footer = drawer.querySelector('[data-cart-drawer-footer]');
+    const subtotalEl = drawer.querySelector('[data-cart-subtotal]');
+    const template = document.getElementById('cart-item-template');
+    const stockLimitNoteTemplate = drawer.dataset.stockLimitNote ?? '';
+    let previousFocus: Element | null = null;
+    let hasLoadedOnce = false;
+
+    const focusableSelector = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const closeDrawer = () => {
+      drawer.dataset.state = 'closed';
+      drawer.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+
+    const openDrawer = () => {
+      previousFocus = document.activeElement;
+      drawer.dataset.state = 'open';
+      drawer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        if (panel instanceof HTMLElement) panel.focus();
+      });
+      fetchCart().catch(() => {
+        // Network error -- leave whatever was last rendered (or the
+        // loading skeleton) rather than showing a broken empty state.
+      });
+    };
+
+    closeButton?.addEventListener('click', closeDrawer);
+    backdrop?.addEventListener('click', closeDrawer);
+    drawer.querySelector('[data-cart-drawer-close-link]')?.addEventListener('click', closeDrawer);
+
+    document.addEventListener('keydown', (event) => {
+      if (drawer.dataset.state !== 'open') return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDrawer();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(drawer.querySelectorAll(focusableSelector)).filter(
+        (el): el is HTMLElement => el instanceof HTMLElement && el.offsetParent !== null
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!(first instanceof HTMLElement) || !(last instanceof HTMLElement)) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      // No responsive auto-close needed -- the drawer works at every
+      // breakpoint (unlike Header's mobile nav drawer, which hides above
+      // md) -- kept only as a hook in case that ever changes.
+    });
+
+    onOpenCartDrawerRequested(openDrawer);
+
+    function stockNoteText(count: number): string {
+      return stockLimitNoteTemplate.replace('{count}', String(count));
+    }
+
+    async function changeQuantity(itemId: string, quantity: number, _availableStock: number | null) {
+      const result = quantity <= 0 ? await removeCartItem(itemId) : await updateCartItem(itemId, quantity);
+      if (!result.ok) {
+        // Stock cap or other server-side rejection -- re-sync with the
+        // server's real state rather than leaving a stale rendered row.
+        fetchCart().catch(() => {});
+      }
+    }
+
+    function renderItem(item: CartItemView): Node | null {
+      if (!(template instanceof HTMLTemplateElement)) return null;
+      const fragment = template.content.cloneNode(true) as DocumentFragment;
+      const li = fragment.querySelector('[data-cart-item]');
+      if (li instanceof HTMLElement) li.dataset.itemId = item.id;
+
+      const imageWrap = fragment.querySelector('[data-cart-item-image-wrap]');
+      const img = fragment.querySelector('[data-cart-item-image]');
+      if (img instanceof HTMLImageElement) {
+        if (item.image) {
+          img.src = item.image.url;
+          img.alt = item.image.alt || item.productName;
+        } else if (imageWrap instanceof HTMLElement) {
+          imageWrap.remove();
+        }
+      }
+
+      const nameEl = fragment.querySelector('[data-cart-item-name]');
+      if (nameEl) nameEl.textContent = item.productName;
+
+      const variantEl = fragment.querySelector('[data-cart-item-variant]');
+      if (variantEl instanceof HTMLElement) {
+        if (item.variantLabel) variantEl.textContent = item.variantLabel;
+        else variantEl.remove();
+      }
+
+      const qtyEl = fragment.querySelector('[data-cart-item-qty]');
+      if (qtyEl) qtyEl.textContent = String(item.quantity);
+
+      const lineTotalEl = fragment.querySelector('[data-cart-item-line-total]');
+      if (lineTotalEl) lineTotalEl.textContent = formatMoney(item.lineTotalMinor, item.currency);
+
+      const stockNote = fragment.querySelector('[data-cart-item-stock-note]');
+      if (stockNote instanceof HTMLElement) {
+        if (item.availableStock != null && item.availableStock <= 5) {
+          stockNote.hidden = false;
+          stockNote.textContent = stockNoteText(item.availableStock);
+        } else {
+          stockNote.hidden = true;
+        }
+      }
+
+      const increaseBtn = fragment.querySelector('[data-cart-qty-increase]');
+      if (item.availableStock != null && item.quantity >= item.availableStock && increaseBtn instanceof HTMLButtonElement) {
+        increaseBtn.disabled = true;
+      }
+
+      fragment.querySelector('[data-cart-qty-decrease]')?.addEventListener('click', () => changeQuantity(item.id, item.quantity - 1, item.availableStock));
+      increaseBtn?.addEventListener('click', () => changeQuantity(item.id, item.quantity + 1, item.availableStock));
+      fragment.querySelector('[data-cart-item-remove]')?.addEventListener('click', () => removeCartItem(item.id));
+
+      return fragment;
+    }
+
+    function render(cart: CartView) {
+      hasLoadedOnce = true;
+      if (
+        !(itemsList instanceof HTMLElement) ||
+        !(emptyState instanceof HTMLElement) ||
+        !(loadingState instanceof HTMLElement) ||
+        !(footer instanceof HTMLElement) ||
+        !(subtotalEl instanceof HTMLElement)
+      ) {
+        return;
+      }
+      loadingState.hidden = true;
+
+      if (cart.items.length === 0) {
+        itemsList.hidden = true;
+        itemsList.innerHTML = '';
+        footer.hidden = true;
+        emptyState.hidden = false;
+        return;
+      }
+
+      emptyState.hidden = true;
+      footer.hidden = false;
+      itemsList.hidden = false;
+      subtotalEl.textContent = formatMoney(cart.subtotalMinor, cart.currency);
+
+      itemsList.innerHTML = '';
+      for (const item of cart.items) {
+        const node = renderItem(item);
+        if (node) itemsList.appendChild(node);
+      }
+    }
+
+    onCartChanged(render);
+
+    // Populate the header badge / drawer contents once on every page load
+    // (not just when the drawer opens) so the header's item-count badge
+    // is correct even if the visitor never opens the drawer this visit.
+    if (!hasLoadedOnce) fetchCart().catch(() => {});
+  }
+
+  initCartDrawer();
+  document.addEventListener('astro:page-load', initCartDrawer);
+</script>
+
+<style>
+  .cart-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .cart-drawer[data-state='open'] {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .cart-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(41, 45, 39, 0.45);
+    opacity: 0;
+    transition: opacity 280ms ease;
+  }
+  .cart-drawer[data-state='open'] .cart-drawer-backdrop { opacity: 1; }
+
+  .cart-drawer-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(92vw, 26rem);
+    height: 100%;
+    background: var(--color-surface);
+    color: var(--color-body);
+    transform: translateX(100%);
+    transition: transform 280ms ease;
+  }
+  .cart-drawer[data-state='open'] .cart-drawer-panel { transform: translateX(0); }
+
+  .cart-drawer-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 4.5rem;
+    padding: 0 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .cart-drawer-title { font-size: 1.25rem; color: var(--color-heading); }
+
+  .cart-drawer-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    color: var(--color-pine-dark, var(--color-heading));
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .cart-drawer-icon-button:hover { background: color-mix(in oklab, var(--color-brand) 10%, transparent); }
+
+  .cart-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+  }
+
+  .cart-skeleton-row {
+    height: 5.5rem;
+    border-radius: var(--radius-card);
+    background: linear-gradient(90deg, var(--color-cream) 25%, var(--color-border) 37%, var(--color-cream) 63%);
+    background-size: 400% 100%;
+    animation: cart-skeleton-shimmer 1.4s ease infinite;
+    margin-bottom: 0.75rem;
+  }
+  @keyframes cart-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .cart-drawer-empty {
+    text-align: center;
+    padding: 2.5rem 0.5rem;
+  }
+  .cart-drawer-empty-heading { font-size: 1.125rem; color: var(--color-heading); margin: 0; }
+  .cart-drawer-empty-body { font-size: 0.875rem; color: var(--color-muted); margin: 0.5rem 0 0; }
+
+  .cart-drawer-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cart-item {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto;
+    gap: 0.75rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cart-item:first-child { padding-top: 0; }
+
+  .cart-item-image {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cart-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.4rem; }
+
+  .cart-item-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    line-height: 1.3;
+  }
+  .cart-item-variant { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
+  .cart-item-stock-note { margin: 0.25rem 0 0; font-size: 0.7rem; color: var(--color-amber, var(--color-body)); }
+
+  .cart-item-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .cart-item-qty {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .cart-item-qty-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--color-heading);
+  }
+  .cart-item-qty-btn:hover:not(:disabled) { background: var(--color-cream); }
+  .cart-item-qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .cart-item-qty-value { min-width: 1.5rem; text-align: center; font-size: 0.8125rem; }
+
+  .cart-item-remove {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .cart-item-remove:hover { color: var(--color-brand); }
+
+  .cart-item-line-total {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    white-space: nowrap;
+  }
+
+  .cart-drawer-footer {
+    flex-shrink: 0;
+    padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .cart-drawer-subtotal-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-heading);
+  }
+  .cart-drawer-subtotal { font-size: 1.125rem; }
+  .cart-drawer-subtotal-note { margin: 0.2rem 0 0.9rem; font-size: 0.75rem; color: var(--color-muted); }
+  .cart-drawer-btn { width: 100%; margin-top: 0.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart-drawer-backdrop,
+    .cart-drawer-panel,
+    .cart-skeleton-row {
+      transition: none;
+      animation: none;
+    }
+  }
+</style>

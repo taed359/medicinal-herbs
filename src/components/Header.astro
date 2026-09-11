@@ -188,13 +188,22 @@ const accountHref = `/customer/account?lang=${lang}`;
           </svg>
         </button>
 
-        <a href="#" aria-label={t.header.cartLabel} class="relative text-pine-dark hover:text-amber transition-colors">
+        <button
+          type="button"
+          aria-label={t.header.cartLabel}
+          class="relative text-pine-dark hover:text-amber transition-colors cursor-pointer"
+          data-cart-trigger
+        >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M4 7h16l-1.5 10.5a2 2 0 0 1-2 1.5H7.5a2 2 0 0 1-2-1.5L4 7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
             <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="1.5" />
           </svg>
-          <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-sale text-white text-[10px] leading-none">0</span>
-        </a>
+          <span
+            class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-sale text-white text-[10px] leading-none"
+            data-cart-count
+            hidden
+          >0</span>
+        </button>
       </div>
     </div>
   </div>
@@ -972,4 +981,50 @@ const accountHref = `/customer/account?lang=${lang}`;
     initAccountMenus();
   }
   document.addEventListener('astro:page-load', initAccountMenus);
+</script>
+
+<script>
+  // Cart icon (desktop + any future duplicate carrying data-cart-trigger)
+  // opens the site-wide CartDrawer (mounted once in Layout.astro) --
+  // never navigates. Badge count is populated client-side via
+  // src/lib/cart-client.ts, the same reason Header's own account widget
+  // resolves session state client-side (see initAccountWidgets above):
+  // every page rendering this Header is fully static/prerendered, so
+  // there is no per-visitor cart to bake into the HTML at build time.
+  import { requestOpenCartDrawer, onCartChanged } from '../lib/cart-client';
+  import type { CartView } from '../domain/types';
+
+  function updateCartBadges(cart: CartView) {
+    document.querySelectorAll('[data-cart-count]').forEach((badge) => {
+      if (!(badge instanceof HTMLElement)) return;
+      if (cart.itemCount > 0) {
+        badge.hidden = false;
+        badge.textContent = cart.itemCount > 99 ? '99+' : String(cart.itemCount);
+      } else {
+        badge.hidden = true;
+      }
+    });
+  }
+
+  function initCartTriggers() {
+    document.querySelectorAll('[data-cart-trigger]').forEach((trigger) => {
+      if (!(trigger instanceof HTMLElement) || trigger.dataset.wired === 'true') return;
+      trigger.dataset.wired = 'true';
+      trigger.addEventListener('click', () => requestOpenCartDrawer());
+    });
+  }
+
+  // `onCartChanged` listens on `document`, which persists across Astro
+  // soft-navigations even though this module's own top-level code may
+  // re-run on each one (same class of problem the mobile-drawer script
+  // above guards against, just via a body-dataset flag instead of an
+  // element one, since there's no single element that "owns" this
+  // subscription the way the drawer owns its own `dataset.initialized`).
+  if (document.body.dataset.cartBadgeWired !== 'true') {
+    document.body.dataset.cartBadgeWired = 'true';
+    onCartChanged(updateCartBadges);
+  }
+
+  initCartTriggers();
+  document.addEventListener('astro:page-load', initCartTriggers);
 </script>

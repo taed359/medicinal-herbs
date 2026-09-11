@@ -106,3 +106,66 @@ export interface ProductSummaryView {
   compareAtMinor: number | null;
   currency: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Cart & Checkout read models — see src/server/commerce/*.ts for the logic
+// that produces these. Same "resolved, locale-picked strings" convention as
+// every other view type in this file.
+// ---------------------------------------------------------------------------
+
+export interface CartItemView {
+  id: string;
+  variantId: string;
+  productId: string;
+  productSlug: string;
+  categoryId: string;
+  productName: string;
+  variantLabel: string;
+  sku: string;
+  image: LocalizedImage | null;
+  unitPriceMinor: number;
+  currency: string;
+  quantity: number;
+  lineTotalMinor: number;
+  /** null = stock not tracked for this variant (always purchasable). */
+  availableStock: number | null;
+}
+
+export interface CartView {
+  /** null when no cart cookie/row exists yet (nothing added this session). */
+  id: string | null;
+  items: CartItemView[];
+  itemCount: number;
+  subtotalMinor: number;
+  currency: string;
+}
+
+export interface OrderItemLineView {
+  productName: string;
+  variantLabel: string | null;
+  sku: string;
+  unitPriceMinor: number;
+  quantity: number;
+  lineTotalMinor: number;
+}
+
+export interface OrderView {
+  orderNumber: string;
+  status: string;
+  paymentMethod: 'cod' | 'bank_transfer';
+  paymentStatus: string;
+  currency: string;
+  subtotalMinor: number;
+  shippingFeeMinor: number;
+  totalMinor: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddressLine1: string;
+  shippingWard: string | null;
+  shippingDistrict: string | null;
+  shippingProvince: string;
+  note: string | null;
+  createdAt: string;
+  items: OrderItemLineView[];
+}

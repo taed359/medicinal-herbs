@@ -33,6 +33,7 @@ const name = product.name;
 const catLabel = category.name;
 const collectionPath = `products/${category.slug}`;
 const backHref = localePath(lang, collectionPath);
+const contactHref = localePath(lang, 'contact');
 
 const primaryImage = product.images.find((img) => img.role === 'primary') ?? product.images[0] ?? null;
 
@@ -228,39 +229,60 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
               </div>
             </dl>
 
-            <form class="pd-purchase mt-8" onsubmit="return false">
-              <label for="pdp-quantity" class="pd-quantity-label text-sm">
-                {t.productDetail.quantityLabel}
-              </label>
-              <div class="pd-purchase-row">
-                <div class="pd-quantity-control" data-quantity-control>
-                  <button
-                    type="button"
-                    class="pd-quantity-button"
-                    data-quantity-action="decrease"
-                    aria-label={`${t.productDetail.quantityLabel} −`}
-                  >−</button>
-                  <input
-                    id="pdp-quantity"
-                    name="quantity"
-                    type="number"
-                    value="1"
-                    min="1"
-                    inputmode="numeric"
-                    class="pd-quantity"
-                  />
-                  <button
-                    type="button"
-                    class="pd-quantity-button"
-                    data-quantity-action="increase"
-                    aria-label={`${t.productDetail.quantityLabel} +`}
-                  >+</button>
+            {hasPrice ? (
+              <form
+                class="pd-purchase mt-8"
+                data-add-to-cart-form
+                data-variant-id={defaultVariant.id}
+                data-available-stock={defaultVariant.inventoryQuantity ?? ''}
+                data-label-default={t.productDetail.addToCartLabel}
+                data-label-adding={t.productDetail.addingToCartLabel}
+                data-label-added={t.productDetail.addedToCartLabel}
+                data-error-no-price={t.productDetail.noPriceError}
+                data-error-insufficient-stock={t.productDetail.insufficientStockError}
+                data-error-generic={t.productDetail.genericAddToCartError}
+                onsubmit="return false"
+              >
+                <label for="pdp-quantity" class="pd-quantity-label text-sm">
+                  {t.productDetail.quantityLabel}
+                </label>
+                <div class="pd-purchase-row">
+                  <div class="pd-quantity-control" data-quantity-control>
+                    <button
+                      type="button"
+                      class="pd-quantity-button"
+                      data-quantity-action="decrease"
+                      aria-label={`${t.productDetail.quantityLabel} −`}
+                    >−</button>
+                    <input
+                      id="pdp-quantity"
+                      name="quantity"
+                      type="number"
+                      value="1"
+                      min="1"
+                      inputmode="numeric"
+                      class="pd-quantity"
+                    />
+                    <button
+                      type="button"
+                      class="pd-quantity-button"
+                      data-quantity-action="increase"
+                      aria-label={`${t.productDetail.quantityLabel} +`}
+                    >+</button>
+                  </div>
+                  <button type="submit" class="btn btn-primary pd-add-to-cart cursor-pointer" data-add-to-cart-button>
+                    <span data-add-to-cart-label>{t.productDetail.addToCartLabel}</span>
+                  </button>
                 </div>
-                <button type="submit" class="btn btn-primary pd-add-to-cart cursor-pointer">
-                  {t.productDetail.addToCartLabel}
-                </button>
+                <p class="pd-add-to-cart-error" data-add-to-cart-error hidden></p>
+              </form>
+            ) : (
+              <div class="pd-purchase mt-8">
+                <a href={contactHref} data-astro-reload class="btn btn-primary pd-add-to-cart">
+                  {t.productDetail.contactForPriceCta}
+                </a>
               </div>
-            </form>
+            )}
           </>
         )}
 
@@ -820,6 +842,17 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
     .pd-quantity-button,
     .pd-tab { transition: none; }
   }
+
+  .pd-add-to-cart-error {
+    margin: 0.6rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-sale, #b3261e);
+  }
+
+  .pd-add-to-cart[aria-busy='true'] {
+    opacity: 0.7;
+    pointer-events: none;
+  }
 </style>
 
 <script>
@@ -850,6 +883,75 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
           panel.hidden = panel.id !== targetId;
         });
       });
+    });
+  });
+</script>
+<script>
+  import { addToCart, requestOpenCartDrawer } from '../lib/cart-client';
+
+  document.querySelectorAll('[data-add-to-cart-form]').forEach((form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    const variantId = form.dataset.variantId;
+    if (!variantId) return;
+
+    const submitButton = form.querySelector('[data-add-to-cart-button]');
+    const labelEl = form.querySelector('[data-add-to-cart-label]');
+    const errorEl = form.querySelector('[data-add-to-cart-error]');
+    const quantityInput = form.querySelector('input[name="quantity"]');
+
+    const labelDefault = form.dataset.labelDefault ?? '';
+    const labelAdding = form.dataset.labelAdding ?? labelDefault;
+    const labelAdded = form.dataset.labelAdded ?? labelDefault;
+    const errorNoPrice = form.dataset.errorNoPrice ?? '';
+    const errorInsufficientStockTemplate = form.dataset.errorInsufficientStock ?? '';
+    const errorGeneric = form.dataset.errorGeneric ?? '';
+
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function setLabel(text: string) {
+      if (labelEl) labelEl.textContent = text;
+    }
+
+    function showError(message: string) {
+      if (!(errorEl instanceof HTMLElement)) return;
+      errorEl.textContent = message;
+      errorEl.hidden = message.length === 0;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!(submitButton instanceof HTMLButtonElement) || !(quantityInput instanceof HTMLInputElement)) return;
+
+      const rawQuantity = Math.trunc(Number(quantityInput.value));
+      const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1;
+
+      showError('');
+      submitButton.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      setLabel(labelAdding);
+      if (resetTimer) clearTimeout(resetTimer);
+
+      const result = await addToCart(variantId, quantity);
+
+      submitButton.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+
+      if (result.ok) {
+        setLabel(labelAdded);
+        requestOpenCartDrawer();
+        resetTimer = setTimeout(() => setLabel(labelDefault), 2000);
+        return;
+      }
+
+      setLabel(labelDefault);
+      if (result.error.error === 'no_price') {
+        showError(errorNoPrice);
+      } else if (result.error.error === 'insufficient_stock') {
+        const available = result.error.availableStock ?? 0;
+        showError(errorInsufficientStockTemplate.replace('{count}', String(available)));
+      } else {
+        showError(errorGeneric);
+      }
     });
   });
 </script>

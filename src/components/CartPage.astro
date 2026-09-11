@@ -1,0 +1,408 @@
+---
+/**
+ * Full cart page (/vi/cart, /zh/cart) -- linked from CartDrawer's "View
+ * cart" button and Header's cart badge flow. Same "static shell, client-
+ * populated" posture as CartDrawer.astro (see its own doc comment): this
+ * page is fully prerendered, cart contents don't exist at build time, so
+ * everything below the skeleton is filled in by src/lib/cart-client.ts's
+ * fetchCart() after mount -- exactly the pattern Header's account widget
+ * and CartDrawer already use.
+ *
+ * Deliberately NOT a copy-paste of CartDrawer's markup: this is a full
+ * page layout (item list + summary sidebar side by side on desktop)
+ * rather than an off-canvas panel, so it gets its own template/script/
+ * styles, even though the underlying fetch/update/remove calls are the
+ * exact same cart-client functions.
+ */
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import { defaultLocale, getTranslations, isLocale, localePath, type Locale, type RouteLocale } from '../i18n/utils';
+
+interface Props {
+  lang: RouteLocale;
+  uiLang?: Locale;
+}
+const { lang, uiLang: requestedUiLang } = Astro.props;
+const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
+const t = getTranslations(uiLang);
+const homeHref = localePath(lang, '');
+const checkoutHref = localePath(lang, 'checkout');
+---
+<Layout lang={lang} uiLang={uiLang} title={`${t.cart.title} — ${t.common.siteName}`} noindex={true}>
+  <section
+    class="cart-page py-8 sm:py-10"
+    aria-labelledby="cart-page-title"
+    data-cart-page
+    data-checkout-href={checkoutHref}
+    data-home-href={homeHref}
+    data-stock-limit-note={t.cart.stockLimitNote}
+    data-error-generic={t.cart.errorGeneric}
+  >
+    <div class="container-page">
+      <Breadcrumbs
+        lang={uiLang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: t.cart.title, current: true },
+        ]}
+      />
+
+      <header class="cart-page-title">
+        <h1 id="cart-page-title" class="font-serif m-0">{t.cart.title}</h1>
+      </header>
+
+      <p class="cart-page-error" data-cart-page-error hidden role="alert"></p>
+
+      <div class="cart-page-loading" data-cart-page-loading aria-hidden="true">
+        <div class="cart-skeleton-row"></div>
+        <div class="cart-skeleton-row"></div>
+        <div class="cart-skeleton-row"></div>
+      </div>
+
+      <div class="cart-page-empty" data-cart-page-empty hidden>
+        <p class="cart-page-empty-heading font-serif">{t.cart.emptyHeading}</p>
+        <p class="cart-page-empty-body">{t.cart.emptyBody}</p>
+        <a href={homeHref} data-astro-reload class="btn btn-primary mt-4">{t.cart.continueShopping}</a>
+      </div>
+
+      <div class="cart-page-layout" data-cart-page-layout hidden>
+        <ul class="cart-page-items" data-cart-page-items aria-label={t.cart.title}></ul>
+
+        <aside class="cart-page-summary" aria-labelledby="cart-summary-heading">
+          <h2 id="cart-summary-heading" class="cart-page-summary-heading font-serif">{t.cart.title}</h2>
+          <div class="cart-page-summary-row">
+            <span>{t.cart.subtotalLabel}</span>
+            <span data-cart-page-subtotal>—</span>
+          </div>
+          <p class="cart-page-summary-note">{t.cart.subtotalNote}</p>
+          <a href={checkoutHref} data-astro-reload class="btn btn-primary cart-page-summary-btn">{t.cart.checkoutButton}</a>
+          <a href={homeHref} data-astro-reload class="btn btn-secondary cart-page-summary-btn">{t.cart.continueShopping}</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <template id="cart-page-item-template">
+    <li class="cart-page-item" data-cart-item>
+      <div class="cart-page-item-image" data-cart-item-image-wrap>
+        <img data-cart-item-image alt="" loading="lazy" />
+      </div>
+      <div class="cart-page-item-info">
+        <p class="cart-page-item-name" data-cart-item-name></p>
+        <p class="cart-page-item-variant" data-cart-item-variant></p>
+        <p class="cart-page-item-sku" data-cart-item-sku></p>
+        <p class="cart-page-item-stock-note" data-cart-item-stock-note hidden></p>
+      </div>
+      <div class="cart-page-item-qty" data-cart-item-qty-control>
+        <button type="button" class="cart-page-item-qty-btn" data-cart-qty-decrease aria-label={`${t.cart.quantityLabel} −`}>−</button>
+        <span class="cart-page-item-qty-value" data-cart-item-qty></span>
+        <button type="button" class="cart-page-item-qty-btn" data-cart-qty-increase aria-label={`${t.cart.quantityLabel} +`}>+</button>
+      </div>
+      <div class="cart-page-item-line-total" data-cart-item-line-total></div>
+      <button type="button" class="cart-page-item-remove" data-cart-item-remove aria-label={t.cart.removeLabel}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>{t.cart.removeLabel}</span>
+      </button>
+    </li>
+  </template>
+</Layout>
+
+<script>
+  import { fetchCart, updateCartItem, removeCartItem, onCartChanged, formatMoney } from '../lib/cart-client';
+  import type { CartView, CartItemView } from '../domain/types';
+
+  function initCartPage() {
+    const root = document.querySelector('[data-cart-page]');
+    if (!(root instanceof HTMLElement) || root.dataset.initialized === 'true') return;
+    root.dataset.initialized = 'true';
+
+    const loadingState = root.querySelector('[data-cart-page-loading]');
+    const emptyState = root.querySelector('[data-cart-page-empty]');
+    const layout = root.querySelector('[data-cart-page-layout]');
+    const itemsList = root.querySelector('[data-cart-page-items]');
+    const subtotalEl = root.querySelector('[data-cart-page-subtotal]');
+    const errorEl = root.querySelector('[data-cart-page-error]');
+    const template = document.getElementById('cart-page-item-template');
+    const stockLimitNoteTemplate = root.dataset.stockLimitNote ?? '';
+    const errorGenericText = root.dataset.errorGeneric ?? '';
+
+    function stockNoteText(count: number): string {
+      return stockLimitNoteTemplate.replace('{count}', String(count));
+    }
+
+    function showError(show: boolean) {
+      if (!(errorEl instanceof HTMLElement)) return;
+      errorEl.hidden = !show;
+      if (show) errorEl.textContent = errorGenericText;
+    }
+
+    async function changeQuantity(itemId: string, quantity: number) {
+      showError(false);
+      const result = quantity <= 0 ? await removeCartItem(itemId) : await updateCartItem(itemId, quantity);
+      if (!result.ok) {
+        showError(true);
+        // Re-sync with the server's real state (e.g. a stock cap was hit).
+        fetchCart().catch(() => {});
+      }
+    }
+
+    function renderItem(item: CartItemView): Node | null {
+      if (!(template instanceof HTMLTemplateElement)) return null;
+      const fragment = template.content.cloneNode(true) as DocumentFragment;
+      const li = fragment.querySelector('[data-cart-item]');
+      if (li instanceof HTMLElement) li.dataset.itemId = item.id;
+
+      const imageWrap = fragment.querySelector('[data-cart-item-image-wrap]');
+      const img = fragment.querySelector('[data-cart-item-image]');
+      if (img instanceof HTMLImageElement) {
+        if (item.image) {
+          img.src = item.image.url;
+          img.alt = item.image.alt || item.productName;
+        } else if (imageWrap instanceof HTMLElement) {
+          imageWrap.remove();
+        }
+      }
+
+      const nameEl = fragment.querySelector('[data-cart-item-name]');
+      if (nameEl) nameEl.textContent = item.productName;
+
+      const variantEl = fragment.querySelector('[data-cart-item-variant]');
+      if (variantEl instanceof HTMLElement) {
+        if (item.variantLabel) variantEl.textContent = item.variantLabel;
+        else variantEl.remove();
+      }
+
+      const skuEl = fragment.querySelector('[data-cart-item-sku]');
+      if (skuEl) skuEl.textContent = item.sku;
+
+      const qtyEl = fragment.querySelector('[data-cart-item-qty]');
+      if (qtyEl) qtyEl.textContent = String(item.quantity);
+
+      const lineTotalEl = fragment.querySelector('[data-cart-item-line-total]');
+      if (lineTotalEl) lineTotalEl.textContent = formatMoney(item.lineTotalMinor, item.currency);
+
+      const stockNote = fragment.querySelector('[data-cart-item-stock-note]');
+      if (stockNote instanceof HTMLElement) {
+        if (item.availableStock != null && item.availableStock <= 5) {
+          stockNote.hidden = false;
+          stockNote.textContent = stockNoteText(item.availableStock);
+        } else {
+          stockNote.hidden = true;
+        }
+      }
+
+      const decreaseBtn = fragment.querySelector('[data-cart-qty-decrease]');
+      const increaseBtn = fragment.querySelector('[data-cart-qty-increase]');
+      if (item.availableStock != null && item.quantity >= item.availableStock && increaseBtn instanceof HTMLButtonElement) {
+        increaseBtn.disabled = true;
+      }
+      decreaseBtn?.addEventListener('click', () => changeQuantity(item.id, item.quantity - 1));
+      increaseBtn?.addEventListener('click', () => changeQuantity(item.id, item.quantity + 1));
+      fragment.querySelector('[data-cart-item-remove]')?.addEventListener('click', () => changeQuantity(item.id, 0));
+
+      return fragment;
+    }
+
+    function render(cart: CartView) {
+      if (
+        !(itemsList instanceof HTMLElement) ||
+        !(emptyState instanceof HTMLElement) ||
+        !(loadingState instanceof HTMLElement) ||
+        !(layout instanceof HTMLElement) ||
+        !(subtotalEl instanceof HTMLElement)
+      ) {
+        return;
+      }
+      loadingState.hidden = true;
+
+      if (cart.items.length === 0) {
+        layout.hidden = true;
+        emptyState.hidden = false;
+        return;
+      }
+
+      emptyState.hidden = true;
+      layout.hidden = false;
+      subtotalEl.textContent = formatMoney(cart.subtotalMinor, cart.currency);
+
+      itemsList.innerHTML = '';
+      for (const item of cart.items) {
+        const node = renderItem(item);
+        if (node) itemsList.appendChild(node);
+      }
+    }
+
+    onCartChanged(render);
+    fetchCart().catch(() => {
+      if (loadingState instanceof HTMLElement) loadingState.hidden = true;
+      showError(true);
+    });
+  }
+
+  initCartPage();
+  document.addEventListener('astro:page-load', initCartPage);
+</script>
+
+<style>
+  .cart-page-title h1 {
+    color: var(--color-heading);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 2rem;
+  }
+
+  .cart-page-error {
+    margin: 0 0 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-thumb);
+    background: color-mix(in oklab, var(--color-sale) 10%, transparent);
+    color: var(--color-sale);
+    font-size: 0.875rem;
+  }
+
+  .cart-skeleton-row {
+    height: 6.5rem;
+    border-radius: var(--radius-card);
+    background: linear-gradient(90deg, var(--color-cream) 25%, var(--color-border) 37%, var(--color-cream) 63%);
+    background-size: 400% 100%;
+    animation: cart-page-skeleton-shimmer 1.4s ease infinite;
+    margin-bottom: 0.85rem;
+  }
+  @keyframes cart-page-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .cart-page-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+  .cart-page-empty-heading { font-size: 1.5rem; color: var(--color-heading); margin: 0; }
+  .cart-page-empty-body { font-size: 0.95rem; color: var(--color-muted); margin: 0.6rem auto 0; max-width: 40ch; }
+
+  .cart-page-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .cart-page-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .cart-page-item {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr auto auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .cart-page-item-image {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cart-page-item-image img { width: 100%; height: 100%; object-fit: contain; padding: 0.5rem; }
+
+  .cart-page-item-name { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-heading); line-height: 1.35; }
+  .cart-page-item-variant { margin: 0.2rem 0 0; font-size: 0.8125rem; color: var(--color-muted); }
+  .cart-page-item-sku { margin: 0.15rem 0 0; font-size: 0.7rem; color: var(--color-muted); letter-spacing: 0.02em; }
+  .cart-page-item-stock-note { margin: 0.3rem 0 0; font-size: 0.75rem; color: var(--color-amber, var(--color-body)); }
+
+  .cart-page-item-qty {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    justify-self: start;
+  }
+  .cart-page-item-qty-btn {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--color-heading);
+  }
+  .cart-page-item-qty-btn:hover:not(:disabled) { background: var(--color-cream); }
+  .cart-page-item-qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .cart-page-item-qty-value { min-width: 1.75rem; text-align: center; font-size: 0.875rem; }
+
+  .cart-page-item-line-total {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    white-space: nowrap;
+    justify-self: end;
+  }
+
+  .cart-page-item-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 0;
+    padding: 0.35rem;
+    color: var(--color-muted);
+    cursor: pointer;
+  }
+  .cart-page-item-remove:hover { color: var(--color-sale); }
+  .cart-page-item-remove span {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .cart-page-summary {
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .cart-page-summary-heading { font-size: 1.25rem; color: var(--color-heading); margin: 0 0 1rem; }
+  .cart-page-summary-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-heading);
+  }
+  .cart-page-summary-row span:last-child { font-size: 1.25rem; }
+  .cart-page-summary-note { margin: 0.35rem 0 1.25rem; font-size: 0.8125rem; color: var(--color-muted); }
+  .cart-page-summary-btn { width: 100%; margin-top: 0.65rem; }
+
+  @media (min-width: 1024px) {
+    .cart-page-layout {
+      grid-template-columns: minmax(0, 1fr) 22rem;
+      gap: 3rem;
+    }
+    .cart-page-summary { position: sticky; top: 6rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart-skeleton-row { animation: none; }
+  }
+</style>

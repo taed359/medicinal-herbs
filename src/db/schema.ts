@@ -441,3 +441,113 @@ export const customerLoginAttempts = pgTable('customer_login_attempts', {
   count: integer('count').notNull().default(0),
   windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Commerce: carts / cart_items / orders / order_items — Cart & Checkout
+// (COD + manual bank-transfer only; no live payment gateway integration —
+// see claude/project-status.md's "Cart & Checkout" section for why).
+//
+// Design notes:
+//  - A cart is identified by an opaque id kept in an httpOnly `cart_id`
+//    cookie (src/server/commerce/cart-cookie.ts) — created lazily on the
+//    first add-to-cart, not for every visitor. `customerId` is set once a
+//    guest with an active cart logs in (see cart-service.ts's cart merge),
+//    so the SAME row can start as a guest cart and become a customer's.
+//  - cart_items deliberately carries NO price column. Price is always
+//    resolved live from `pricing` at read/checkout time (same "current
+//    price" join every product page already uses) — a cart must never show
+//    a stale price. This also means a product whose price is later removed
+//    (e.g. converted to price-on-request) naturally can't be checked out;
+//    cart-service.ts's add/update paths already refuse to add a variant
+//    with no active price row at all.
+//  - orders/order_items, by contrast, DO snapshot everything (name, sku,
+//    variant label, unit price) — an order is a historical record of what
+//    was actually agreed at purchase time and must never change even if
+//    the product catalog changes later. `variant_id` on order_items is
+//    nullable with `onDelete: 'set null'` for exactly this reason: deleting
+//    a variant from the catalog must never delete or corrupt order history.
+//  - No separate order-status-history table yet (deliberately, matching
+//    this project's "no unnecessary complexity" posture) — `orders.status`
+//    + `updated_at` is enough for a single-operator COD/bank-transfer flow.
+//    Can grow into one later without touching this shape.
+// ---------------------------------------------------------------------------
+export const carts = pgTable('carts', {
+  id: text('id').primaryKey(),
+  customerId: text('customer_id').references(() => customerUsers.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('active'),
+  currency: text('currency').notNull().default('VND'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_carts_customer').on(table.customerId),
+  check('carts_status_check', sql`${table.status} IN ('active', 'converted')`),
+]);
+
+export const cartItems = pgTable('cart_items', {
+  id: text('id').primaryKey(),
+  cartId: text('cart_id').notNull().references(() => carts.id, { onDelete: 'cascade' }),
+  variantId: text('variant_id').notNull().references(() => productVariants.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_cart_items_cart_variant').on(table.cartId, table.variantId),
+  index('idx_cart_items_cart').on(table.cartId),
+  check('cart_items_quantity_check', sql`${table.quantity} > 0`),
+]);
+
+export const orders = pgTable('orders', {
+  id: text('id').primaryKey(),
+  // Human-facing order number (e.g. "DH-M1A2B3-XYZ") — distinct from `id`
+  // so the internal primary key never has to double as customer-facing
+  // copy. See order-service.ts for the generation scheme.
+  orderNumber: text('order_number').notNull().unique(),
+  customerId: text('customer_id').references(() => customerUsers.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
+  paymentMethod: text('payment_method').notNull(),
+  paymentStatus: text('payment_status').notNull().default('unpaid'),
+  currency: text('currency').notNull().default('VND'),
+  subtotalMinor: bigint('subtotal_minor', { mode: 'number' }).notNull(),
+  shippingFeeMinor: bigint('shipping_fee_minor', { mode: 'number' }).notNull().default(0),
+  totalMinor: bigint('total_minor', { mode: 'number' }).notNull(),
+  // Contact + shipping details are captured directly on the order (not
+  // joined from a separate addresses table — there is no customer address
+  // book yet, and guest checkout has no account to attach one to). Real
+  // enough for COD/bank-transfer fulfilment; an address-book table can be
+  // added later without touching this shape (orders would just start
+  // populating these fields FROM a chosen saved address instead of a form).
+  customerName: text('customer_name').notNull(),
+  customerEmail: text('customer_email').notNull(),
+  customerPhone: text('customer_phone').notNull(),
+  shippingAddressLine1: text('shipping_address_line1').notNull(),
+  shippingWard: text('shipping_ward'),
+  shippingDistrict: text('shipping_district'),
+  shippingProvince: text('shipping_province').notNull(),
+  shippingCountryCode: text('shipping_country_code').notNull().default('VN'),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_orders_customer').on(table.customerId),
+  index('idx_orders_email').on(table.customerEmail),
+  check('orders_status_check', sql`${table.status} IN ('pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled')`),
+  check('orders_payment_method_check', sql`${table.paymentMethod} IN ('cod', 'bank_transfer')`),
+  check('orders_payment_status_check', sql`${table.paymentStatus} IN ('unpaid', 'paid', 'refunded')`),
+]);
+
+export const orderItems = pgTable('order_items', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  variantId: text('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  // Snapshots — see the file-level doc comment above for why these are
+  // never re-joined from the live catalog.
+  productName: text('product_name').notNull(),
+  variantLabel: text('variant_label'),
+  sku: text('sku').notNull(),
+  unitPriceMinor: bigint('unit_price_minor', { mode: 'number' }).notNull(),
+  quantity: integer('quantity').notNull(),
+  lineTotalMinor: bigint('line_total_minor', { mode: 'number' }).notNull(),
+}, (table) => [
+  index('idx_order_items_order').on(table.orderId),
+  check('order_items_quantity_check', sql`${table.quantity} > 0`),
+]);

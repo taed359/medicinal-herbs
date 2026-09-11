@@ -40,6 +40,15 @@ export interface TranslationSchema {
     extractionMethodLabel: string;
     manufacturerLabel: string;
     certificationsHeading: string;
+    // Add-to-cart interaction states + the price-on-request fallback CTA
+    // (see ProductDetail.astro / src/lib/cart-client.ts). `{count}` is a
+    // plain string token, same convention as elsewhere in this file.
+    addingToCartLabel: string;
+    addedToCartLabel: string;
+    contactForPriceCta: string;
+    insufficientStockError: string;
+    noPriceError: string;
+    genericAddToCartError: string;
   };
   header: {
     /** Rotates through each phrase (3s auto-advance, manual prev/next
@@ -414,6 +423,86 @@ export interface TranslationSchema {
         ignoreNote: string;
       };
     };
+  };
+  // Cart & Checkout (see src/server/commerce/*.ts). COD/bank-transfer
+  // only -- no live payment gateway integration (see claude/project-
+  // status.md's "Cart & Checkout" section for why). `{token}` markers
+  // below are plain string tokens substituted at render time, same
+  // convention as auth.emails' `{siteName}`.
+  cart: {
+    title: string;
+    emptyHeading: string;
+    emptyBody: string;
+    continueShopping: string;
+    itemCountLabel: string; // e.g. "{count} sản phẩm"
+    quantityLabel: string;
+    removeLabel: string;
+    subtotalLabel: string;
+    subtotalNote: string;
+    viewCartButton: string;
+    checkoutButton: string;
+    updatingLabel: string;
+    stockLimitNote: string; // "Chỉ còn {count} sản phẩm" -- {count} token
+    errorGeneric: string;
+    drawerCloseLabel: string;
+    drawerAriaLabel: string;
+  };
+  checkout: {
+    pageTitle: string;
+    heading: string;
+    emptyCartHeading: string;
+    emptyCartBody: string;
+    orderSummaryHeading: string;
+    shippingHeading: string;
+    contactHeading: string;
+    fullNameLabel: string;
+    emailLabel: string;
+    phoneLabel: string;
+    addressLabel: string;
+    wardLabel: string;
+    districtLabel: string;
+    provinceLabel: string;
+    noteLabel: string;
+    notePlaceholder: string;
+    paymentHeading: string;
+    paymentCodLabel: string;
+    paymentCodDescription: string;
+    paymentBankTransferLabel: string;
+    paymentBankTransferDescription: string;
+    bankTransferInstructionsHeading: string;
+    bankTransferPlaceholderNote: string;
+    placeOrderButton: string;
+    placingOrderLabel: string;
+    subtotalLabel: string;
+    shippingFeeLabel: string;
+    shippingFeeFreeLabel: string;
+    totalLabel: string;
+    requiredFieldsNote: string;
+    errorEmptyCart: string;
+    errorInsufficientStock: string;
+    errorInvalidEmail: string;
+    errorGeneric: string;
+  };
+  orderConfirmation: {
+    pageTitle: string;
+    heading: string;
+    thankYouBody: string; // "{orderNumber}" token
+    orderNumberLabel: string;
+    statusLabel: string;
+    statusPendingLabel: string;
+    paymentMethodLabel: string;
+    codLabel: string;
+    bankTransferLabel: string;
+    bankTransferPlaceholderNote: string;
+    itemsHeading: string;
+    shippingToHeading: string;
+    subtotalLabel: string;
+    shippingFeeLabel: string;
+    shippingFeeFreeLabel: string;
+    totalLabel: string;
+    continueShoppingButton: string;
+    notFoundHeading: string;
+    notFoundBody: string;
   };
 }
 

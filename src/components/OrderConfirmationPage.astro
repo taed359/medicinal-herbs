@@ -1,0 +1,344 @@
+---
+/**
+ * Order confirmation page (/vi/checkout/confirmation,
+ * /zh/checkout/confirmation) -- reached only via the redirect at the end
+ * of CheckoutPage.astro's submit handler, which appends `?order=<orderNumber>
+ * &email=<customerEmail>`. Both are required by GET /api/orders/:orderNumber
+ * (see api/orders/[orderNumber].ts's doc comment) so an order number alone
+ * -- guessable, short -- can never pull someone else's order.
+ *
+ * Fully client-rendered for the same reason as CartPage/CheckoutPage: this
+ * is a prerendered static page, the order recap doesn't exist at build
+ * time. Also triggers one fetchCart() on mount purely to refresh the
+ * header badge/drawer -- placeOrder() clears the cart server-side, but
+ * nothing client-side knows that until something re-fetches it.
+ */
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import { defaultLocale, getTranslations, isLocale, localePath, type Locale, type RouteLocale } from '../i18n/utils';
+
+interface Props {
+  lang: RouteLocale;
+  uiLang?: Locale;
+}
+const { lang, uiLang: requestedUiLang } = Astro.props;
+const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
+const t = getTranslations(uiLang);
+const homeHref = localePath(lang, '');
+---
+<Layout lang={lang} uiLang={uiLang} title={`${t.orderConfirmation.pageTitle} — ${t.common.siteName}`} noindex={true}>
+  <section
+    class="confirmation-page py-8 sm:py-10"
+    aria-labelledby="confirmation-page-title"
+    data-confirmation-page
+    data-home-href={homeHref}
+    data-status-pending-label={t.orderConfirmation.statusPendingLabel}
+    data-cod-label={t.orderConfirmation.codLabel}
+    data-bank-transfer-label={t.orderConfirmation.bankTransferLabel}
+  >
+    <div class="container-page">
+      <Breadcrumbs
+        lang={uiLang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: t.orderConfirmation.pageTitle, current: true },
+        ]}
+      />
+
+      <div class="confirmation-loading" data-confirmation-loading aria-hidden="true">
+        <div class="cart-skeleton-row"></div>
+        <div class="cart-skeleton-row"></div>
+      </div>
+
+      <div class="confirmation-not-found" data-confirmation-not-found hidden>
+        <p class="confirmation-not-found-heading font-serif">{t.orderConfirmation.notFoundHeading}</p>
+        <p class="confirmation-not-found-body">{t.orderConfirmation.notFoundBody}</p>
+        <a href={homeHref} data-astro-reload class="btn btn-primary mt-4">{t.orderConfirmation.continueShoppingButton}</a>
+      </div>
+
+      <div class="confirmation-content" data-confirmation-content hidden>
+        <div class="confirmation-check" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="11" fill="var(--color-brand)" />
+            <path d="M7 12.5l3 3 7-7" stroke="var(--color-surface)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h1 id="confirmation-page-title" class="confirmation-heading font-serif">{t.orderConfirmation.heading}</h1>
+        <p class="confirmation-thank-you" data-confirmation-thank-you data-template={t.orderConfirmation.thankYouBody}></p>
+
+        <div class="confirmation-layout">
+          <div class="confirmation-main">
+            <section class="confirmation-panel" aria-labelledby="confirmation-order-heading">
+              <div class="confirmation-panel-row">
+                <span>{t.orderConfirmation.orderNumberLabel}</span>
+                <strong data-confirmation-order-number></strong>
+              </div>
+              <div class="confirmation-panel-row">
+                <span>{t.orderConfirmation.statusLabel}</span>
+                <strong data-confirmation-status></strong>
+              </div>
+              <div class="confirmation-panel-row">
+                <span>{t.orderConfirmation.paymentMethodLabel}</span>
+                <strong data-confirmation-payment-method></strong>
+              </div>
+              <p class="confirmation-bank-note" data-confirmation-bank-note hidden>{t.orderConfirmation.bankTransferPlaceholderNote}</p>
+            </section>
+
+            <section class="confirmation-panel" aria-labelledby="confirmation-items-heading">
+              <h2 id="confirmation-items-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.itemsHeading}</h2>
+              <ul class="confirmation-items" data-confirmation-items></ul>
+              <div class="confirmation-totals">
+                <div class="confirmation-panel-row">
+                  <span>{t.orderConfirmation.subtotalLabel}</span>
+                  <span data-confirmation-subtotal></span>
+                </div>
+                <div class="confirmation-panel-row">
+                  <span>{t.orderConfirmation.shippingFeeLabel}</span>
+                  <span data-confirmation-shipping-fee data-free-label={t.orderConfirmation.shippingFeeFreeLabel}></span>
+                </div>
+                <div class="confirmation-panel-row confirmation-total-row">
+                  <span>{t.orderConfirmation.totalLabel}</span>
+                  <span data-confirmation-total></span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="confirmation-panel confirmation-shipping" aria-labelledby="confirmation-shipping-heading">
+            <h2 id="confirmation-shipping-heading" class="confirmation-panel-heading font-serif">{t.orderConfirmation.shippingToHeading}</h2>
+            <p class="confirmation-address" data-confirmation-address></p>
+          </aside>
+        </div>
+
+        <a href={homeHref} data-astro-reload class="btn btn-secondary confirmation-continue-btn">{t.orderConfirmation.continueShoppingButton}</a>
+      </div>
+    </div>
+  </section>
+
+  <template id="confirmation-item-template">
+    <li class="confirmation-item">
+      <div class="confirmation-item-info">
+        <p class="confirmation-item-name" data-item-name></p>
+        <p class="confirmation-item-variant" data-item-variant></p>
+        <p class="confirmation-item-qty" data-item-qty></p>
+      </div>
+      <div class="confirmation-item-total" data-item-total></div>
+    </li>
+  </template>
+</Layout>
+
+<script>
+  import { fetchCart, formatMoney } from '../lib/cart-client';
+  import type { OrderView } from '../domain/types';
+
+  function initConfirmationPage() {
+    const root = document.querySelector('[data-confirmation-page]');
+    if (!(root instanceof HTMLElement) || root.dataset.initialized === 'true') return;
+    root.dataset.initialized = 'true';
+
+    const loadingState = root.querySelector('[data-confirmation-loading]');
+    const notFoundState = root.querySelector('[data-confirmation-not-found]');
+    const content = root.querySelector('[data-confirmation-content]');
+    const thankYouEl = root.querySelector('[data-confirmation-thank-you]');
+    const orderNumberEl = root.querySelector('[data-confirmation-order-number]');
+    const statusEl = root.querySelector('[data-confirmation-status]');
+    const paymentMethodEl = root.querySelector('[data-confirmation-payment-method]');
+    const bankNoteEl = root.querySelector('[data-confirmation-bank-note]');
+    const itemsList = root.querySelector('[data-confirmation-items]');
+    const subtotalEl = root.querySelector('[data-confirmation-subtotal]');
+    const shippingFeeEl = root.querySelector('[data-confirmation-shipping-fee]');
+    const totalEl = root.querySelector('[data-confirmation-total]');
+    const addressEl = root.querySelector('[data-confirmation-address]');
+    const itemTemplate = document.getElementById('confirmation-item-template');
+
+    const statusPendingLabel = root.dataset.statusPendingLabel ?? '';
+    const codLabel = root.dataset.codLabel ?? '';
+    const bankTransferLabel = root.dataset.bankTransferLabel ?? '';
+
+    function showNotFound() {
+      if (loadingState instanceof HTMLElement) loadingState.hidden = true;
+      if (notFoundState instanceof HTMLElement) notFoundState.hidden = false;
+    }
+
+    function renderItem(item: OrderView['items'][number], currency: string): Node | null {
+      if (!(itemTemplate instanceof HTMLTemplateElement)) return null;
+      const fragment = itemTemplate.content.cloneNode(true) as DocumentFragment;
+      const nameEl = fragment.querySelector('[data-item-name]');
+      if (nameEl) nameEl.textContent = item.productName;
+      const variantEl = fragment.querySelector('[data-item-variant]');
+      if (variantEl instanceof HTMLElement) {
+        if (item.variantLabel) variantEl.textContent = item.variantLabel;
+        else variantEl.remove();
+      }
+      const qtyEl = fragment.querySelector('[data-item-qty]');
+      if (qtyEl) qtyEl.textContent = `× ${item.quantity}`;
+      const totalEl2 = fragment.querySelector('[data-item-total]');
+      if (totalEl2) totalEl2.textContent = formatMoney(item.lineTotalMinor, currency);
+      return fragment;
+    }
+
+    function render(o: OrderView) {
+      if (
+        !(loadingState instanceof HTMLElement) ||
+        !(content instanceof HTMLElement) ||
+        !(thankYouEl instanceof HTMLElement) ||
+        !(orderNumberEl instanceof HTMLElement) ||
+        !(statusEl instanceof HTMLElement) ||
+        !(paymentMethodEl instanceof HTMLElement) ||
+        !(itemsList instanceof HTMLElement) ||
+        !(subtotalEl instanceof HTMLElement) ||
+        !(shippingFeeEl instanceof HTMLElement) ||
+        !(totalEl instanceof HTMLElement) ||
+        !(addressEl instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      loadingState.hidden = true;
+      content.hidden = false;
+
+      thankYouEl.textContent = (thankYouEl.dataset.template ?? '').replace('{orderNumber}', o.orderNumber);
+      orderNumberEl.textContent = o.orderNumber;
+      statusEl.textContent = o.status === 'pending' ? statusPendingLabel : o.status;
+      paymentMethodEl.textContent = o.paymentMethod === 'cod' ? codLabel : bankTransferLabel;
+      if (bankNoteEl instanceof HTMLElement) bankNoteEl.hidden = o.paymentMethod !== 'bank_transfer';
+
+      itemsList.innerHTML = '';
+      for (const item of o.items) {
+        const node = renderItem(item, o.currency);
+        if (node) itemsList.appendChild(node);
+      }
+
+      subtotalEl.textContent = formatMoney(o.subtotalMinor, o.currency);
+      shippingFeeEl.textContent = o.shippingFeeMinor > 0 ? formatMoney(o.shippingFeeMinor, o.currency) : (shippingFeeEl.dataset.freeLabel ?? '');
+      totalEl.textContent = formatMoney(o.totalMinor, o.currency);
+
+      const addressParts = [o.shippingAddressLine1, o.shippingWard, o.shippingDistrict, o.shippingProvince].filter(Boolean);
+      addressEl.textContent = `${o.customerName} — ${addressParts.join(', ')} — ${o.customerPhone}`;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const orderNumber = params.get('order');
+    const email = params.get('email');
+
+    if (!orderNumber || !email) {
+      showNotFound();
+    } else {
+      fetch(`/api/orders/${encodeURIComponent(orderNumber)}?email=${encodeURIComponent(email)}`, { credentials: 'same-origin' })
+        .then(async (res) => {
+          if (!res.ok) {
+            showNotFound();
+            return;
+          }
+          const data = (await res.json()) as OrderView;
+          render(data);
+        })
+        .catch(showNotFound);
+    }
+
+    // Cart was cleared server-side by placeOrder() -- refresh the header
+    // badge/drawer so they reflect that without needing a full reload.
+    fetchCart().catch(() => {});
+  }
+
+  initConfirmationPage();
+  document.addEventListener('astro:page-load', initConfirmationPage);
+</script>
+
+<style>
+  .confirmation-check { display: flex; justify-content: center; margin-bottom: 1rem; }
+
+  .confirmation-heading {
+    text-align: center;
+    color: var(--color-heading);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+  }
+  .confirmation-thank-you {
+    text-align: center;
+    color: var(--color-body);
+    max-width: 46ch;
+    margin: 0.75rem auto 0;
+  }
+
+  .cart-skeleton-row {
+    height: 6.5rem;
+    border-radius: var(--radius-card);
+    background: linear-gradient(90deg, var(--color-cream) 25%, var(--color-border) 37%, var(--color-cream) 63%);
+    background-size: 400% 100%;
+    animation: confirmation-skeleton-shimmer 1.4s ease infinite;
+    margin-bottom: 0.85rem;
+  }
+  @keyframes confirmation-skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .confirmation-not-found { text-align: center; padding: 4rem 1rem; }
+  .confirmation-not-found-heading { font-size: 1.5rem; color: var(--color-heading); margin: 0; }
+  .confirmation-not-found-body { font-size: 0.95rem; color: var(--color-muted); margin: 0.6rem auto 0; max-width: 40ch; }
+
+  .confirmation-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin: 2.5rem 0 2rem;
+  }
+  .confirmation-main { display: grid; gap: 1.5rem; }
+
+  .confirmation-panel {
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .confirmation-panel-heading { font-size: 1.1rem; color: var(--color-heading); margin: 0 0 1rem; }
+
+  .confirmation-panel-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--color-body);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .confirmation-panel-row:last-child { border-bottom: 0; }
+  .confirmation-panel-row strong { color: var(--color-heading); font-weight: 600; }
+
+  .confirmation-bank-note {
+    margin: 0.85rem 0 0;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-thumb);
+    background: var(--color-cream);
+    font-size: 0.8125rem;
+    color: var(--color-body);
+  }
+
+  .confirmation-items { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.85rem; }
+  .confirmation-item { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--color-border); }
+  .confirmation-item:last-child { border-bottom: 0; padding-bottom: 0; }
+  .confirmation-item-name { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--color-heading); }
+  .confirmation-item-variant { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
+  .confirmation-item-qty { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--color-muted); }
+  .confirmation-item-total { font-size: 0.9rem; font-weight: 600; color: var(--color-heading); white-space: nowrap; }
+
+  .confirmation-totals { margin-top: 0.5rem; }
+  .confirmation-total-row { font-size: 1rem; font-weight: 700; color: var(--color-heading); }
+  .confirmation-total-row span:last-child { font-size: 1.15rem; }
+
+  .confirmation-address { margin: 0; font-size: 0.9rem; color: var(--color-body); line-height: 1.6; }
+
+  .confirmation-continue-btn { display: block; width: fit-content; margin: 0 auto; }
+
+  @media (min-width: 1024px) {
+    .confirmation-layout { grid-template-columns: minmax(0, 1fr) 20rem; gap: 2rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart-skeleton-row { animation: none; }
+  }
+</style>
