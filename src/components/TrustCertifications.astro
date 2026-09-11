@@ -87,11 +87,13 @@ const items = ITEM_ORDER.map((key) => ({
         </div>
 
         <!-- No certifications/quality detail route exists anywhere in
-             src/pages yet (checked before adding this) -- same
-             "honest, not-yet-built destination" pattern already used
-             elsewhere on the homepage (e.g. HealthGoals' health-goals/
-             {slug} hrefs). Points at "#" until a real page exists;
-             swap for a real URL then, no other change needed here. -->
+             src/pages yet (checked before adding this) -- points at "#"
+             until a real page exists (HealthGoals.astro used to have the
+             same "honest, not-yet-built destination" placeholder for its
+             health-goals/{slug} hrefs; those routes now exist -- see
+             src/pages/{vi,zh}/health-goals/[slug].astro -- this one is
+             still open). Swap for a real URL then, no other change
+             needed here. -->
         <a href="#" class="tc-cta">
           {t.trustCertifications.ctaLabel}
           <span aria-hidden="true">→</span>

@@ -1,0 +1,451 @@
+---
+// Full-site search results page (Pagefind-powered), reached from the
+// header search forms (Header.astro -- action={localePath(lang, 'search')})
+// and, once landed on, also searchable in place. Mirrors the
+// HomePage.astro / ContactPage.astro convention: a shared,
+// lang-parameterized component, with a thin per-locale page under
+// src/pages/{vi,zh}/search.astro instantiating it.
+//
+// There is deliberately NO server-side search here (no data fetched in
+// this frontmatter) -- this page is fully static/prerendered like every
+// other storefront page (see astro.config.mjs, `output: 'static'`), and
+// Pagefind's index only exists as static JSON/WASM fragments generated
+// AFTER `astro build` (see package.json's `postbuild` script). The
+// actual query comes from the visitor's real URL (`?q=...`), which a
+// static build can never see at build time -- so every bit of search
+// behavior below (reading `?q=`, calling Pagefind, rendering results)
+// happens client-side, in the <script> at the bottom.
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const t = getTranslations(lang);
+
+// Handed to the client script as JSON (see the script tag below) rather
+// than baked into query-dependent markup -- this page's HTML is the same
+// for every visitor/query (see the frontmatter comment above), only the
+// client script varies what's shown.
+const i18n = {
+  resultsFor: t.search.resultsFor,
+  resultsCount: t.search.resultsCount,
+  noResultsHeading: t.search.noResultsHeading,
+  noResultsBody: t.search.noResultsBody,
+  loading: t.search.loadingLabel,
+  heading: t.search.heading,
+};
+---
+<Layout lang={lang} title={`${t.search.pageTitle} — ${t.common.siteName}`} noindex>
+  <section class="py-8 sm:py-10" aria-labelledby="search-heading" data-search-page>
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-5 sm:mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: localePath(lang, '') },
+          { label: t.search.heading, current: true },
+        ]}
+      />
+
+      <form data-search-form role="search" class="search-page-form" action={localePath(lang, 'search')} method="get">
+        <label for="search-page-input" class="sr-only">{t.header.searchLabel}</label>
+        <input
+          id="search-page-input"
+          name="q"
+          type="search"
+          data-search-input
+          placeholder={t.header.searchPlaceholder}
+          class="search-page-input"
+          autocomplete="off"
+        />
+        <svg class="search-page-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+          <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+        </svg>
+      </form>
+
+      <div class="mt-6 sm:mt-8">
+        <h1 id="search-heading" class="search-page-heading font-serif m-0" data-search-heading-query>{t.search.heading}</h1>
+        <p class="search-page-count m-0 mt-1" data-search-count hidden></p>
+      </div>
+
+      <p class="search-page-status mt-8" data-search-status hidden></p>
+
+      <div class="search-page-empty mt-8" data-search-empty hidden>
+        <p class="search-page-empty-heading font-serif m-0" data-empty-heading></p>
+        <p class="search-page-empty-body m-0 mt-2" data-empty-body></p>
+        <a href={localePath(lang, '')} data-astro-reload class="search-page-back inline-flex items-center gap-2 mt-4 no-underline text-sm">
+          <span aria-hidden="true">←</span>
+          <span>{t.search.backToShopping}</span>
+        </a>
+      </div>
+
+      <ul
+        class="search-page-results m-0 mt-8 grid list-none grid-cols-2 max-[479px]:grid-cols-1 gap-4 p-0 sm:grid-cols-3 lg:grid-cols-4 sm:gap-5 lg:gap-6"
+        data-search-results
+        role="list"
+      ></ul>
+    </div>
+  </section>
+</Layout>
+
+<script type="application/json" data-search-i18n set:html={JSON.stringify(i18n)} />
+
+<style>
+  .search-page-form {
+    position: relative;
+    max-width: 32rem;
+  }
+
+  .search-page-input {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-heading);
+  }
+
+  .search-page-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 35%, transparent);
+  }
+
+  .search-page-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-muted);
+    pointer-events: none;
+  }
+
+  .search-page-heading {
+    color: var(--color-heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    /* Long queries (or a very long noResultsBody swap-in) shouldn't blow
+       out the layout -- same treatment as ProductDetail's .pd-title-adjacent
+       text elsewhere in this codebase. */
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 640px) {
+    .search-page-heading {
+      font-size: 2.25rem;
+    }
+  }
+
+  .search-page-count {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
+
+  .search-page-status {
+    color: var(--color-muted);
+    font-size: 0.9375rem;
+  }
+
+  .search-page-empty-heading {
+    color: var(--color-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .search-page-empty-body {
+    max-width: 40rem;
+    color: var(--color-body);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+
+  .search-page-back {
+    color: var(--color-body);
+    transition: color 180ms ease;
+  }
+  .search-page-back:hover {
+    color: var(--color-brand);
+  }
+
+  /* Result cards -- deliberately a plain, lighter sibling of
+     ProductCard.astro's .pc-card rather than reusing that component
+     outright: results are rendered from raw Pagefind JSON via innerHTML
+     (see the script below), not through an Astro component instance, and
+     mix product pages (image/category/price meta present) with plain
+     content pages (home, contact, privacy policy -- none of that meta),
+     so every optional block below is CSS-only, not conditional markup. */
+  :global(.search-result-card) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    text-decoration: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  :global(.search-result-card:hover),
+  :global(.search-result-card:focus-visible) {
+    border-color: color-mix(in srgb, var(--color-gold) 45%, var(--color-border));
+    box-shadow: var(--shadow-card-hover);
+  }
+  :global(.search-result-image) {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    background: var(--color-cream);
+    overflow: hidden;
+  }
+  :global(.search-result-image img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 1.25rem;
+  }
+  :global(.search-result-body) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1rem 1.125rem;
+  }
+  :global(.search-result-category) {
+    margin: 0 0 0.375rem;
+    color: var(--color-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  html[lang='zh'] :global(.search-result-category) {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  :global(.search-result-title) {
+    margin: 0;
+    color: var(--color-heading);
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  :global(.search-result-excerpt) {
+    margin: 0.4rem 0 0;
+    color: var(--color-body);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    /* Pagefind's own excerpt already trims to a sensible length; this is
+       just a hard backstop against an unusually long one. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  :global(.search-result-excerpt mark) {
+    background: color-mix(in srgb, var(--color-amber-light) 55%, transparent);
+    color: inherit;
+    border-radius: 2px;
+  }
+  :global(.search-result-price) {
+    margin: 0.6rem 0 0;
+    color: var(--color-heading);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+</style>
+
+<script is:inline>
+  // Pagefind's client bundle is a build artifact, not an npm import --
+  // `pagefind` (the devDependency added in package.json) only ships the
+  // CLI that WRITES this file; the file itself (`/pagefind/pagefind.js`
+  // + its data fragments) is generated by the `postbuild` script AFTER
+  // `astro build`, landing in `.vercel/output/static/pagefind/` (the same
+  // directory Vercel serves as static assets -- see astro.config.mjs's
+  // own comment on why that's the adapter's real output dir, not `dist/`).
+  // It does not exist in `astro dev` or in a fresh checkout before the
+  // first build, so:
+  //   1. the import below MUST stay invisible to Vite's static analysis
+  //      (`/* @vite-ignore */`) -- otherwise Vite tries to resolve a
+  //      module that isn't there yet and the whole page fails to build;
+  //   2. it's wrapped in try/catch so a pre-build `astro dev` session (or
+  //      a deploy where indexing somehow didn't run) degrades to "no
+  //      results" instead of a broken page.
+  //
+  // Per-language behavior needs no code here at all: Pagefind reads each
+  // indexed page's <html lang> (see Layout.astro) and both segments the
+  // index AND filters a page's own searches to same-language results by
+  // default -- a search run from this /zh/ page only ever returns /zh/
+  // results, matching this project's separate, independently-crawlable
+  // /vi/ and /zh/ routes.
+  async function initSearchPage() {
+    const root = document.querySelector('[data-search-page]');
+    if (!(root instanceof HTMLElement) || root.dataset.searchInitialized === 'true') return;
+    root.dataset.searchInitialized = 'true';
+
+    const form = root.querySelector('[data-search-form]');
+    const input = root.querySelector('[data-search-input]');
+    const resultsEl = root.querySelector('[data-search-results]');
+    const statusEl = root.querySelector('[data-search-status]');
+    const emptyEl = root.querySelector('[data-search-empty]');
+    const emptyHeadingEl = emptyEl?.querySelector('[data-empty-heading]');
+    const emptyBodyEl = emptyEl?.querySelector('[data-empty-body]');
+    const headingEl = root.querySelector('[data-search-heading-query]');
+    const countEl = root.querySelector('[data-search-count]');
+    const i18nEl = document.querySelector('[data-search-i18n]');
+    if (
+      !(form instanceof HTMLFormElement) ||
+      !(input instanceof HTMLInputElement) ||
+      !(resultsEl instanceof HTMLElement) ||
+      !(statusEl instanceof HTMLElement) ||
+      !(emptyEl instanceof HTMLElement) ||
+      !(emptyHeadingEl instanceof HTMLElement) ||
+      !(emptyBodyEl instanceof HTMLElement) ||
+      !(headingEl instanceof HTMLElement) ||
+      !(countEl instanceof HTMLElement)
+    ) {
+      return;
+    }
+
+    let i18n = {
+      resultsFor: '{query}',
+      resultsCount: '{count}',
+      noResultsHeading: '',
+      noResultsBody: '{query}',
+      loading: '',
+      heading: '',
+    };
+    try {
+      if (i18nEl?.textContent) i18n = { ...i18n, ...JSON.parse(i18nEl.textContent) };
+    } catch {
+      // Keep the fallback strings above -- a broken JSON blob here should
+      // never take the whole search page down.
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value;
+      return div.innerHTML;
+    }
+
+    let pagefind = null;
+    let pagefindFailed = false;
+    async function getPagefind() {
+      if (pagefind || pagefindFailed) return pagefind;
+      try {
+        pagefind = await import(/* @vite-ignore */ '/pagefind/pagefind.js');
+        await pagefind.init();
+      } catch (err) {
+        console.error('[search] Pagefind index unavailable', err);
+        pagefindFailed = true;
+        pagefind = null;
+      }
+      return pagefind;
+    }
+
+    function setQueryParam(query) {
+      const url = new URL(window.location.href);
+      if (query) url.searchParams.set('q', query);
+      else url.searchParams.delete('q');
+      window.history.replaceState({}, '', url);
+    }
+
+    function showEmpty(query) {
+      resultsEl.innerHTML = '';
+      countEl.hidden = true;
+      emptyEl.hidden = false;
+      emptyHeadingEl.textContent = i18n.noResultsHeading;
+      emptyBodyEl.textContent = i18n.noResultsBody.replace('{query}', query);
+    }
+
+    function showLoading() {
+      emptyEl.hidden = true;
+      countEl.hidden = true;
+      statusEl.hidden = false;
+      statusEl.textContent = i18n.loading;
+    }
+
+    function clearToIdle() {
+      resultsEl.innerHTML = '';
+      emptyEl.hidden = true;
+      statusEl.hidden = true;
+      countEl.hidden = true;
+      headingEl.textContent = i18n.heading;
+    }
+
+    async function renderResults(results, query) {
+      statusEl.hidden = true;
+      if (results.length === 0) {
+        showEmpty(query);
+        return;
+      }
+      emptyEl.hidden = true;
+      const items = await Promise.all(results.map((r) => r.data()));
+      resultsEl.innerHTML = items
+        .map((item) => {
+          const image = item.meta?.image;
+          const category = item.meta?.category;
+          const price = item.meta?.price;
+          return `<li>
+            <a class="search-result-card" href="${escapeHtml(item.url)}" data-astro-reload>
+              ${image ? `<div class="search-result-image"><img src="${escapeHtml(image)}" alt="" loading="lazy" /></div>` : ''}
+              <div class="search-result-body">
+                ${category ? `<p class="search-result-category">${escapeHtml(category)}</p>` : ''}
+                <h3 class="search-result-title">${escapeHtml(item.title)}</h3>
+                ${item.excerpt ? `<p class="search-result-excerpt">${item.excerpt}</p>` : ''}
+                ${price ? `<p class="search-result-price">${escapeHtml(price)}</p>` : ''}
+              </div>
+            </a>
+          </li>`;
+        })
+        .join('');
+      countEl.hidden = false;
+      countEl.textContent = i18n.resultsCount.replace('{count}', String(results.length));
+    }
+
+    async function runSearch(query, { updateUrl = true } = {}) {
+      const trimmed = query.trim();
+      if (updateUrl) setQueryParam(trimmed);
+      if (!trimmed) {
+        clearToIdle();
+        return;
+      }
+      headingEl.textContent = i18n.resultsFor.replace('{query}', trimmed);
+      showLoading();
+      const pf = await getPagefind();
+      if (!pf) {
+        showEmpty(trimmed);
+        return;
+      }
+      const search = await pf.search(trimmed);
+      await renderResults(search.results, trimmed);
+    }
+
+    let debounceTimer;
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => runSearch(input.value), 250);
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      clearTimeout(debounceTimer);
+      runSearch(input.value);
+    });
+
+    const initialQuery = new URLSearchParams(window.location.search).get('q') ?? '';
+    input.value = initialQuery;
+    if (initialQuery) {
+      runSearch(initialQuery, { updateUrl: false });
+    } else {
+      clearToIdle();
+    }
+  }
+
+  initSearchPage();
+  document.addEventListener('astro:page-load', initSearchPage);
+</script>

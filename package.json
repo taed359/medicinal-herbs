@@ -13,27 +13,32 @@
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "tsx src/server/db/migrate.ts",
     "db:seed": "tsx src/server/seed/seed-natural-oils.ts",
+    "db:seed:wholesale-category": "tsx src/server/seed/seed-wholesale-category.ts",
     "db:seed:coconut-oil-content": "tsx src/server/seed/seed-coconut-oil-content.ts",
-    "seed:admin": "tsx scripts/seed-admin.ts"
+    "db:seed:natural-oils-content": "tsx src/server/seed/seed-natural-oils-content.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "postbuild": "pagefind --site .vercel/output/static"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "@astrojs/vercel": "^11.0.10",
+    "@node-rs/argon2": "2.1.0",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.2.7",
-    "sharp": "^0.35.3",
-    "swiper": "^14.1.0",
-    "tailwindcss": "^4.3.3",
+    "astro": "^7.3.2",
+    "better-auth": "1.7.2",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.16.3",
-    "better-auth": "1.7.2",
-    "@node-rs/argon2": "2.1.0",
-    "@astrojs/vercel": "11.0.8"
+    "sharp": "^0.35.3",
+    "swiper": "^14.1.0",
+    "tailwindcss": "^4.3.3"
   },
   "allowScripts": {
     "esbuild": true
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.5",
     "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.31.5",
+    "pagefind": "^1.3.0",
     "tsx": "^4.19.2"
   }
 }

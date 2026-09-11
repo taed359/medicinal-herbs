@@ -1,0 +1,156 @@
+---
+import { getImage } from 'astro:assets';
+import Layout from '../../../layouts/Layout.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import { getTranslations, localePath } from '../../../i18n/utils';
+import { HEALTH_GOALS } from '../../../lib/health-goals';
+
+const lang = 'vi' as const;
+const t = getTranslations(lang);
+
+// Same format: 'svg' pass-through pattern as HealthGoals.astro and
+// [slug].astro -- these are the same 9 SVGs, just resolved once here for
+// the index grid rather than the homepage carousel.
+const goals = await Promise.all(
+  HEALTH_GOALS.map(async (goal) => ({
+    ...goal,
+    imageSrc: (await getImage({ src: goal.image, format: 'svg' })).src,
+  }))
+);
+---
+<Layout
+  lang={lang}
+  title={`${t.healthGoals.page.indexHeading} — ${t.common.siteName}`}
+  description={t.healthGoals.eyebrow}
+>
+  <section class="py-8 sm:py-10" aria-labelledby="hgi-heading">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-6 sm:mb-8"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: localePath(lang, '') },
+          { label: t.healthGoals.heading, current: true },
+        ]}
+      />
+
+      <div class="hgi-header">
+        <p class="eyebrow m-0 mb-2">{t.healthGoals.eyebrow}</p>
+        <h1 id="hgi-heading" class="hgi-title font-serif m-0">{t.healthGoals.page.indexHeading}</h1>
+      </div>
+
+      <ul class="hgi-grid m-0 mt-10 p-0 list-none" role="list">
+        {goals.map((goal) => (
+          <li>
+            <a
+              href={localePath(lang, `health-goals/${goal.slug}`)}
+              data-astro-reload
+              class="hgi-tile group block"
+            >
+              <div class="hgi-tile-image relative overflow-hidden">
+                <img
+                  src={goal.imageSrc}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-cover"
+                />
+              </div>
+              <h2 class="hgi-tile-label font-serif m-0">
+                <span class="hgi-tile-label-text">{t.healthGoals.items[goal.key]}</span>
+                <span class="hgi-tile-arrow" aria-hidden="true">→</span>
+              </h2>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hgi-header {
+    padding-bottom: 2rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+  }
+
+  .hgi-title {
+    color: var(--color-heading);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  @media (min-width: 640px) {
+    .hgi-title { font-size: 2.5rem; }
+  }
+
+  .hgi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .hgi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .hgi-grid { gap: 2rem; }
+  }
+
+  .hgi-tile {
+    color: var(--color-pine-dark);
+    text-decoration: none;
+  }
+
+  .hgi-tile-image {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-editorial);
+    background: var(--color-cream);
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+    transition: border-color 250ms ease;
+  }
+  .hgi-tile-image img {
+    transition: transform 450ms ease;
+  }
+
+  .hgi-tile-label {
+    display: flex;
+    align-items: flex-start;
+    column-gap: 0.75rem;
+    margin-top: 0.75rem;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-pine-dark);
+  }
+  html[lang='zh'] .hgi-tile-label { letter-spacing: 0; line-height: 1.6; }
+  .hgi-tile-label-text { min-width: 0; flex: 0 1 auto; text-wrap: balance; }
+
+  .hgi-tile-arrow {
+    flex: 0 0 auto;
+    transition: transform 250ms ease;
+  }
+
+  .group:hover .hgi-tile-image img,
+  .group:focus-visible .hgi-tile-image img {
+    transform: scale(1.04);
+  }
+  .group:hover .hgi-tile-image,
+  .group:focus-visible .hgi-tile-image {
+    border-color: var(--color-brand);
+  }
+  .group:hover .hgi-tile-arrow,
+  .group:focus-visible .hgi-tile-arrow {
+    transform: translateX(3px);
+  }
+  .group:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 3px;
+    border-radius: var(--radius-editorial);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hgi-tile-image img { transition: none !important; }
+    .hgi-tile-arrow { transition: none !important; }
+    .hgi-tile-image { transition: none !important; }
+  }
+</style>

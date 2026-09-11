@@ -1,22 +1,7 @@
 ---
 import { getImage } from 'astro:assets';
 import { getTranslations, localePath, type Locale } from '../i18n/utils';
-
-// SVG illustrations, not photos -- same pass-through pattern as
-// Hero.astro / BrandStory.astro: astro:assets' <Image> component would
-// try to raster-process these (and throw, since Astro's default sharp
-// service can't rasterize SVG without image.dangerouslyProcessSVG),
-// so each is resolved once below via getImage({ format: 'svg' }) and
-// rendered as a plain <img>.
-import beauty from '../assets/images/health-goals/beauty.svg';
-import energy from '../assets/images/health-goals/energy.svg';
-import generalWellness from '../assets/images/health-goals/general-wellness.svg';
-import immunity from '../assets/images/health-goals/immunity.svg';
-import mensWellness from '../assets/images/health-goals/mens-wellness.svg';
-import jointHeart from '../assets/images/health-goals/joint-heart.svg';
-import mindFocus from '../assets/images/health-goals/mind-focus.svg';
-import sleepStress from '../assets/images/health-goals/sleep-stress.svg';
-import womensHealth from '../assets/images/health-goals/womens-health.svg';
+import { HEALTH_GOALS } from '../lib/health-goals';
 
 interface Props {
   lang?: Locale;
@@ -24,23 +9,14 @@ interface Props {
 
 const { lang = 'vi' } = Astro.props;
 
-const GOALS_RAW = [
-  { slug: 'beauty', key: 'beauty', image: beauty },
-  { slug: 'energy', key: 'energy', image: energy },
-  { slug: 'general-wellness', key: 'generalWellness', image: generalWellness },
-  { slug: 'immunity', key: 'immunity', image: immunity },
-  { slug: 'mens-wellness', key: 'mensWellness', image: mensWellness },
-  { slug: 'joint-heart', key: 'jointHeart', image: jointHeart },
-  { slug: 'mind-focus', key: 'mindFocus', image: mindFocus },
-  { slug: 'sleep-stress', key: 'sleepStress', image: sleepStress },
-  { slug: 'womens-health', key: 'womensHealth', image: womensHealth },
-] as const;
-
 // format: 'svg' passes each file through unchanged (still hashed and
 // emitted via the normal asset pipeline) instead of trying to rasterize
-// it -- see the import comment above.
+// it -- astro:assets' <Image> component would try to raster-process these
+// (and throw, since Astro's default sharp service can't rasterize SVG
+// without image.dangerouslyProcessSVG), same pass-through pattern as
+// Hero.astro / BrandStory.astro.
 const GOALS = await Promise.all(
-  GOALS_RAW.map(async (goal) => ({
+  HEALTH_GOALS.map(async (goal) => ({
     ...goal,
     imageSrc: (await getImage({ src: goal.image, format: 'svg' })).src,
   }))
@@ -50,16 +26,10 @@ const [featuredGoal, ...supportingGoals] = GOALS;
 
 const t = getTranslations(lang);
 
-// KNOWN DEPENDENCY, unresolved -- verified fresh in this pass (see Stage
-// 2D report): no route under `health-goals/{slug}` exists anywhere in
-// src/pages, and the repository layer has no health-goal-based product
-// filtering, so there is no valid alternative destination either. Every
-// href below (mobile AND the new desktop grid) points at the same
-// not-yet-built destination the original implementation already used --
-// this pass does not introduce a new dead link, it inherits the existing
-// one unchanged, because disabling navigation here would mean rebuilding
-// the mobile Swiper's interaction, which is explicitly out of scope this
-// stage. Real `health-goals/{slug}` pages remain a required follow-up.
+// Every href below (mobile carousel AND the desktop grid) links to
+// src/pages/{vi,zh}/health-goals/[slug].astro -- a real, built page for
+// each of the 9 goals (see src/lib/health-goals.ts, the shared list both
+// this component and those routes read from).
 ---
 
 <!-- HealthGoals shares the homepage's warm paper field. Its spacing is

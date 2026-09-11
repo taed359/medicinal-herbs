@@ -3,7 +3,7 @@ import type { Locale } from '../i18n/utils';
 import { getTranslations, localePath } from '../i18n/utils';
 import Breadcrumbs from './Breadcrumbs.astro';
 import ProductCard from './ProductCard.astro';
-import type { ProductDetailView, ProductSummaryView } from '../domain/types';
+import type { CategoryView, ProductDetailView, ProductSummaryView } from '../domain/types';
 import { naturalOilsPlaceholderImage } from '../lib/product-image-fallback';
 import { Image } from 'astro:assets';
 import { formatExtractionMethod, formatCountryOfOrigin, formatCertType } from '../lib/product-metadata-labels';
@@ -11,6 +11,14 @@ import { formatExtractionMethod, formatCountryOfOrigin, formatCertType } from '.
 interface Props {
   lang: Locale;
   product: ProductDetailView;
+  // The product's own category (fetched by the page via
+  // categoryRepository.getBySlug(product.categoryId, lang) -- category id
+  // and slug are the same value by convention, see seed-natural-oils.ts /
+  // seed-wholesale-category.ts). Drives the breadcrumb label, the "back to
+  // collection" link, and the related-products link -- this component is
+  // deliberately not hardcoded to any one category (natural-oils, wholesale,
+  // ...).
+  category: CategoryView;
   // Same category, published, excluding this product -- fetched by the
   // page (see [slug].astro) via productRepository.listByCategory, same
   // real repository method NaturalOils.astro's own featured-products grid
@@ -18,22 +26,27 @@ interface Props {
   // renders correctly for any caller that doesn't pass it.
   relatedProducts?: ProductSummaryView[];
 }
-const { lang, product, relatedProducts = [] } = Astro.props;
+const { lang, product, category, relatedProducts = [] } = Astro.props;
 const t = getTranslations(lang);
 
 const name = product.name;
-const catLabel = t.naturalOils.eyebrow;
-const backHref = localePath(lang, t.naturalOils.collectionPath);
+const catLabel = category.name;
+const collectionPath = `products/${category.slug}`;
+const backHref = localePath(lang, collectionPath);
 
 const primaryImage = product.images.find((img) => img.role === 'primary') ?? product.images[0] ?? null;
 
-// No variant/pricing/inventory data exists yet for any product (nothing
+// No variant/pricing/inventory data exists yet for most products (nothing
 // was invented during the DB migration — see seed-natural-oils.ts). The
-// purchase/SKU/price block below stays hidden until a real variant with
-// real pricing is entered; this is intentional, not a bug. The repository
-// (product-repository.ts) already tolerates a product with zero variant
-// rows — `variants` is simply an empty array, never a hard requirement —
-// so this page renders a complete, valid product page either way.
+// repository (product-repository.ts) already tolerates a product with zero
+// variant rows — `variants` is simply an empty array, never a hard
+// requirement — so this page renders a complete, valid product page either
+// way. The price row itself stays hidden only when there is no variant/SKU
+// at all; once a real variant exists it always shows a price row, either
+// the formatted price or `t.product.priceOnRequest` ("Liên hệ" / 价格面议)
+// when that variant intentionally has no active price row (e.g. bulk/
+// wholesale packaging sold by quote — see AdminProductForm's "Remove
+// price" control).
 const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0] ?? null;
 const hasPrice = defaultVariant?.priceMinor != null;
 
@@ -98,6 +111,7 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
                   loading="eager"
                   decoding="async"
                   fetchpriority="high"
+                  data-pagefind-meta="image[src]"
                 />
               ) : (
                 <Image
@@ -117,14 +131,23 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
       </div>
 
       <div class="pd-info">
-        <p class="pd-eyebrow text-smm-0">{catLabel}</p>
+        <p class="pd-eyebrow text-smm-0" data-pagefind-meta="category" data-pagefind-filter={`category:${catLabel}`}>{catLabel}</p>
         <h1 id="product-name" class="pd-title font-serif m-0 mt-3">{name}</h1>
 
-        {hasPrice && defaultVariant && (
+        {defaultVariant && (
           <div class="pd-price-row mt-7">
-            <span class="pd-price">{formatPrice(defaultVariant.priceMinor!, defaultVariant.currency ?? 'VND', lang)}</span>
-            {defaultVariant.compareAtMinor != null && (
-              <del class="pd-original-price">{formatPrice(defaultVariant.compareAtMinor, defaultVariant.currency ?? 'VND', lang)}</del>
+            {hasPrice ? (
+              <>
+                <span class="pd-price" data-pagefind-meta="price">{formatPrice(defaultVariant.priceMinor!, defaultVariant.currency ?? 'VND', lang)}</span>
+                {defaultVariant.compareAtMinor != null && (
+                  <del class="pd-original-price">{formatPrice(defaultVariant.compareAtMinor, defaultVariant.currency ?? 'VND', lang)}</del>
+                )}
+              </>
+            ) : (
+              // Real variant/SKU exists but no price row is active for it
+              // (e.g. bulk/wholesale packaging sold by quote) -- show the
+              // "contact us" label instead of hiding the price row outright.
+              <span class="pd-price" data-pagefind-meta="price">{t.product.priceOnRequest}</span>
             )}
           </div>
         )}
@@ -304,7 +327,7 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
         <div class="mt-9">
           <a href={backHref} data-astro-reload class="pd-back inline-flex items-center gap-2 no-underline text-sm">
             <span aria-hidden="true">←</span>
-            <span>{t.productDetail.backToCollection}</span>
+            <span>{catLabel}</span>
           </a>
         </div>
       </div>
@@ -316,7 +339,7 @@ const tabCount = [hasDescriptionUsageTab, hasIngredientsTab].filter(Boolean).len
         <h2 id="pd-related-heading" class="text-heading-section font-serif m-0">{t.relatedProducts.heading}</h2>
         <ul class="pd-related-grid m-0 mt-6 grid list-none grid-cols-2 gap-4 p-0 sm:gap-5 lg:grid-cols-4" role="list">
           {relatedProductsList.map((p) => {
-            const relatedHref = localePath(lang, `${t.naturalOils.collectionPath}/${p.slug}`);
+            const relatedHref = localePath(lang, `${collectionPath}/${p.slug}`);
             const isPlaceholder = !p.primaryImage;
             const relatedImage = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
             const relatedAlt = p.primaryImage?.alt || p.name;

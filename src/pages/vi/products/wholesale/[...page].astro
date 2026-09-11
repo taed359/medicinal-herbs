@@ -1,0 +1,66 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../../../layouts/Layout.astro';
+import ProductCard from '../../../../components/ProductCard.astro';
+import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import Pager from '../../../../components/Pager.astro';
+import { productRepository } from '../../../../server/repositories';
+import { getTranslations, localePath } from '../../../../i18n/utils';
+import { naturalOilsPlaceholderImage } from '../../../../lib/product-image-fallback';
+
+const lang = 'vi' as const;
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const items = await productRepository.listByCategory('wholesale', 'vi');
+  return paginate(items, { pageSize: 12 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const t = getTranslations(lang);
+---
+<Layout lang={lang} title={`${t.wholesale.eyebrow} — ${t.common.siteName}`}>
+  <section class="py-8 sm:py-10" aria-labelledby="collection-heading">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-5 sm:mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: localePath(lang, '') },
+          { label: t.wholesale.eyebrow, current: true },
+        ]}
+      />
+      <div class="text-center mb-7 sm:mb-9">
+        <p class="no-eyebrow m-0 mb-1">{t.wholesale.eyebrow}</p>
+        <h2 id="collection-heading" class="no-heading m-0">{t.wholesale.heading}</h2>
+      </div>
+
+      <ul class="m-0 grid list-none grid-cols-2 max-[379px]:grid-cols-1 gap-4 p-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-5 lg:gap-6">
+        {page.data.map((p) => {
+          const href = localePath(lang, `${t.wholesale.collectionPath}/${p.slug}`);
+          const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
+          const alt = p.primaryImage?.alt || p.name;
+          return (
+            <li>
+              <ProductCard name={p.name} href={href} cta={t.product.ctaViewDetails} image={image} alt={alt} />
+            </li>
+          );
+        })}
+      </ul>
+
+      <Pager
+        page={page}
+        basePath={localePath(lang, t.wholesale.collectionPath)}
+        prevLabel={t.pager.prevLabel}
+        nextLabel={t.pager.nextLabel}
+        pageLabel={t.pager.pageLabel}
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
+  @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }
+  .no-heading { color: var(--color-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+  @media (min-width: 640px) { .no-heading { font-size: 2.25rem; } }
+</style>

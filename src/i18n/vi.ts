@@ -88,6 +88,24 @@ export const vi: TranslationSchema = {
       sleepStress: 'Giấc ngủ & Giảm căng thẳng',
       womensHealth: 'Sức khỏe nữ giới',
     },
+    descriptions: {
+      beauty: 'Những dưỡng chất từ thiên nhiên giúp nuôi dưỡng làn da và mái tóc từ bên trong, đồng hành cùng vẻ đẹp rạng rỡ theo năm tháng. Chúng tôi chọn lọc nguyên liệu dịu nhẹ, phù hợp để sử dụng đều đặn mỗi ngày.',
+      energy: 'Bổ sung năng lượng tự nhiên cho một ngày dài năng động, không cần đến các chất kích thích mạnh. Các thành phần thảo dược được lựa chọn để hỗ trợ sự tỉnh táo và sức bền bền vững.',
+      generalWellness: 'Một nền tảng sức khỏe vững vàng bắt đầu từ những thói quen chăm sóc cơ thể đơn giản mỗi ngày. Dòng sản phẩm này được xây dựng để hỗ trợ sự cân bằng và khỏe mạnh toàn diện.',
+      immunity: 'Hỗ trợ hệ miễn dịch khỏe mạnh là bước đầu tiên để cơ thể sẵn sàng thích nghi với mọi thay đổi. Chúng tôi ưu tiên các thành phần tự nhiên đã được tin dùng qua nhiều thế hệ.',
+      mensWellness: 'Những giải pháp thảo dược được nghiên cứu riêng cho nhu cầu sức khỏe của nam giới ở mọi độ tuổi, tập trung vào sự bền bỉ, cân bằng nội tiết và sức sống hàng ngày.',
+      jointHeart: 'Chăm sóc xương khớp và tim mạch là nền tảng để duy trì sự vận động linh hoạt theo thời gian. Các công thức được chọn lọc nhằm hỗ trợ sự dẻo dai và tuần hoàn khỏe mạnh.',
+      mindFocus: 'Giữ cho tâm trí minh mẫn và tập trung giữa nhịp sống bận rộn là điều không dễ dàng. Những thành phần thảo dược nhẹ nhàng có thể đồng hành cùng sự tỉnh táo và cân bằng tinh thần.',
+      sleepStress: 'Một giấc ngủ trọn vẹn và tinh thần thư thái là nền tảng cho sức khỏe bền vững. Chúng tôi chọn lọc các thảo dược truyền thống được biết đến với khả năng hỗ trợ thư giãn tự nhiên.',
+      womensHealth: 'Đồng hành cùng phụ nữ qua từng giai đoạn cuộc sống với những giải pháp thảo dược dịu nhẹ và an toàn, tập trung vào sự cân bằng nội tiết và sức khỏe toàn diện.',
+    },
+    page: {
+      indexHeading: 'Khám phá theo mục tiêu sức khỏe',
+      ctaHeading: 'Khám phá sản phẩm phù hợp',
+      ctaBody: 'Chúng tôi đang từng bước hoàn thiện danh mục sản phẩm theo từng mục tiêu sức khỏe. Trong lúc chờ đợi, mời bạn khám phá toàn bộ sản phẩm hiện có của chúng tôi.',
+      ctaNaturalOils: 'Xem dầu thực vật tự nhiên',
+      ctaWholesale: 'Xem hàng bán sỉ',
+    },
   },
   trust: {
     label: 'Thông tin thương hiệu',
@@ -219,6 +237,12 @@ export const vi: TranslationSchema = {
     ctaViewAll: 'Xem tất cả dầu thực vật',
     collectionPath: 'products/natural-oils',
   },
+  wholesale: {
+    eyebrow: 'Hàng bán sỉ',
+    heading: 'Đóng thùng số lượng lớn',
+    ctaViewAll: 'Xem tất cả hàng bán sỉ',
+    collectionPath: 'products/wholesale',
+  },
   relatedProducts: {
     eyebrow: 'Có thể bạn cũng thích',
     heading: 'Sản phẩm liên quan',
@@ -230,6 +254,17 @@ export const vi: TranslationSchema = {
   },
   product: {
     ctaViewDetails: 'Xem chi tiết',
+    priceOnRequest: 'Liên hệ',
+  },
+  search: {
+    pageTitle: 'Tìm kiếm',
+    heading: 'Tìm kiếm',
+    resultsFor: 'Kết quả cho "{query}"',
+    resultsCount: '{count} kết quả',
+    noResultsHeading: 'Không tìm thấy kết quả',
+    noResultsBody: 'Không tìm thấy sản phẩm hoặc nội dung nào khớp với "{query}". Vui lòng thử từ khóa khác.',
+    loadingLabel: 'Đang tìm kiếm…',
+    backToShopping: 'Tiếp tục mua sắm',
   },
   contact: {
     home: 'Trang chủ',
@@ -269,7 +304,6 @@ export const vi: TranslationSchema = {
   productDetail: {
     breadcrumbLabel: 'Đường dẫn',
     breadcrumbHome: 'Trang chủ',
-    backToCollection: 'Dầu thực vật tự nhiên',
     benefitsHeading: 'Điểm nổi bật',
     packSizeLabel: 'Dung tích',
     skuLabel: 'Mã sản phẩm',

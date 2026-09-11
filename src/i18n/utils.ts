@@ -20,7 +20,6 @@ export interface TranslationSchema {
   productDetail: {
     breadcrumbLabel: string;
     breadcrumbHome: string;
-    backToCollection: string;
     // Optional PDP section labels — only rendered once a product actually
     // has benefits/variant/ingredients/usage/description data attached.
     benefitsHeading: string;
@@ -31,6 +30,7 @@ export interface TranslationSchema {
     ingredientsLabel: string;
     usageLabel: string;
     descriptionLabel: string;
+    descriptionUsageTabLabel: string;
     warningsLabel: string;
     // Product/origin metadata + certifications — only rendered once a
     // product actually has botanicalName/countryOfOriginCode/
@@ -120,6 +120,34 @@ export interface TranslationSchema {
       sleepStress: string;
       womensHealth: string;
     };
+    // One short descriptive paragraph per goal, for that goal's own
+    // landing page hero (src/pages/{vi,zh}/health-goals/[slug].astro) --
+    // distinct from `items` above, which is only the short label used on
+    // the homepage carousel/grid tiles and in breadcrumbs. General
+    // wellness-support framing throughout, deliberately no disease/cure
+    // claims (same posture as trustCertifications.disclaimer).
+    descriptions: {
+      beauty: string;
+      energy: string;
+      generalWellness: string;
+      immunity: string;
+      mensWellness: string;
+      jointHeart: string;
+      mindFocus: string;
+      sleepStress: string;
+      womensHealth: string;
+    };
+    // Copy shared by every health-goals/[slug] page and the
+    // health-goals/ index listing page (src/pages/{vi,zh}/health-goals/
+    // index.astro) -- the goal-specific heading/description come from
+    // `items`/`descriptions` above instead.
+    page: {
+      indexHeading: string; // heading for the health-goals/ listing page
+      ctaHeading: string; // "explore matching products" section heading on a single goal's page
+      ctaBody: string;
+      ctaNaturalOils: string; // button label -> natural-oils collection
+      ctaWholesale: string; // button label -> wholesale collection
+    };
   };
   trust: {
     label: string;
@@ -177,6 +205,19 @@ export interface TranslationSchema {
     ctaViewAll: string;
     collectionPath: string; // e.g., "products/natural-oils"
   };
+  // Bulk/wholesale line -- products packaged in large containers (e.g.
+  // 20L drums) for B2B buyers; price is deliberately "contact us" rather
+  // than a listed number (see product.priceOnRequest).
+  wholesale: {
+    eyebrow: string;
+    heading: string;
+    ctaViewAll: string;
+    collectionPath: string; // e.g., "products/wholesale"
+  };
+  relatedProducts: {
+    eyebrow: string;
+    heading: string;
+  };
   // Generic labels for the reusable `Pager.astro` component -- shared by
   // any paginated listing page (natural-oils today, more collections
   // later), so these live at the top level rather than nested under one
@@ -188,6 +229,23 @@ export interface TranslationSchema {
   };
   product: {
     ctaViewDetails: string;
+    priceOnRequest: string;
+  };
+  // Pagefind-powered full-site search results page
+  // (src/pages/{vi,zh}/search.astro), reached from the header search forms
+  // (Header.astro -- action={localePath(lang, 'search')}). `{query}`/
+  // `{count}` are plain string tokens substituted at render time (same
+  // convention as auth.emails' `{siteName}`), not a template-engine
+  // placeholder.
+  search: {
+    pageTitle: string; // <title>, e.g. "Tìm kiếm"
+    heading: string;
+    resultsFor: string; // e.g. 'Kết quả cho "{query}"'
+    resultsCount: string; // e.g. "{count} kết quả"
+    noResultsHeading: string;
+    noResultsBody: string; // e.g. 'Không tìm thấy... "{query}"...'
+    loadingLabel: string;
+    backToShopping: string;
   };
   contact: {
     home: string;

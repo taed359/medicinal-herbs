@@ -7,12 +7,11 @@ import { getTranslations } from '../../../../i18n/utils';
 const lang = 'zh' as const;
 
 // Scoped to this category's own products -- NOT productRepository's
-// site-wide listAllSlugs(), which would (once a second category exists)
-// generate every product's detail page under every category's URL
-// prefix. Each category's own [slug].astro folder owns exactly its own
-// products' slugs.
+// site-wide listAllSlugs(), which would generate every product's detail
+// page under every category's URL prefix. Each category's own
+// [slug].astro folder owns exactly its own products' slugs.
 export async function getStaticPaths() {
-  const items = await productRepository.listByCategory('natural-oils', 'zh');
+  const items = await productRepository.listByCategory('wholesale', 'zh');
   return items.map((item) => ({ params: { slug: item.slug } }));
 }
 
@@ -29,13 +28,12 @@ if (!category) throw new Error('Not found');
 const t = getTranslations(lang);
 const title = `${product.name} — ${t.common.siteName}`;
 // Product-specific meta description once real short_description content
-// exists (see seed-coconut-oil-content.ts); Layout.astro falls back to the
-// generic site-wide description when a product has none yet.
+// exists; Layout.astro falls back to the generic site-wide description
+// when a product has none yet.
 const description = product.shortDescription ?? undefined;
 
 // Related products: other published items in the same category, real
-// data only (same repository method NaturalOils.astro's own featured grid
-// already uses) -- excludes the current product and caps at 4.
+// data only -- excludes the current product and caps at 4.
 const relatedProducts = (await productRepository.listByCategory(product.categoryId, lang))
   .filter((p) => p.id !== product.id)
   .slice(0, 4);

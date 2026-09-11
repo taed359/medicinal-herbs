@@ -3,7 +3,7 @@ import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { defaultLocale, getTranslations, isLocale, type Locale, type RouteLocale } from '../i18n/utils';
+import { defaultLocale, getTranslations, isLocale, locales, swapLocaleInPath, type Locale, type RouteLocale } from '../i18n/utils';
 
 interface Props {
   lang?: RouteLocale;
@@ -12,8 +12,20 @@ interface Props {
   title?: string;
   description?: string;
   mainClass?: string;
+  // Internal/utility pages that shouldn't be indexed but are fine to
+  // crawl (today: only the Pagefind search results page -- see
+  // SearchPage.astro). Everything else defaults to indexable.
+  noindex?: boolean;
 }
-const { lang = 'vi', uiLang: requestedUiLang, htmlLang = lang, title = 'Medicinal Herbs', description, mainClass } = Astro.props;
+const {
+  lang = 'vi',
+  uiLang: requestedUiLang,
+  htmlLang = lang,
+  title = 'Medicinal Herbs',
+  description,
+  mainClass,
+  noindex = false,
+} = Astro.props;
 const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
 
 // Localized fallback: any page can still pass its own `description` prop
@@ -21,6 +33,35 @@ const uiLang = requestedUiLang ?? (isLocale(lang) ? lang : defaultLocale);
 // English-only default ever being rendered in the meantime.
 const t = getTranslations(uiLang);
 const metaDescription = description ?? t.seo.description;
+
+// Canonical + hreflang alternates + Open Graph/Twitter meta. `Astro.site`
+// comes from the `site` value in astro.config.mjs (currently the Vercel
+// preview URL -- update that one place once a real domain exists, and
+// every URL generated here follows automatically).
+//
+// hreflang is only generated when the CURRENT page already lives under a
+// real /vi/ or /zh/ locale prefix (`isLocale(lang)`). `swapLocaleInPath`
+// (src/i18n/utils.ts) assumes routes mirror 1:1 across locales purely by
+// swapping the path's locale segment -- true for everything under /vi/
+// and /zh/ today, but NOT for the separate unprefixed English routes
+// (e.g. /privacy-policy vs. /vi/policies/privacy-policy add an extra
+// `policies/` segment that isn't mirrored at the root) -- so those pages
+// simply get a canonical link and no hreflang block, rather than a
+// blindly-swapped link to a page that doesn't exist.
+const currentPath = Astro.url.pathname;
+const canonicalHref = Astro.site ? new URL(currentPath, Astro.site).href : undefined;
+const hasLocaleAlternates = isLocale(lang);
+const alternateLocales = hasLocaleAlternates && Astro.site
+  ? locales.map((loc) => ({ locale: loc, href: new URL(swapLocaleInPath(currentPath, loc), Astro.site!).href }))
+  : [];
+const xDefaultHref = hasLocaleAlternates && Astro.site
+  ? new URL(swapLocaleInPath(currentPath, defaultLocale), Astro.site).href
+  : undefined;
+const ogLocale = uiLang === 'zh' ? 'zh_CN' : 'vi_VN';
+// No og:image yet -- there's no real brand banner/hero photo in the repo
+// to point at (public/images only has a customer-auth illustration), and
+// inventing a placeholder would be worse than omitting the tag. Add one
+// (1200x630 recommended) once a real image exists.
 ---
 <!doctype html>
 <html lang={htmlLang}>
@@ -28,6 +69,21 @@ const metaDescription = description ?? t.seo.description;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
+    {canonicalHref && <link rel="canonical" href={canonicalHref} />}
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    {alternateLocales.map((alt) => (
+      <link rel="alternate" hreflang={alt.locale} href={alt.href} />
+    ))}
+    {xDefaultHref && <link rel="alternate" hreflang="x-default" href={xDefaultHref} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={metaDescription} />
+    {canonicalHref && <meta property="og:url" content={canonicalHref} />}
+    <meta property="og:site_name" content={t.common.siteName} />
+    <meta property="og:locale" content={ogLocale} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={metaDescription} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="generator" content={Astro.generator} />
@@ -44,7 +100,30 @@ const metaDescription = description ?? t.seo.description;
   </head>
   <body>
     <Header lang={uiLang} />
-    <main class={mainClass}>
+    <!--
+      data-pagefind-body opts this element INTO the Pagefind index (see
+      package.json's `postbuild` script -- `pagefind --site
+      .vercel/output/static`, run after every `astro build`). Pagefind
+      switches to "only index elements carrying this attribute" mode the
+      moment it finds it anywhere on the site, so putting it here once
+      means: every page built through this shared Layout (home, product
+      listings/detail, contact, privacy policy) is searchable, while
+      pages that DON'T render this Layout are automatically excluded --
+      most importantly src/pages/customer/*.astro and src/pages/admin/*
+      (also excluded for an independent reason: those carry `export const
+      prerender = false`, so they're server functions, not static HTML,
+      and Pagefind only ever scans static HTML files). Header/Footer
+      themselves stay out of the index for free since they're siblings of
+      <main>, not inside it.
+
+      Per-language indexing needs no extra setup: Pagefind reads the
+      <html lang> attribute above (`htmlLang`, resolved from this
+      Layout's `lang`/`uiLang` props to 'vi' | 'zh' | 'en') and both
+      indexes AND filters search results by it automatically -- a search
+      run from a /zh/ page only ever returns /zh/ results, and vice
+      versa. See src/pages/vi/search.astro / zh/search.astro.
+    -->
+    <main class={mainClass} data-pagefind-body>
       <slot />
     </main>
     <Footer lang={lang} uiLang={uiLang} />

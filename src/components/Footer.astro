@@ -54,10 +54,10 @@ const year = new Date().getFullYear();
       <div>
         <h3 class="footer-heading">{t.footer.shopHeading}</h3>
         <ul class="footer-list m-0 p-0 list-none">
-          <li><a class="footer-link" href="#">{t.footer.goals.immunity}</a></li>
-          <li><a class="footer-link" href="#">{t.footer.goals.energy}</a></li>
-          <li><a class="footer-link" href="#">{t.footer.goals.beauty}</a></li>
-          <li><a class="footer-link" href="#">{t.footer.goals.sleep}</a></li>
+          <li><a class="footer-link" href={localePath(lang, 'health-goals/immunity')} data-astro-reload>{t.footer.goals.immunity}</a></li>
+          <li><a class="footer-link" href={localePath(lang, 'health-goals/energy')} data-astro-reload>{t.footer.goals.energy}</a></li>
+          <li><a class="footer-link" href={localePath(lang, 'health-goals/beauty')} data-astro-reload>{t.footer.goals.beauty}</a></li>
+          <li><a class="footer-link" href={localePath(lang, 'health-goals/sleep-stress')} data-astro-reload>{t.footer.goals.sleep}</a></li>
         </ul>
       </div>
 

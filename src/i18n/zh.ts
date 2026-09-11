@@ -87,6 +87,24 @@ export const zh: TranslationSchema = {
       sleepStress: '睡眠与舒压',
       womensHealth: '女性保健',
     },
+    descriptions: {
+      beauty: '来自天然植物的养分从内而外滋养肌肤与秀发，伴您岁月流转依然光彩焕发。我们精心甄选温和成分，适合日常持续使用。',
+      energy: '以天然方式为繁忙的一天补充能量，无需依赖强烈刺激成分。精选草本成分有助于维持清醒与持久活力。',
+      generalWellness: '稳固的健康基础始于每日简单的自我养护习惯。此系列致力于支持身体的全面平衡与健康。',
+      immunity: '维持免疫系统的健康是身体从容应对各种变化的第一步。我们优先选用历经世代验证的天然成分。',
+      mensWellness: '专为不同年龄段男性健康需求研发的草本方案，聚焦耐力、内分泌平衡与日常活力。',
+      jointHeart: '呵护骨骼关节与心血管健康，是长期保持灵活行动力的基础。精选配方旨在支持柔韧度与健康循环。',
+      mindFocus: '在繁忙的生活节奏中保持思维清晰与专注并不容易。温和的草本成分可陪伴您维持清醒与内心平衡。',
+      sleepStress: '充足的睡眠与放松的心情是长久健康的基础。我们精选传统草本，以其天然舒缓特性而广受信赖。',
+      womensHealth: '以温和安全的草本方案，陪伴女性走过人生每个阶段，专注内分泌平衡与整体健康。',
+    },
+    page: {
+      indexHeading: '按健康目标探索',
+      ctaHeading: '探索适合的产品',
+      ctaBody: '我们正逐步完善按健康目标分类的产品体系。在此之前，欢迎浏览我们现有的全部产品。',
+      ctaNaturalOils: '查看天然植物油',
+      ctaWholesale: '查看批发商品',
+    },
   },
   trust: {
     label: '品牌信息',
@@ -205,6 +223,12 @@ export const zh: TranslationSchema = {
     ctaViewAll: '查看全部天然植物油',
     collectionPath: 'products/natural-oils',
   },
+  wholesale: {
+    eyebrow: '批发商品',
+    heading: '大宗桶装',
+    ctaViewAll: '查看全部批发商品',
+    collectionPath: 'products/wholesale',
+  },
   relatedProducts: {
     eyebrow: '猜你喜欢',
     heading: '相关产品',
@@ -216,6 +240,17 @@ export const zh: TranslationSchema = {
   },
   product: {
     ctaViewDetails: '查看详情',
+    priceOnRequest: '价格面议',
+  },
+  search: {
+    pageTitle: '搜索',
+    heading: '搜索',
+    resultsFor: '"{query}" 的搜索结果',
+    resultsCount: '共 {count} 条结果',
+    noResultsHeading: '未找到结果',
+    noResultsBody: '未找到与"{query}"相关的产品或内容,请尝试其他关键词。',
+    loadingLabel: '搜索中…',
+    backToShopping: '继续购物',
   },
   contact: {
     home: '首页',
@@ -255,7 +290,6 @@ export const zh: TranslationSchema = {
   productDetail: {
     breadcrumbLabel: '面包屑导航',
     breadcrumbHome: '首页',
-    backToCollection: '天然植物油',
     benefitsHeading: '产品亮点',
     packSizeLabel: '规格',
     skuLabel: '商品编号',

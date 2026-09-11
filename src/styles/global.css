@@ -143,15 +143,23 @@ body {
   margin: 0;
   width: 100%;
   min-height: 100%;
-  /* Defensive guard against a WebKit/iOS Safari bug where a wide
-   * transformed descendant inside nested overflow:hidden wrappers (e.g.
-   * TrustMarquee's animated ticker track) can let Safari compute the
-   * page's scrollable width from the un-clipped content, allowing a
-   * horizontal swipe to pan the whole document and reveal the body
-   * background as a strip past the visual edge. The page never
-   * legitimately scrolls horizontally, so this is safe site-wide. */
+  /* `overflow-x: hidden` guards against the page ever legitimately
+   * needing to scroll horizontally. It used to be paired with
+   * `overscroll-behavior-x: none` as a defensive guard against a
+   * WebKit/iOS Safari bug where TrustMarquee's very wide animated ticker
+   * track could leak into the page's computed scrollable width and let a
+   * horizontal swipe reveal the body background past the edge -- but
+   * that property also silently disables the browser's native two-finger
+   * swipe back/forward gesture (trackpad on desktop, edge-swipe on
+   * mobile) site-wide, which is a real regression for anyone navigating
+   * that way. TrustMarquee.astro now carries its own standards-correct,
+   * scoped fix for the actual bug (`overflow: clip; contain: paint;` on
+   * its own <section>/.marquee-viewport -- see that file), so the
+   * site-wide swipe-nav-disabling property is no longer needed here. If
+   * a similar edge-reveal bug ever resurfaces on Safari/iOS, fix it at
+   * the offending component the same way TrustMarquee does, rather than
+   * reintroducing this site-wide `overscroll-behavior-x: none`. */
   overflow-x: hidden;
-  overscroll-behavior-x: none;
 }
 * {
   box-sizing: border-box;

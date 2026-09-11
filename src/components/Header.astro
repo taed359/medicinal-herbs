@@ -93,7 +93,7 @@ const accountHref = `/customer/account?lang=${lang}`;
       <!-- Search + icons -->
       <div class="flex items-center gap-4">
         <div class="hidden lg:block">
-          <form action={localePath(lang, 'search')} method="get" role="search" class="relative" onsubmit="return false">
+          <form action={localePath(lang, 'search')} method="get" role="search" class="relative">
             <label for="header-search" class="sr-only">{t.header.searchLabel}</label>
             <input
               id="header-search"
@@ -207,7 +207,7 @@ const accountHref = `/customer/account?lang=${lang}`;
     data-state="closed"
     aria-hidden="true"
   >
-    <form action={localePath(lang, 'search')} method="get" role="search" class="mobile-search-form" onsubmit="return false">
+    <form action={localePath(lang, 'search')} method="get" role="search" class="mobile-search-form">
       <label for="mobile-search-popup-input" class="sr-only">{t.header.searchLabel}</label>
       <input
         id="mobile-search-popup-input"

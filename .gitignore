@@ -26,3 +26,5 @@ pnpm-debug.log*
 
 # ad-hoc transfer archives
 _transfer/
+.vercel
+.env*

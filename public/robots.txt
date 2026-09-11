@@ -1,0 +1,14 @@
+# Search results pages (/vi/search, /zh/search) are deliberately NOT
+# disallowed here even though we don't want them indexed -- they carry a
+# <meta name="robots" content="noindex, follow"> tag instead (see
+# Layout.astro's `noindex` prop, set by SearchPage.astro). Blocking them
+# via robots.txt would stop crawlers from ever seeing that tag, which can
+# make a blocked URL show up in results anyway (with no description) --
+# the documented anti-pattern of combining Disallow with noindex.
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /customer/
+
+Sitemap: https://medicinal-herbs.vercel.app/sitemap-index.xml

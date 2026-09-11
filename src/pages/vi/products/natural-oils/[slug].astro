@@ -1,18 +1,30 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import ProductDetail from '../../../../components/ProductDetail.astro';
-import { productRepository } from '../../../../server/repositories';
+import { productRepository, categoryRepository } from '../../../../server/repositories';
 import { getTranslations } from '../../../../i18n/utils';
 
+const lang = 'vi' as const;
+
+// Scoped to this category's own products -- NOT productRepository's
+// site-wide listAllSlugs(), which would (once a second category exists)
+// generate every product's detail page under every category's URL
+// prefix. Each category's own [slug].astro folder owns exactly its own
+// products' slugs.
 export async function getStaticPaths() {
-  const slugs = await productRepository.listAllSlugs();
-  return slugs.map((slug) => ({ params: { slug } }));
+  const items = await productRepository.listByCategory('natural-oils', 'vi');
+  return items.map((item) => ({ params: { slug: item.slug } }));
 }
 
 const { slug } = Astro.params;
-const lang = 'vi' as const;
 const product = await productRepository.getBySlug(slug!, lang);
 if (!product) throw new Error('Not found');
+
+// category id and slug are the same value by convention (see
+// seed-natural-oils.ts / seed-wholesale-category.ts) -- getBySlug is the
+// repository method that exists today, so it doubles as the by-id lookup.
+const category = await categoryRepository.getBySlug(product.categoryId, lang);
+if (!category) throw new Error('Not found');
 
 const t = getTranslations(lang);
 const title = `${product.name} — ${t.common.siteName}`;
@@ -29,5 +41,5 @@ const relatedProducts = (await productRepository.listByCategory(product.category
   .slice(0, 4);
 ---
 <Layout lang={lang} title={title} description={description}>
-  <ProductDetail lang={lang} product={product} relatedProducts={relatedProducts} />
+  <ProductDetail lang={lang} product={product} category={category} relatedProducts={relatedProducts} />
 </Layout>
