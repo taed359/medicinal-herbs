@@ -40,6 +40,8 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     data-error-empty-cart={t.checkout.errorEmptyCart}
     data-error-insufficient-stock={t.checkout.errorInsufficientStock}
     data-error-invalid-email={t.checkout.errorInvalidEmail}
+    data-error-invalid-phone={t.checkout.errorInvalidPhone}
+    data-error-too-many-requests={t.checkout.errorTooManyRequests}
     data-error-required-field={t.checkout.errorRequiredField}
     data-error-generic={t.checkout.errorGeneric}
     data-label-default={t.checkout.placeOrderButton}
@@ -220,6 +222,8 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     const errEmptyCart = root.dataset.errorEmptyCart ?? '';
     const errInsufficientStock = root.dataset.errorInsufficientStock ?? '';
     const errInvalidEmail = root.dataset.errorInvalidEmail ?? '';
+    const errInvalidPhone = root.dataset.errorInvalidPhone ?? '';
+    const errTooManyRequests = root.dataset.errorTooManyRequests ?? '';
     const errRequiredField = root.dataset.errorRequiredField ?? '';
     const errGeneric = root.dataset.errorGeneric ?? '';
 
@@ -292,10 +296,14 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
     // <p data-field-error> (see the markup, linked via aria-describedby)
     // instead of routing every problem through that one shared banner.
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Matches PHONE_RE in src/pages/api/checkout.ts exactly -- 0 or +84
+    // followed by 9-10 more digits, separators stripped before testing.
+    const phonePattern = /^(0|\+84)\d{9,10}$/;
 
     function fieldErrorMessage(input: HTMLInputElement): string {
       if (input.value.trim() === '') return errRequiredField;
       if (input.type === 'email' && !emailPattern.test(input.value.trim())) return errInvalidEmail;
+      if (input.type === 'tel' && !phonePattern.test(input.value.trim().replace(/[\s().-]/g, ''))) return errInvalidPhone;
       return '';
     }
 
@@ -418,6 +426,8 @@ const confirmationHref = localePath(lang, 'checkout/confirmation');
           if (code === 'empty_cart') showFormError(errEmptyCart);
           else if (code === 'insufficient_stock') showFormError(errInsufficientStock);
           else if (code === 'invalid_customer_email') showFormError(errInvalidEmail);
+          else if (code === 'invalid_customer_phone') showFormError(errInvalidPhone);
+          else if (code === 'too_many_requests') showFormError(errTooManyRequests);
           else showFormError(errGeneric);
           // Refresh cart state -- an insufficient_stock rejection means
           // the cart the summary shows is now stale.

@@ -241,7 +241,7 @@ export const customerAuth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // see the file-level doc comment above
-    minPasswordLength: 12,
+    minPasswordLength: 14,
     password: {
       hash: hashPassword,
       verify: ({ hash, password }) => verifyPassword(hash, password),
@@ -302,12 +302,40 @@ export const customerAuth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (!ctx.request) return;
       const pathname = new URL(ctx.request.url).pathname;
-      if (!pathname.endsWith('/sign-in/email')) return;
 
-      const email = ctx.body?.email;
-      if (typeof email !== 'string' || email.length === 0) return;
+      if (pathname.endsWith('/sign-in/email')) {
+        const email = ctx.body?.email;
+        if (typeof email !== 'string' || email.length === 0) return;
 
-      await checkAndRecordLoginAttempt(email.toLowerCase().trim());
+        await checkAndRecordLoginAttempt(email.toLowerCase().trim());
+        return;
+      }
+
+      // Better Auth's own signUpEmailBodySchema (verified in the installed
+      // better-auth@1.7.2 source, dist/api/routes/sign-up.mjs) types `name`
+      // as a bare `z.string()` -- no non-empty check, no max length. A
+      // caller hitting this endpoint directly (bypassing register.astro's
+      // own client-side checks) could otherwise register with name: "" or
+      // a name of unbounded length; email has no server-side length cap
+      // either (only format, via z.email()). Backstopped a second time by
+      // the customer_users_name_check/customer_users_email_check DB
+      // constraints (src/db/schema.ts) in case this hook is ever bypassed
+      // too -- but rejecting here first gives a real, localized error
+      // instead of an opaque DB constraint-violation 500.
+      if (pathname.endsWith('/sign-up/email')) {
+        const name = ctx.body?.name;
+        if (typeof name !== 'string' || name.trim().length === 0) {
+          throw new APIError('BAD_REQUEST', { message: 'Name is required.' });
+        }
+        if (name.trim().length > 100) {
+          throw new APIError('BAD_REQUEST', { message: 'Name is too long.' });
+        }
+
+        const email = ctx.body?.email;
+        if (typeof email === 'string' && email.length > 254) {
+          throw new APIError('BAD_REQUEST', { message: 'Email is too long.' });
+        }
+      }
     }),
   },
 });

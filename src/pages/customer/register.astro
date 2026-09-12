@@ -93,18 +93,18 @@ const langHrefs: Record<AuthLocale, string> = {
             <form id="register-form" class="auth-form" novalidate>
               <div class="auth-field">
                 <label for="name">{t.register.nameLabel}</label>
-                <input id="name" name="name" type="text" autocomplete="name" required />
+                <input id="name" name="name" type="text" autocomplete="name" maxlength="100" required />
               </div>
 
               <div class="auth-field">
                 <label for="email">{t.register.emailLabel}</label>
-                <input id="email" name="email" type="email" autocomplete="username" required />
+                <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required />
               </div>
 
               <div class="auth-field">
                 <label for="password">{t.register.passwordLabel}</label>
                 <div class="auth-password-row">
-                  <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required />
+                  <input id="password" name="password" type="password" autocomplete="new-password" minlength="14" maxlength="128" required />
                   <button type="button" data-toggle-for="password" class="auth-password-toggle" aria-pressed="false" aria-label={t.common.showPassword}>
                     <svg data-icon-show width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" /></svg>
                     <svg data-icon-hide width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.6 6.7C4.3 8.2 2.7 10.4 2 12c0 0 3.6 7 10 7 1.8 0 3.4-.4 4.7-1.1M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7-.5.9-1.3 2.1-2.4 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -116,7 +116,7 @@ const langHrefs: Record<AuthLocale, string> = {
               <div class="auth-field">
                 <label for="confirmPassword">{t.register.confirmPasswordLabel}</label>
                 <div class="auth-password-row">
-                  <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required />
+                  <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="14" maxlength="128" required />
                   <button type="button" data-toggle-for="confirmPassword" class="auth-password-toggle" aria-pressed="false" aria-label={t.common.showPassword}>
                     <svg data-icon-show width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" /></svg>
                     <svg data-icon-hide width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.6 6.7C4.3 8.2 2.7 10.4 2 12c0 0 3.6 7 10 7 1.8 0 3.4-.4 4.7-1.1M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7-.5.9-1.3 2.1-2.4 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -218,8 +218,20 @@ const langHrefs: Record<AuthLocale, string> = {
           if (submitButton.disabled) return;
           clearError();
 
-          if (!nameInput.value.trim()) {
+          // Trimmed once here and reused for both the check AND the
+          // request body below -- previously this validated the trimmed
+          // value but sent nameInput.value/emailInput.value (untrimmed) to
+          // the server, so leading/trailing whitespace could slip into
+          // stored data despite passing client-side validation.
+          const name = nameInput.value.trim();
+          if (!name) {
             showError(register.nameRequired, nameInput);
+            return;
+          }
+          // Matches customer-auth.ts's hooks.before name-length backstop
+          // (100) -- not an invented extra rule.
+          if (name.length > 100) {
+            showError(register.nameTooLong, nameInput);
             return;
           }
           const email = emailInput.value.trim();
@@ -231,14 +243,26 @@ const langHrefs: Record<AuthLocale, string> = {
             showError(common.emailInvalid, emailInput);
             return;
           }
+          // Matches customer-auth.ts's hooks.before email-length backstop
+          // (254, RFC 5321's practical address-length limit).
+          if (email.length > 254) {
+            showError(common.emailTooLong, emailInput);
+            return;
+          }
           if (!passwordInput.value) {
             showError(common.passwordRequired, passwordInput);
             return;
           }
-          // Matches the backend's own minPasswordLength (12) -- see
+          // Matches the backend's own minPasswordLength (14) -- see
           // src/server/auth/customer-auth.ts -- not an invented extra rule.
-          if (passwordInput.value.length < 12) {
+          if (passwordInput.value.length < 14) {
             showError(register.passwordTooShort, passwordInput);
+            return;
+          }
+          // Matches the backend's own maxPasswordLength (128, Better
+          // Auth's default, left unset/unoverridden in customer-auth.ts).
+          if (passwordInput.value.length > 128) {
+            showError(common.passwordTooLong, passwordInput);
             return;
           }
           // Client-side only -- confirmPassword is never sent to the
@@ -257,7 +281,7 @@ const langHrefs: Record<AuthLocale, string> = {
             const res = await fetch('/api/customer-auth/sign-up/email', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ name: nameInput.value, email: emailInput.value, password: passwordInput.value, locale: lang }),
+              body: JSON.stringify({ name, email, password: passwordInput.value, locale: lang }),
             });
 
             if (res.ok) {

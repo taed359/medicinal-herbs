@@ -1,0 +1,2 @@
+ALTER TABLE "customer_users" ADD CONSTRAINT "customer_users_name_check" CHECK (char_length(btrim("customer_users"."name")) between 1 and 100);--> statement-breakpoint
+ALTER TABLE "customer_users" ADD CONSTRAINT "customer_users_email_check" CHECK (char_length("customer_users"."email") <= 254);

@@ -469,7 +469,9 @@ export interface TranslationSchema {
       genericError: string;
       emailRequired: string;
       emailInvalid: string;
+      emailTooLong: string;
       passwordRequired: string;
+      passwordTooLong: string;
       // Shared copy for the decorative image panel's overlay text
       // (badge + heading reuse hero.eyebrow/hero.title directly instead of
       // duplicating them here -- only the auth-specific body line needs
@@ -505,6 +507,7 @@ export interface TranslationSchema {
       submit: string;
       submitLoading: string;
       nameRequired: string;
+      nameTooLong: string;
       passwordTooShort: string;
       passwordMismatch: string;
       genericFailure: string;
@@ -636,6 +639,17 @@ export interface TranslationSchema {
     errorEmptyCart: string;
     errorInsufficientStock: string;
     errorInvalidEmail: string;
+    // Shown when the phone field fails the VN phone-number format check
+    // (see PHONE_RE in src/pages/api/checkout.ts and CheckoutPage.astro's
+    // matching client-side check) -- distinct from errorRequiredField,
+    // which only covers "left empty".
+    errorInvalidPhone: string;
+    // Shown when the per-IP checkout rate limit (see
+    // checkAndRecordCheckoutAttempt in src/pages/api/checkout.ts) rejects
+    // a request with 429 -- distinct from errorGeneric so a legitimate
+    // customer briefly blocked (e.g. shared office/NAT IP) understands
+    // it's "slow down", not "something broke".
+    errorTooManyRequests: string;
     errorGeneric: string;
     // Generic inline message shown under any required field left empty on
     // blur/submit (see CheckoutPage.astro's client-side inline validation) --

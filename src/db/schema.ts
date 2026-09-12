@@ -332,7 +332,20 @@ export const customerUsers = pgTable('customer_users', {
   image: text('image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // Defense-in-depth backstop, same convention as the locale_check
+  // constraints elsewhere in this file. The real validation lives in
+  // customer-auth.ts's hooks.before (name) and Better Auth's own
+  // z.email() + minPasswordLength/maxPasswordLength config (email format,
+  // password length) -- these two constraints just guarantee the DB
+  // itself can never end up with an empty/whitespace-only name or an
+  // unreasonably long name/email, even if the app-layer check is ever
+  // bypassed or has a bug. 100 chars for name and 254 for email (RFC
+  // 5321's practical address-length limit) are generous, non-breaking
+  // caps -- no legitimate real name or email should ever hit them.
+  check('customer_users_name_check', sql`char_length(btrim(${table.name})) between 1 and 100`),
+  check('customer_users_email_check', sql`char_length(${table.email}) <= 254`),
+]);
 
 export const customerSessions = pgTable('customer_sessions', {
   id: text('id').primaryKey(),
@@ -438,6 +451,20 @@ export const rateLimit = pgTable('rate_limit', {
 // ---------------------------------------------------------------------------
 export const customerLoginAttempts = pgTable('customer_login_attempts', {
   email: text('email').primaryKey(),
+  count: integer('count').notNull().default(0),
+  windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Abuse-prevention counter for POST /api/checkout, keyed by IP (unlike
+// customer_login_attempts, which is keyed by email -- checkout has no
+// account/session for a guest order, so IP is the only thing available to
+// key on). Same atomic upsert-counter shape as customer_login_attempts;
+// see checkAndRecordCheckoutAttempt in src/pages/api/checkout.ts for the
+// actual read/write logic and why IP here is trusted (Astro's
+// `clientAddress`, resolved by the @astrojs/vercel adapter -- not a raw,
+// client-spoofable header).
+export const checkoutAttempts = pgTable('checkout_attempts', {
+  ip: text('ip').primaryKey(),
   count: integer('count').notNull().default(0),
   windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
 });
