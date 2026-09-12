@@ -172,6 +172,33 @@ export interface TranslationSchema {
     heading: string;
     body: string;
     imageAlt: string;
+    // Links to the dedicated /our-story page (src/pages/{vi,zh}/our-story.astro,
+    // added 2026-09-12). Before that page existed, this homepage teaser had
+    // nowhere to send an interested reader -- see ExpertConsultation.astro's
+    // own doc comment, which flagged exactly this gap when it was written.
+    readMoreLabel: string;
+  };
+  // Dedicated "Our Story" page (src/pages/{vi,zh}/our-story.astro, added
+  // 2026-09-12 -- previously `header.navOurStory` pointed nowhere, see
+  // Header.astro). Deliberately evergreen/philosophy-and-values copy, NOT
+  // fabricated specific history (a founding year, a named founder, a
+  // specific farm/location) -- this is a demo storefront with no real
+  // corporate history yet to draw on, and inventing one would repeat the
+  // exact mistake the 2026-09-12 demo-readiness audit flagged elsewhere
+  // (a real competitor's privacy policy/email presented as this store's
+  // own). `values` reuses the same `{ title, description }` shape as
+  // `process.steps` above.
+  ourStory: {
+    eyebrow: string;
+    heading: string;
+    lede: string;
+    heroImageAlt: string;
+    philosophyHeading: string;
+    philosophyBody1: string;
+    philosophyBody2: string;
+    valuesEyebrow: string;
+    valuesHeading: string;
+    values: Array<{ title: string; description: string }>;
   };
   trustCertifications: {
     eyebrow: string;
@@ -398,6 +425,18 @@ export interface TranslationSchema {
   };
   home: {
     title: string;
+  };
+  // Site-wide 404 page (src/pages/404.astro -- added 2026-09-12 per
+  // the demo-readiness audit, which flagged the missing custom error
+  // page). Locale is best-effort-detected from the requested path, not
+  // a real /vi//zh/ prefixed route, so this lives at the top level
+  // rather than nested under any single section.
+  notFound: {
+    title: string;
+    heading: string;
+    message: string;
+    homeCta: string;
+    searchCta: string;
   };
   seo: {
     description: string;

@@ -123,7 +123,41 @@ export const vi: TranslationSchema = {
     body:
       'Bắt nguồn từ trí tuệ y học cổ truyền, các công thức của chúng tôi tôn vinh những bài thuốc đã được kiểm chứng qua thời gian, đồng thời đáp ứng tiêu chuẩn chất lượng hiện đại. Chúng tôi tuyển chọn nguyên liệu tự nhiên một cách tỉ mỉ để hỗ trợ sức khỏe mỗi ngày.',
     imageAlt: 'Hình ảnh thương hiệu mang cảm hứng thảo dược',
+    readMoreLabel: 'Xem câu chuyện đầy đủ',
   },
+  ourStory: {
+    eyebrow: 'Câu chuyện thương hiệu',
+    heading: 'Câu chuyện của chúng tôi',
+    lede:
+      'Hành trình gìn giữ trí tuệ y học cổ truyền và mang đến những sản phẩm thảo dược đáng tin cậy cho cuộc sống hiện đại.',
+    heroImageAlt: 'Không gian thảo dược truyền thống với cối chày và các bó dược liệu khô',
+    philosophyHeading: 'Vì sao chúng tôi bắt đầu',
+    philosophyBody1:
+      'Thảo Dược ra đời từ một niềm tin đơn giản: những bài thuốc thảo dược đã được lưu truyền qua nhiều thế hệ xứng đáng được gìn giữ và tiếp cận theo cách rõ ràng, đáng tin cậy hơn. Chúng tôi tin rằng trí tuệ y học cổ truyền không đối lập với khoa học hiện đại — khi được kết hợp đúng cách, cả hai bổ trợ cho nhau để mang lại những lựa chọn chăm sóc sức khỏe thực sự đáng tin.',
+    philosophyBody2:
+      'Mỗi sản phẩm trong danh mục của chúng tôi đều được lựa chọn theo bốn nguyên tắc dưới đây, từ khâu tìm hiểu nguồn gốc nguyên liệu đến trình bày thông tin minh bạch — để bạn luôn biết rõ mình đang lựa chọn điều gì cho sức khỏe của bản thân và gia đình.',
+    valuesEyebrow: 'Giá trị cốt lõi',
+    valuesHeading: 'Những điều chúng tôi luôn giữ vững',
+    values: [
+      {
+        title: 'Thiên nhiên là gốc rễ',
+        description: 'Ưu tiên nguyên liệu thảo dược tự nhiên, hạn chế thành phần tổng hợp không cần thiết.',
+      },
+      {
+        title: 'Minh bạch & trung thực',
+        description: 'Không phóng đại công dụng, không che giấu thông tin — bạn xứng đáng biết rõ những gì mình đang sử dụng.',
+      },
+      {
+        title: 'Khoa học đồng hành cùng truyền thống',
+        description: 'Tôn trọng tri thức y học cổ truyền, đồng thời đối chiếu với tiêu chuẩn chất lượng hiện đại.',
+      },
+      {
+        title: 'Đồng hành lâu dài',
+        description: 'Chăm sóc sức khỏe là một hành trình — chúng tôi mong muốn đồng hành cùng bạn mỗi ngày, không chỉ trong một lần mua hàng.',
+      },
+    ],
+  },
+
   trustCertifications: {
     eyebrow: 'Chất lượng & Cam kết',
     heading: 'Cam kết chất lượng vượt trội',
@@ -382,6 +416,13 @@ export const vi: TranslationSchema = {
     noPriceError: 'Sản phẩm này hiện chưa có giá bán trực tuyến.',
     genericAddToCartError: 'Không thể thêm vào giỏ, vui lòng thử lại.',
     savingsBadgeLabel: 'Tiết kiệm {percent}%',
+  },
+  notFound: {
+    title: 'Không tìm thấy trang',
+    heading: 'Không tìm thấy trang bạn cần',
+    message: 'Trang này có thể đã bị di chuyển hoặc không còn tồn tại. Hãy thử quay lại trang chủ hoặc tìm kiếm sản phẩm bạn cần.',
+    homeCta: 'Về trang chủ',
+    searchCta: 'Tìm kiếm sản phẩm',
   },
   seo: {
     description:

@@ -1,0 +1,110 @@
+---
+/**
+ * Site-wide "page not found" page (added 2026-09-12, from the
+ * demo-readiness audit -- previously this project had no
+ * `src/pages/404.astro` at all, so a mistyped or dead link fell through
+ * to Astro/Vercel's generic default error page instead of anything
+ * on-brand).
+ *
+ * Astro's static output (`output: 'static'`, see astro.config.mjs) emits
+ * exactly one `404.html` for the whole build from this single file --
+ * there's no first-class way to ship a real per-locale 404 on a plain
+ * static Vercel deployment without extra platform-specific rewrite
+ * rules, which this project deliberately isn't adding yet (see this
+ * project's "no unnecessary dependencies"/"don't prematurely add
+ * infrastructure" constraints). Static hosts including Vercel already
+ * serve a file literally named `404.html` with a real HTTP 404 status
+ * for any unmatched path automatically -- no `Astro.response.status`
+ * assignment is needed (or safe to add: this route is prerendered, and
+ * Astro does not support mutating the response for a prerendered page).
+ *
+ * Locale is therefore best-effort-detected from the URL that was
+ * actually requested (`Astro.url.pathname`), the same idea
+ * `swapLocaleInPath` uses elsewhere in this codebase: a mistyped
+ * `/zh/...` URL gets the Chinese copy and Chinese CTAs; everything else
+ * (a mistyped `/vi/...` URL, or one of the site's few unprefixed
+ * English legacy paths like `/contact` or `/privacy-policy`) falls back
+ * to `defaultLocale` ('vi'), matching Layout.astro's own `uiLang`
+ * fallback for unprefixed pages.
+ */
+import Layout from '../layouts/Layout.astro';
+import { defaultLocale, getTranslations, localeHomePath, localePath, type Locale } from '../i18n/utils';
+
+const pathname = Astro.url.pathname;
+const lang: Locale = pathname === '/zh' || pathname.startsWith('/zh/') ? 'zh' : defaultLocale;
+const t = getTranslations(lang);
+const homeHref = localeHomePath(lang);
+const searchHref = localePath(lang, 'search');
+---
+<Layout lang={lang} uiLang={lang} title={`${t.notFound.title} — ${t.common.siteName}`} noindex={true}>
+  <section class="notfound-page" aria-labelledby="notfound-title">
+    <div class="container-page">
+      <div class="notfound-empty">
+        <div class="notfound-empty-icon-wrap" aria-hidden="true">
+          <svg class="notfound-empty-icon" width="34" height="34" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3c-3 3.2-4.5 6-4.5 9a4.5 4.5 0 0 0 9 0c0-3-1.5-5.8-4.5-9Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 12v6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+          </svg>
+        </div>
+        <p class="notfound-empty-code font-serif" aria-hidden="true">404</p>
+        <p class="notfound-empty-heading font-serif" id="notfound-title">{t.notFound.heading}</p>
+        <p class="notfound-empty-body">{t.notFound.message}</p>
+        <div class="notfound-empty-actions">
+          <a href={homeHref} data-astro-reload class="btn btn-primary">{t.notFound.homeCta}</a>
+          <a href={searchHref} data-astro-reload class="btn btn-secondary">{t.notFound.searchCta}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Same "flex column + align-items:center, not text-align:center" note
+     as CartPage.astro/CartDrawer.astro's own empty states: Tailwind's
+     preflight sets `svg { display: block }`, which takes the icon out
+     of inline flow and makes text-align on the ancestor a no-op for it. */
+  .notfound-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    padding-block: 2rem;
+  }
+  .notfound-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    margin: 0 auto;
+    max-width: 32rem;
+  }
+  .notfound-empty-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-brand) 8%, var(--color-cream));
+    color: var(--color-brand);
+  }
+  .notfound-empty-icon { display: block; color: inherit; }
+  .notfound-empty-code {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--color-pine-dark);
+    margin: 0;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+  .notfound-empty-heading { font-size: 1.5rem; color: var(--color-heading); margin: 0.75rem 0 0; }
+  .notfound-empty-body { font-size: 0.95rem; color: var(--color-muted); margin: 0.6rem auto 0; max-width: 40ch; }
+  .notfound-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.75rem;
+  }
+</style>

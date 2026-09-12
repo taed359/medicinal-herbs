@@ -122,7 +122,27 @@ const paymentMethodLabel = order
             </section>
           ) : (
             <>
-              <div class="acct-order-header" data-order-print-hide>
+              {/*
+                Print-only letterhead (2026-09-12 UI/UX pass): the print
+                stylesheet below hides the site header, announcement bar
+                and breadcrumb, so a printed order needs its own minimal
+                "who this is from" line to still read as a real receipt
+                rather than a bare content fragment. Hidden on screen
+                (`.acct-print-letterhead` is `display: none` by default,
+                shown only inside `@media print`).
+              */}
+              <div class="acct-print-letterhead" aria-hidden="true">
+                <span class="acct-print-letterhead-name font-serif">{t.common.siteName}</span>
+                <span class="acct-print-letterhead-tagline">{t.common.tagline}</span>
+              </div>
+
+              {/*
+                NOT `data-order-print-hide` -- order number/date/status are
+                the whole point of a printed order and must stay visible.
+                Only `.acct-order-actions` below (back-link + the Print
+                button itself) is real on-screen-only UI.
+              */}
+              <div class="acct-order-header">
                 <div>
                   <h1 id="acct-heading" class="acct-order-title font-serif">{order.orderNumber}</h1>
                   <p class="acct-order-date">{formatDate(order.createdAt)}</p>
@@ -156,7 +176,7 @@ const paymentMethodLabel = order
                 </section>
               </div>
 
-              <section class="acct-card" aria-labelledby="acct-items-heading">
+              <section class="acct-card acct-items-card" aria-labelledby="acct-items-heading">
                 <h2 id="acct-items-heading" class="acct-card-heading font-serif">{oc.itemsHeading}</h2>
                 <div class="acct-orders-table-wrap">
                   <table class="acct-orders-table">
@@ -437,21 +457,151 @@ const paymentMethodLabel = order
     color: var(--color-amber);
   }
 
-  /* ---------- Print ---------- */
+  /* ---------- Print letterhead (screen: hidden; print: see below) ---------- */
+  .acct-print-letterhead {
+    display: none;
+  }
+
+  /* ---------- Print ----------
+   * UI/UX pass, 2026-09-12 (prompted by user feedback that the printed
+   * order looked unfinished). What changed vs. the original version of
+   * this block:
+   *   - Added the announcement bar (`[data-print-hide]`, see
+   *     AnnouncementBar.astro) and the breadcrumb (`.breadcrumbs`,
+   *     Breadcrumbs.astro) to the hide list -- neither was actually
+   *     `<header>`/`<footer>` so neither was being hidden before; a
+   *     "Print Order" printout was showing the site's rotating promo bar
+   *     AND the Home / My Orders / ORD-... breadcrumb trail above the
+   *     receipt, which is exactly the "header + breadcrumb" clutter the
+   *     user asked to remove.
+   *   - Moved `data-order-print-hide` OFF the order title/date/status
+   *     row: that row was being hidden too, which meant a printed order
+   *     previously had no order number, date or status on it at all --
+   *     the single most important thing a "print this order" printout
+   *     needs. Only `.acct-order-actions` (the back-link + the Print
+   *     button itself, neither of which does anything on paper) stays
+   *     hidden.
+   *   - Added `.acct-print-letterhead`: with the site header gone, the
+   *     page needs its own minimal brand line so a printed order still
+   *     reads as coming from this store, the way a real receipt/invoice
+   *     would -- not a bare, unbranded content fragment.
+   *   - Split `.acct-card` (was one flat `break-inside: avoid` rule for
+   *     every card, items table included) into two: the small
+   *     Shipping/Payment info cards still never split across a page
+   *     break, but the items card (`.acct-items-card`, possibly long) is
+   *     now allowed to flow across pages naturally, with its header row
+   *     repeating on each page and individual item rows never splitting
+   *     mid-row -- avoiding both a cut-off card and a large forced blank
+   *     gap on orders with many line items.
+   *   - Set an explicit `@page` margin (browsers default to a fairly
+   *     wide one) and removed the on-screen cream page background/
+   *     vertical section padding and the `.container-page` side padding,
+   *     since `@page` margin already provides the page's outer margin --
+   *     stacking both looked like an oversized, off-center receipt.
+   *   - Forced the two-column Shipping/Payment layout even on narrow
+   *     paper sizes (it was gated behind a `min-width: 768px` screen
+   *     breakpoint that print media doesn't reliably match) and swapped
+   *     the status badge's tinted fill for a plain bordered chip, which
+   *     stays crisp on a black-and-white printer/PDF instead of
+   *     depending on the browser's "background graphics" print option.
+   *
+   * Two things CSS cannot fix, worth knowing about: (1) Chrome/Edge/
+   * Firefox print dialogs have their own "Headers and footers" toggle
+   * that adds a browser-drawn URL + date + page number strip outside any
+   * page content -- unrelated to this stylesheet, and only the person
+   * printing can turn it off (unchecked = cleaner output). (2) if a
+   * browser's print dialog has "Background graphics" turned off, the
+   * status-badge border above still shows (it's a border, not a fill),
+   * but any card background/shadow this page does keep would not.
+   */
   @media print {
     :global(header),
     :global(footer),
+    :global(.breadcrumbs),
+    :global([data-print-hide]),
     :global([data-cart-drawer]),
     :global(.acct-nav),
-    [data-order-print-hide] {
+    .acct-order-actions {
       display: none !important;
     }
+
+    @page {
+      margin: 1.6cm 1.4cm;
+    }
+
+    :global(.container-page) {
+      padding-left: 0;
+      padding-right: 0;
+      max-width: none;
+    }
+
+    .acct-section {
+      background: #fff;
+      min-height: 0;
+      padding: 0 !important;
+    }
+
     .acct-layout {
       display: block;
     }
+
+    .acct-print-letterhead {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--color-pine-dark);
+    }
+    .acct-print-letterhead-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-pine-dark);
+    }
+    .acct-print-letterhead-tagline {
+      font-size: 0.8125rem;
+      color: var(--color-muted);
+    }
+
     .acct-card {
       border: 1px solid #ccc;
+      box-shadow: none;
+      background: #fff;
+    }
+    .acct-info-grid .acct-card {
       break-inside: avoid;
+    }
+    .acct-items-card {
+      break-inside: auto;
+    }
+
+    .acct-info-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .acct-orders-table thead {
+      display: table-header-group;
+    }
+    .acct-tr {
+      break-inside: avoid;
+    }
+    .acct-col-secondary {
+      display: table-cell;
+    }
+    .acct-item-sku-mobile {
+      display: none;
+    }
+
+    .acct-status-badge {
+      background: transparent;
+      border: 1px solid currentColor;
+    }
+
+    .acct-address a,
+    .acct-view-link {
+      color: inherit;
+      text-decoration: none;
     }
   }
 </style>

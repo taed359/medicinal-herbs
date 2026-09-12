@@ -29,6 +29,26 @@ const customerUser = Astro.locals.customerUser;
 // vi/zh only, defaulting to 'vi'). No separate path-based parsing needed.
 const loginHref = `/customer/login?lang=${lang}&redirect=${encodeURIComponent(Astro.url.pathname)}`;
 const accountHref = `/customer/account?lang=${lang}`;
+// Bug fix (2026-09-12, demo-readiness audit): the account dropdown's
+// "Orders" item was still hardcoded to `href="#"` -- correct when this
+// dropdown was first written (no orders page existed yet), but the real
+// order-history page has since been built at `/customer/orders` (see
+// AccountNav.astro's own sidebar, which already links there via the same
+// `?lang=` pattern as `accountHref` above). This wires the dropdown's
+// Orders link to that same real URL instead of leaving it dead.
+// Profile/Addresses/Wishlist/Settings stay `href="#"` below -- those
+// pages genuinely don't exist yet, so `#` is still accurate for them.
+const ordersHref = `/customer/orders?lang=${lang}`;
+
+// Fix #5 (2026-09-12 demo-readiness audit): "Our Story" was a dead
+// `href="#"` link -- no page existed for it to point to. Now wired to
+// the real page at src/pages/{vi,zh}/our-story.astro (OurStoryPage.astro),
+// with `data-astro-reload` matching this file's own accountHref/
+// ordersHref above and every other real content link in this codebase
+// (HealthReads' article links, NaturalOils' "view all" link, etc.).
+// "Health Reads" right next to it is untouched: that page still doesn't
+// exist, same as when the audit flagged it.
+const ourStoryHref = localePath(lang, 'our-story');
 ---
 <AnnouncementBar lang={lang} messages={t.header.announcement} />
 
@@ -117,7 +137,7 @@ const accountHref = `/customer/account?lang=${lang}`;
         ) : (
           <span class="font-sans text-sm font-medium text-pine-dark">{t.header.navShopBy}</span>
         )}
-        <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
+        <a href={ourStoryHref} data-astro-reload class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navOurStory}</a>
         <a href="#" class="relative font-sans text-sm font-medium text-pine-dark hover:text-amber transition-colors no-underline after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-amber-decorative after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100">{t.header.navHealthReads}</a>
         </nav>
       </div>
@@ -190,7 +210,7 @@ const accountHref = `/customer/account?lang=${lang}`;
             >
               <li role="none"><a role="menuitem" href={accountHref} data-astro-reload class="account-menu-item">{t.header.myAccountLabel}</a></li>
               <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.profileLabel}</a></li>
-              <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.ordersLabel}</a></li>
+              <li role="none"><a role="menuitem" href={ordersHref} data-astro-reload class="account-menu-item">{t.header.ordersLabel}</a></li>
               <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.addressesLabel}</a></li>
               <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.wishlistLabel}</a></li>
               <li role="none"><a role="menuitem" href="#" class="account-menu-item">{t.header.settingsLabel}</a></li>
@@ -336,7 +356,7 @@ const accountHref = `/customer/account?lang=${lang}`;
             <nav class="mobile-menu-list" aria-label={t.header.accountMenuLabel}>
               <a href={accountHref} data-astro-reload class="mobile-menu-row">{t.header.myAccountLabel}</a>
               <a href="#" class="mobile-menu-row">{t.header.profileLabel}</a>
-              <a href="#" class="mobile-menu-row">{t.header.ordersLabel}</a>
+              <a href={ordersHref} data-astro-reload class="mobile-menu-row">{t.header.ordersLabel}</a>
               <a href="#" class="mobile-menu-row">{t.header.addressesLabel}</a>
               <a href="#" class="mobile-menu-row">{t.header.wishlistLabel}</a>
               <a href="#" class="mobile-menu-row">{t.header.settingsLabel}</a>
@@ -373,7 +393,7 @@ const accountHref = `/customer/account?lang=${lang}`;
           ) : (
             <span class="mobile-menu-row">{t.header.navShopBy}</span>
           )}
-          <a href="#" class="mobile-menu-row">{t.header.navOurStory}</a>
+          <a href={ourStoryHref} data-astro-reload class="mobile-menu-row">{t.header.navOurStory}</a>
           <a href="#" class="mobile-menu-row">{t.header.navHealthReads}</a>
         </nav>
       </div>

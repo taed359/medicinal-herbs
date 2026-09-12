@@ -8,6 +8,10 @@ interface Props {
 const { lang, uiLang } = Astro.props;
 const t = getTranslations(uiLang);
 const contactHref = localePath(lang, 'contact');
+// Same real page Header.astro's navOurStory now points to (added
+// 2026-09-12, src/pages/{vi,zh}/our-story.astro / OurStoryPage.astro) --
+// this footer link previously shared the exact same dead href="#" gap.
+const ourStoryHref = localePath(lang, 'our-story');
 const privacyHref = lang === 'en' ? '/privacy-policy/' : localePath(lang, 'policies/privacy-policy');
 const backToTopLabel = lang === 'en' ? 'Back to top' : uiLang === 'zh' ? '返回顶部' : 'Về đầu trang';
 const year = new Date().getFullYear();
@@ -34,7 +38,7 @@ const year = new Date().getFullYear();
         <p class="footer-brand-tag m-0">{t.common.tagline}</p>
         <h3 class="footer-heading">{t.footer.aboutHeadingPrefix} {t.common.siteName}</h3>
         <ul class="footer-list m-0 p-0 list-none">
-          <li><a class="footer-link" href="#">{t.footer.aboutLinks.story}</a></li>
+          <li><a class="footer-link" href={ourStoryHref} data-astro-reload>{t.footer.aboutLinks.story}</a></li>
           <li><a class="footer-link" href="#">{t.footer.aboutLinks.reads}</a></li>
           <li><a class="footer-link" href="#">{t.footer.aboutLinks.sustainability}</a></li>
         </ul>

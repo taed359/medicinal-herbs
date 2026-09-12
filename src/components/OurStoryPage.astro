@@ -1,0 +1,385 @@
+---
+/**
+ * Dedicated "Our Story" / "Câu chuyện" page
+ * (/vi/our-story, /zh/our-story). Added 2026-09-12 -- until now,
+ * `Header.astro`'s "Our Story" nav item (`t.header.navOurStory`) was a
+ * dead `href="#"` link with no page to point to at all (see
+ * ExpertConsultation.astro's own doc comment, which explicitly flagged
+ * this exact gap: "no about/story route exists anywhere in src/pages").
+ *
+ * Structure is informed by a quick survey of how established
+ * wellness/herbal brands lay out their own "Our Story" pages (Weleda,
+ * Traditional Medicinals, and others) -- the recurring shape is: a
+ * founding/mission statement up top, a philosophy section grounding
+ * *why* the brand exists, a set of guiding principles or values, a
+ * quality/trust section, then a closing invitation to engage further.
+ * This page follows that same shape, adapted to what's actually true
+ * for this project:
+ *
+ *   - The philosophy/values copy below is deliberately EVERGREEN
+ *     (mission, principles, how products are chosen) -- it does NOT
+ *     invent specific unverifiable history (a founding year, a named
+ *     founder, a particular farm or region). This is a demo storefront
+ *     with no real corporate history to draw on yet, and fabricating
+ *     one would repeat the exact mistake flagged elsewhere in the
+ *     2026-09-12 demo-readiness audit (a real competitor's privacy
+ *     policy/support email presented as this store's own). When real
+ *     history/founder details exist, they belong in `ourStory` in
+ *     src/i18n/{vi,zh}.ts alongside this copy -- nothing else needs to
+ *     change structurally.
+ *   - Rather than re-authoring a "how we choose products" section and a
+ *     "quality & certifications" section from scratch, this page reuses
+ *     the existing Process.astro (the homepage's own 4-principle
+ *     selection criteria) and TrustCertifications.astro components
+ *     directly -- same real content already vetted for this project,
+ *     no duplicated copy to keep in sync, and it keeps
+ *     TrustCertifications' own disclaimer attached wherever its claims
+ *     are shown. Closes with ExpertConsultation.astro (the existing
+ *     "talk to us" CTA, already a real, working link to /contact) --
+ *     the same "origin story -> values -> invitation to engage" arc the
+ *     researched brand pages use.
+ *   - BrandStory.astro (the homepage's short teaser of this same theme)
+ *     is intentionally NOT reused here as a section -- its own heading
+ *     ("Di sản và Tay nghề của chúng tôi") would read as a near-
+ *     duplicate sitting right above this page's own hero heading. It
+ *     now links here instead (`brandStory.readMoreLabel`).
+ *
+ * UI/UX pass, 2026-09-12 (senior review of the first version): the
+ * original draft used a small, centered, capped-width hero image below
+ * plain-stacked text, and Tailwind's generic `py-8`/`py-10` utilities
+ * for section spacing -- functionally fine, but it read as a generic
+ * content page (closer to ContactPage) rather than a distinct editorial
+ * "story" moment, and its spacing didn't match the considered
+ * padding-block scale every neighboring section (Process, Hero,
+ * BrandStory, TrustCertifications) already uses. This pass:
+ *   - Rebuilt the hero as a real two-column masthead (text | image),
+ *     reusing Hero.astro's own proven formula (text-first/image-second,
+ *     `text-display-hero` for real hero-scale type, a soft pine-tinted
+ *     shadow under the image) rather than inventing a new one.
+ *   - Kept the image's `aspect-ratio: 4/3` unchanged -- same reasoning
+ *     as before: this SVG's composition was made for BrandStory's 4:3
+ *     box, and there's no way to preview a different crop from here, so
+ *     the safe, already-proven ratio stays; only its position/size in
+ *     the layout changed, not its crop.
+ *   - Split "hero" and "philosophy" into two distinct `<section>`s
+ *     (previously one section covering both, with two headings and no
+ *     independent landmark for the second) and moved both onto the same
+ *     padding-block scale Process.astro/BrandStory.astro use, instead of
+ *     ad hoc Tailwind spacing utilities.
+ *   - Gave the values grid actual visual anchors: a small line-icon per
+ *     card (leaf / open book / flask / heart -- generic marks, same
+ *     24x24 / stroke-width:1.5 / currentColor language
+ *     TrustCertifications.astro's own icons use, not evoking any real
+ *     certification or brand mark), in a tinted circle matching this
+ *     page's own pine palette. The cards previously had no icon at all,
+ *     which read as visually thinner than Process.astro's numbered seals
+ *     immediately above them in the same scroll.
+ * No copy changed in this pass -- `t.ourStory.*` content itself is
+ * unchanged; this is a structure/visual pass only.
+ *
+ * Follows the same `lang`-prop / Layout+Breadcrumbs / vi.astro+zh.astro
+ * wrapper pattern as ContactPage.astro and PrivacyPolicyPage.astro.
+ */
+import { getImage } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import Process from './Process.astro';
+import TrustCertifications from './TrustCertifications.astro';
+import ExpertConsultation from './ExpertConsultation.astro';
+import { getTranslations, localePath, type Locale } from '../i18n/utils';
+import apothecaryScene from '../assets/images/brand-story/apothecary-scene.svg';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const t = getTranslations(lang);
+const os = t.ourStory;
+const homeHref = localePath(lang, '');
+
+// Same SVG-passthrough technique BrandStory.astro already uses for this
+// exact asset (format: 'svg' -- Astro's default sharp service throws if
+// asked to rasterize an SVG, so this just routes it through the normal
+// hashed-asset pipeline unchanged).
+const illustrationOptimized = await getImage({ src: apothecaryScene, format: 'svg' });
+
+// Positional, not keyed: `os.values` is a fixed-order array (see
+// src/i18n/{vi,zh}.ts's `ourStory.values`), same convention Process.astro
+// uses for its own steps array -- index 0 always gets the "nature" icon,
+// index 1 "transparency", etc. If a 5th value is ever added, add its icon
+// here too (falls back to no icon otherwise, not a crash).
+const VALUE_ICON_PATHS = [
+  // Nature / root
+  'M6 20.5c0-7.2 4-13.3 12-15.5-1 8.2-5 13.3-12 15.5Z|M8.2 18.3c2-4.3 5-7.5 9-9.6',
+  // Transparency / openness (open book)
+  'M12 6.2c-2-1.6-5-2.1-8-1.1v13c3-1 6-.5 8 1.1 2-1.6 5-2.1 8-1.1v-13c-3-1-6-.5-8 1.1Z|M12 6.2v13',
+  // Science + tradition (flask)
+  'M9.3 3.5h5.4|M10.3 3.5v6.3L5 18.4a1.9 1.9 0 0 0 1.6 2.9h10.8a1.9 1.9 0 0 0 1.6-2.9l-5.3-8.6V3.5|M7.8 15.2h8.4',
+  // Long-term companionship (heart)
+  'M12 19.3s-7-4.4-7-9.6A4 4 0 0 1 12 7.2a4 4 0 0 1 7 2.5c0 5.2-7 9.6-7 9.6Z',
+];
+---
+<Layout lang={lang} uiLang={lang} title={`${os.heading} — ${t.common.siteName}`}>
+  <section class="story-hero-section" aria-labelledby="story-page-title">
+    <div class="container-editorial">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: t.header.navOurStory, current: true },
+        ]}
+      />
+
+      <div class="story-hero-layout">
+        <div class="story-hero-copy">
+          <p class="eyebrow m-0">{os.eyebrow}</p>
+          <h1 id="story-page-title" class="story-hero-heading font-serif text-display-hero m-0">{os.heading}</h1>
+          <p class="story-hero-lede m-0">{os.lede}</p>
+        </div>
+
+        <div class="story-hero-image-frame relative overflow-hidden">
+          <img
+            src={illustrationOptimized.src}
+            alt={os.heroImageAlt}
+            width="800"
+            height="600"
+            class="h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="story-philosophy-section" aria-labelledby="story-philosophy-heading">
+    <div class="container-editorial">
+      <div class="story-philosophy">
+        <h2 id="story-philosophy-heading" class="text-heading-section font-serif m-0">{os.philosophyHeading}</h2>
+        <p class="story-philosophy-lead mt-5">{os.philosophyBody1}</p>
+        <p class="mt-4 text-body leading-relaxed">{os.philosophyBody2}</p>
+      </div>
+    </div>
+  </section>
+
+  <Process lang={lang} />
+
+  <section class="story-values-section" aria-labelledby="story-values-heading">
+    <div class="container-editorial">
+      <p class="eyebrow m-0 mb-2">{os.valuesEyebrow}</p>
+      <h2 id="story-values-heading" class="text-heading-section font-serif m-0">{os.valuesHeading}</h2>
+
+      <ul class="story-values-grid mt-8 m-0 p-0 list-none">
+        {os.values.map((value, index) => (
+          <li class="story-value-card">
+            <span class="story-value-icon-wrap" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                {VALUE_ICON_PATHS[index]?.split('|').map((d) => (
+                  <path d={d} stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                ))}
+              </svg>
+            </span>
+            <h3 class="story-value-title font-serif m-0">{value.title}</h3>
+            <p class="story-value-description m-0 mt-2">{value.description}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <TrustCertifications lang={lang} />
+  <ExpertConsultation lang={lang} />
+</Layout>
+
+<style>
+  /* ---------- Hero ---------- */
+  .story-hero-section {
+    /* Considered padding-block scale, matching the tier Process.astro/
+       BrandStory.astro use elsewhere on this same page's scroll (rather
+       than the generic py-8/py-10 Tailwind utilities the first draft
+       used) -- a bit more generous than those since this is the page's
+       own masthead, same relationship Hero.astro's bigger padding has to
+       the homepage sections below it. */
+    padding-block: 1.75rem 2rem;
+  }
+  @media (min-width: 640px) {
+    .story-hero-section { padding-block: 2.25rem 2.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .story-hero-section { padding-block: 2.75rem 3rem; }
+  }
+
+  .story-hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  @media (min-width: 1024px) {
+    /* Bug fixed here: `.story-hero-copy` and `.story-hero-image-frame`
+       each cap their OWN width (max-width: 38rem / 30rem below) but the
+       two grid tracks themselves grow with the container -- fine at
+       1024-1279px where the tracks are barely wider than the content,
+       but on this page's actual container (`.container-editorial` is
+       96rem/1536px, deliberately wide for the Values 4-column grid
+       elsewhere on this same page) the two boxes stayed pinned to their
+       own track's near/far edge while the tracks kept growing, opening
+       an ever-widening dead gap between text and image -- by 1536px it
+       was roughly a third of the whole row, empty. Capping the LAYOUT's
+       own width and centering it fixes the actual cause (oversized
+       tracks, not the boxes) instead of re-tuning each box's max-width
+       per breakpoint: 76rem is barely more than the two boxes' own
+       38rem + 30rem + 3.5rem gap combined (~71.5rem), so text and image
+       sit close together as one grouped pair at every width from 1024px
+       up, and any extra space this wide container has beyond that
+       becomes equal outer margin on both sides -- the same "single
+       content block doesn't need the full 96rem, so give it its own
+       centered measure" fix already applied to `.story-philosophy`
+       above, now applied to the two-column pair instead of a single
+       column. */
+    .story-hero-layout {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 3.5rem;
+      align-items: center;
+      margin-inline: auto;
+    }
+  }
+
+  .story-hero-copy {
+    min-width: 0;
+    max-width: 38rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .story-hero-heading {
+    color: var(--color-pine-dark);
+  }
+  .story-hero-lede {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-body);
+    max-width: 42ch;
+  }
+
+  /* Same aspect-ratio BrandStory.astro's own box already uses for this
+     exact illustration (kept unchanged -- see the top-of-file note on
+     why a different crop can't be safely previewed from here); only its
+     position (now beside the copy, not stacked below it) and framing
+     (the soft shadow below, matching Hero.astro's own image-frame
+     treatment) changed in this pass. */
+  .story-hero-image-frame {
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    border-radius: var(--radius-editorial);
+    box-shadow: 0 24px 48px -20px color-mix(in srgb, var(--color-pine-dark) 30%, transparent);
+  }
+  @media (min-width: 1024px) {
+    .story-hero-image-frame {
+      max-width: 30rem;
+      justify-self: end;
+    }
+  }
+
+  /* ---------- Philosophy ---------- */
+  .story-philosophy-section {
+    padding-block: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .story-philosophy-section { padding-block: 1.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .story-philosophy-section { padding-block: 2rem; }
+  }
+  /* Bug fixed here: this block had `max-width` but no `margin-inline:
+     auto`, so on any viewport wider than 64ch it sat pinned to the
+     left edge of the full 96rem `.container-editorial` -- unlike Hero
+     (2-column grid) and Values (4-column grid) above/below it, which
+     fill that same wide container edge-to-edge, Philosophy is the one
+     section on this page that's a single lone block with nothing
+     beside it, so it read as randomly left-shifted with a large dead
+     gap on the right at >=1024px, not as a deliberate layout choice.
+     `margin-inline: auto` turns it into what it was always meant to be:
+     a centered reading column inside the wide section, the same
+     "single block of prose gets its own constrained, centered measure"
+     treatment TrustCertifications.astro's `.tc-intro` uses when it has
+     no sibling column beside it (its mobile/tablet layout, before the
+     desktop two-column split). 64ch is kept as-is -- it was already a
+     reasonable reading measure; the missing centering was the actual
+     bug, not the width. */
+  .story-philosophy {
+    max-width: 64ch;
+    margin-inline: auto;
+    text-align: center;
+  }
+  /* The heading stays centered (a clear visual anchor, echoing the
+     centered eyebrow+heading pairing Hero/Values use at the top of
+     their own columns) but multi-line body paragraphs are switched
+     back to left-aligned -- centered paragraph text longer than a
+     line or two reads as ragged and harder to scan, which is why
+     TrustCertifications.astro's own `.tc-lede` and every other body
+     copy on this page stays left-aligned even where its heading is
+     centered. */
+  .story-philosophy p {
+    text-align: left;
+  }
+  /* Editorial "pull-in" treatment for the opening line -- a step up from
+     plain body copy, the same device the researched brand pages (and
+     magazine-style editorial writing generally) use to open a narrative
+     section with a stronger first statement before settling into normal
+     body text for the rest. */
+  .story-philosophy-lead {
+    font-family: var(--font-serif);
+    font-size: 1.1875rem;
+    line-height: 1.6;
+    color: var(--color-heading);
+  }
+
+  /* ---------- Values grid ---------- */
+  .story-values-section {
+    padding-block: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .story-values-section { padding-block: 1.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .story-values-section { padding-block: 2rem; }
+  }
+  .story-values-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .story-values-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 1024px) {
+    .story-values-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+  }
+  .story-value-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-editorial);
+    padding: 1.5rem;
+  }
+  .story-value-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-pine) 10%, transparent);
+    color: var(--color-pine-dark);
+  }
+  .story-value-title {
+    font-size: 1.0625rem;
+    color: var(--color-pine-dark);
+  }
+  .story-value-description {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-body);
+  }
+</style>

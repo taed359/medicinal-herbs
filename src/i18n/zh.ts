@@ -116,7 +116,40 @@ export const zh: TranslationSchema = {
     heading: '传承与匠心',
     body: '我们的配方植根于传统智慧，秉承历经时间考验的养生之道，同时符合现代品质标准。我们精心甄选天然原料，用心呵护您的日常健康。',
     imageAlt: '承载草本灵感的品牌形象照片',
+    readMoreLabel: '阅读完整故事',
   },
+  ourStory: {
+    eyebrow: '品牌故事',
+    heading: '我们的故事',
+    lede: '传承传统草药智慧，为现代生活带来值得信赖的草本呵护。',
+    heroImageAlt: '传统本草药房场景，展示药钵与晒干的草本药材',
+    philosophyHeading: '源于对自然的信念',
+    philosophyBody1:
+      '草药的创立，源于一个简单的信念：世代相传的草本智慧，值得被以更清晰、更值得信赖的方式延续下去。我们相信，传统医学智慧与现代科学并不对立——当两者恰当结合，才能为您带来真正值得信赖的健康选择。',
+    philosophyBody2:
+      '我们目录中的每一款产品，都依循以下四项原则精心甄选——从了解原料来源，到清晰呈现产品信息，只为让您在为自己与家人选择健康产品时，始终心中有数。',
+    valuesEyebrow: '核心价值',
+    valuesHeading: '我们始终坚持的理念',
+    values: [
+      {
+        title: '天然为本',
+        description: '优先选用天然草本原料，尽量减少不必要的合成成分。',
+      },
+      {
+        title: '透明与诚信',
+        description: '不夸大功效，不隐瞒信息——您理应清楚了解自己所使用的产品。',
+      },
+      {
+        title: '科学与传统并行',
+        description: '尊重传统医学智慧，同时对照现代品质标准进行审视。',
+      },
+      {
+        title: '长久陪伴',
+        description: '健康呵护是一段旅程——我们希望每一天都能陪伴您，而不仅是一次购买。',
+      },
+    ],
+  },
+
   trustCertifications: {
     eyebrow: '品质与承诺',
     heading: '始终坚持卓越品质',
@@ -368,6 +401,13 @@ export const zh: TranslationSchema = {
     noPriceError: '此商品暂无在线购买价格。',
     genericAddToCartError: '添加失败，请重试。',
     savingsBadgeLabel: '节省 {percent}%',
+  },
+  notFound: {
+    title: '页面未找到',
+    heading: '抱歉，找不到该页面',
+    message: '该页面可能已被移动或不再存在。您可以返回首页，或搜索您需要的商品。',
+    homeCta: '返回首页',
+    searchCta: '搜索商品',
   },
   seo: {
     description: '草药甄选天然本草原料，融合传统养生智慧与现代品质标准，为您带来值得信赖的健康呵护产品。',

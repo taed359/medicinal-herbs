@@ -49,7 +49,14 @@ const options = locales.map((locale) => ({
      paper-2 text, reduced height (36px, close to the mockup's 38px, down
      from the previous 44px). Mechanics (rotation, prev/next, locale
      switching) are entirely unchanged; only color/height/container. -->
-<div class="w-full bg-pine-dark text-paper-2">
+<!-- `data-print-hide`: a generic, reusable print hook (not order-page-
+     specific) -- any page's print stylesheet can hide this promo bar
+     the same way the order-detail page's own `data-order-print-hide`
+     hides its on-screen-only actions. Added 2026-09-12: the order
+     print stylesheet only ever hid the `<header>` element, and this
+     bar's own root is a plain `<div>` sitting *above* `<header>`, so it
+     was printing unhidden on every "Print Order" printout. -->
+<div class="w-full bg-pine-dark text-paper-2" data-print-hide>
   <div class="container-editorial h-9 flex items-center justify-between gap-4">
     <!-- Arrows + rotating text live together as one left-aligned group (not
          centered) so the text gets as much width as possible on narrow
