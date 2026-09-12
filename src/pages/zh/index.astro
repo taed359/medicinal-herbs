@@ -2,6 +2,10 @@
 import HomePage from '../../components/HomePage.astro';
 import { productRepository } from '../../server/repositories';
 
-const naturalOils = await productRepository.listFeatured(4, 'zh');
+// Full natural-oils catalog (not just the 4 curated `isFeatured` rows)
+// so the homepage carousel below can page/scroll through everything in
+// this category -- same query + ordering (by sortOrder) the real
+// /products/natural-oils/ collection page already uses.
+const naturalOils = await productRepository.listByCategory('natural-oils', 'zh');
 ---
 <HomePage lang="zh" naturalOils={naturalOils} />

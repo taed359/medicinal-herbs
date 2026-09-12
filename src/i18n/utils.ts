@@ -115,6 +115,7 @@ export interface TranslationSchema {
     title: string;
     description: string;
     ctaLabel: string;
+    ctaSecondaryLabel: string;
     imageAlt: string;
   };
   healthGoals: {
@@ -254,6 +255,8 @@ export interface TranslationSchema {
     heading: string;
     ctaViewAll: string;
     collectionPath: string; // e.g., "products/natural-oils"
+    prev: string;
+    next: string;
   };
   account: {
     metaTitle: string;

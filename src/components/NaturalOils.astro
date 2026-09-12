@@ -23,15 +23,18 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
   }).format(minorUnits);
 }
 
-// Of the 4 real featured products this section queries (coconut/
-// sunflower/sesame/olive oil), only coconut oil currently has a seeded
-// price (see seed-coconut-oil-content.ts) -- the other 3 have
-// priceMinor === null. A card with a real price + a real default variant
-// gets a working "Add to cart" button (wired client-side below); a card
-// without a price gets a "Contact us" link instead, the same rule
-// ProductDetail.astro's own `hasPrice` check already uses -- never a
-// fake price or a button that would just 404 against a nonexistent
-// pricing row.
+// `items` is now the FULL natural-oils catalog (see src/pages/{vi,zh}/
+// index.astro -- `productRepository.listByCategory('natural-oils', lang)`,
+// the same query + sortOrder ordering the real /products/natural-oils/
+// collection page already uses), not just the 4 curated `isFeatured`
+// rows this section used to slice down to. Of those products, only
+// coconut oil currently has a seeded price (see
+// seed-coconut-oil-content.ts) -- the rest have priceMinor === null. A
+// card with a real price + a real default variant gets a working "Add
+// to cart" button (wired client-side below); a card without a price
+// gets a "Contact us" link instead, the same rule ProductDetail.astro's
+// own `hasPrice` check already uses -- never a fake price or a button
+// that would just 404 against a nonexistent pricing row.
 const products = items.map((p) => ({
   ...p,
   formattedPrice: p.priceMinor != null ? formatPrice(p.priceMinor, p.currency ?? 'VND', lang) : undefined,
@@ -57,35 +60,51 @@ const categoryLabel = t.naturalOils.eyebrow;
         <span class="btn-tertiary-arrow" aria-hidden="true">→</span>
       </a>
     </div>
+  </div>
 
-    <!-- Products only: mobile horizontal scroll, grid from sm+ (2 cols), 4 cols on lg. -->
-    <ul
-      class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
-      role="list"
-      tabindex="0"
-    >
-      {products.map((p) => {
-        const isPlaceholder = !p.primaryImage;
-        const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
-        const alt = p.primaryImage?.alt || p.name;
-        return (
-          <li class="no-slide h-full">
-            <HerbProductCard
-              lang={lang}
-              name={p.name}
-              categoryLabel={categoryLabel}
-              href={p.href}
-              image={image}
-              alt={alt}
-              isPlaceholder={isPlaceholder}
-              formattedPrice={p.formattedPrice}
-              variantId={p.variantId}
-              canAddToCart={p.canAddToCart}
-            />
-          </li>
-        );
-      })}
-    </ul>
+  <!--
+    Full-catalog carousel, active at every breakpoint (mobile through
+    desktop) -- unlike HealthGoals.astro's carousel-below-lg/grid-above-lg
+    split, this section now holds the WHOLE natural-oils catalog
+    (currently ~18 products, see the frontmatter comment above), too many
+    to lay out as a single static row at any width. Swiper (already a
+    project dependency, see HealthGoals.astro for the sibling usage this
+    one is modeled on) gives touch/drag scrolling plus the two prev/next
+    buttons flanking the track on both sides, on both desktop and mobile,
+    with `loop: true` so they're always active rather than disabling at
+    the first/last real slide.
+  -->
+  <div class="container-editorial" data-natural-oils-root>
+    <div class="no-carousel">
+      <div class="swiper natural-oils-swiper" data-natural-oils-swiper>
+        <ul class="swiper-wrapper m-0 list-none p-0" role="list">
+          {products.map((p) => {
+            const isPlaceholder = !p.primaryImage;
+            const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
+            const alt = p.primaryImage?.alt || p.name;
+            return (
+              <li class="swiper-slide no-slide h-full">
+                <HerbProductCard
+                  lang={lang}
+                  name={p.name}
+                  categoryLabel={categoryLabel}
+                  href={p.href}
+                  image={image}
+                  alt={alt}
+                  isPlaceholder={isPlaceholder}
+                  formattedPrice={p.formattedPrice}
+                  variantId={p.variantId}
+                  canAddToCart={p.canAddToCart}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <button type="button" class="no-nav no-nav-prev swiper-button-prev" aria-label={t.naturalOils.prev}></button>
+      <button type="button" class="no-nav no-nav-next swiper-button-next" aria-label={t.naturalOils.next}></button>
+    </div>
   </div>
 </section>
 
@@ -136,21 +155,182 @@ const categoryLabel = t.naturalOils.eyebrow;
     white-space: nowrap;
   }
 
-  /* Mobile horizontal carousel for products -- unchanged from before this
-     pass. */
-  .no-track { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .no-track::-webkit-scrollbar { display: none; }
-  .no-slide { flex: 0 0 82%; scroll-snap-align: start; }
-  @media (min-width: 480px) { .no-slide { flex-basis: 68%; } }
+  /* Carousel shell -- relatively positioned so the two nav buttons below
+     can sit flush against its own left/right edges (via Swiper's
+     `--swiper-navigation-sides-offset`) rather than the wider
+     .container-editorial they're nested inside. Active at every
+     breakpoint (no lg:hidden/lg:block split like HealthGoals), per the
+     "prev/next on both sides, desktop and mobile" brief. */
+  .no-carousel {
+    position: relative;
+    --swiper-navigation-size: 36px;
+    --swiper-navigation-sides-offset: 0.25rem;
+    --swiper-navigation-color: var(--color-brand);
+  }
+
+  .natural-oils-swiper {
+    overflow: hidden;
+  }
+  .natural-oils-swiper .swiper-wrapper {
+    display: flex;
+    gap: 1rem;
+  }
+  /* Pre-init slide widths (before Swiper JS measures the container) --
+     mirrors HealthGoals' own `:not(.swiper-initialized)` pattern so the
+     very first paint (and any no-JS fallback) already reads as a
+     peeking horizontal row instead of a collapsed stack. Same
+     progression the old .no-track/.no-slide hybrid used (single peeking
+     card on mobile, up to 4 columns' worth of width on desktop), just
+     driven by Swiper at every width now instead of switching to a CSS
+     grid at sm+. */
+  .natural-oils-swiper:not(.swiper-initialized) .swiper-slide {
+    flex: 0 0 82%;
+  }
+  @media (min-width: 480px) {
+    .natural-oils-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: 62%;
+    }
+  }
+  @media (min-width: 640px) {
+    .natural-oils-swiper .swiper-wrapper { gap: 1.375rem; }
+    .natural-oils-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: calc((100% - 1.375rem) / 2.3);
+    }
+  }
+  @media (min-width: 1024px) {
+    .natural-oils-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: calc((100% - 2 * 1.5rem) / 3.3);
+    }
+  }
+  @media (min-width: 1280px) {
+    .natural-oils-swiper:not(.swiper-initialized) .swiper-slide {
+      flex-basis: calc((100% - 3 * 1.75rem) / 4.2);
+    }
+  }
+  .natural-oils-swiper.swiper-initialized .swiper-wrapper {
+    gap: 0;
+  }
+
+  .no-slide {
+    height: auto;
+  }
+
   @media (min-width: 640px) {
     .natural-oils-section { padding-block: 1.5rem; }
-    .no-track { gap: 1.375rem; }
-    .no-slide { flex: unset; scroll-snap-align: unset; }
   }
 
   @media (min-width: 1024px) {
     .natural-oils-section { padding-block: 1.75rem; }
   }
 
+  /* Nav buttons -- same circular treatment as HealthGoals' .hg-nav, but
+     visible at every breakpoint (that one only shows them below lg,
+     where its carousel is the only layout; this carousel is the ONLY
+     layout at every width, so its nav stays visible throughout). Sized
+     down slightly (36px vs. 42px) since they now also have to fit
+     comfortably inside a narrow 375px viewport without overlapping the
+     card content beneath them. */
+  .no-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px -2px rgba(28, 49, 40, 0.18);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  .no-nav:hover {
+    border-color: var(--color-pine);
+  }
+  .no-nav:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .no-nav :global(.swiper-navigation-icon) {
+    width: 11px;
+    height: 11px;
+  }
+  /* Swiper's own disabled state never fires (`loop: true` keeps prev/next
+     perpetually enabled), but this stays as a defensive fallback if loop
+     is ever turned off. */
+  .no-nav.swiper-button-disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  @media (min-width: 640px) {
+    .no-carousel {
+      --swiper-navigation-size: 44px;
+      --swiper-navigation-sides-offset: 0.5rem;
+    }
+    .no-nav :global(.swiper-navigation-icon) {
+      width: 13px;
+      height: 13px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .no-nav { transition: none !important; }
+  }
+
   html[lang="zh"] .no-heading.text-heading-section { letter-spacing: 0; }
 </style>
+
+<script>
+  import { Swiper } from 'swiper';
+  import { Navigation, Keyboard, A11y } from 'swiper/modules';
+  import 'swiper/css';
+  import 'swiper/css/navigation';
+
+  // Active at EVERY breakpoint (no matchMedia gate like HealthGoals' own
+  // mobile-only swiper) -- this carousel is the section's only layout at
+  // any width, not one half of a carousel/grid split.
+  function initNaturalOilsSwipers() {
+    const roots = document.querySelectorAll<HTMLElement>('[data-natural-oils-root]');
+    roots.forEach((root) => {
+      const el = root.querySelector<HTMLElement>('[data-natural-oils-swiper]');
+      if (!el || (el as any).swiper) return;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // Loop needs at least ~2x the widest breakpoint's slidesPerView
+      // worth of real slides to look seamless -- with the full
+      // natural-oils catalog (currently ~18 products) against a max of
+      // ~4.2 slides per view, that's comfortably satisfied; if the
+      // catalog ever shrank below that, `loop: false` would be the
+      // correct fallback rather than a visibly glitchy loop.
+      const slideCount = el.querySelectorAll('.swiper-slide').length;
+
+      new Swiper(el, {
+        modules: [Navigation, Keyboard, A11y],
+        loop: slideCount >= 6,
+        slidesPerView: 1.15,
+        spaceBetween: 16,
+        speed: prefersReducedMotion ? 0 : 450,
+        grabCursor: true,
+        touchEventsTarget: 'container',
+        keyboard: { enabled: true, onlyInViewport: true },
+        a11y: { enabled: true },
+        navigation: {
+          nextEl: root.querySelector('.no-nav-next'),
+          prevEl: root.querySelector('.no-nav-prev'),
+        },
+        breakpoints: {
+          480: { slidesPerView: 1.6, spaceBetween: 16 },
+          640: { slidesPerView: 2.3, spaceBetween: 22 },
+          1024: { slidesPerView: 3.3, spaceBetween: 24 },
+          1280: { slidesPerView: 4.2, spaceBetween: 28 },
+        },
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNaturalOilsSwipers);
+  } else {
+    initNaturalOilsSwipers();
+  }
+  document.addEventListener('astro:page-load', initNaturalOilsSwipers);
+</script>

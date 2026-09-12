@@ -4,6 +4,10 @@ import { productRepository } from '../../server/repositories';
 
 // All database access happens here, at build time, in page frontmatter —
 // HomePage.astro and NaturalOils.astro only ever receive plain props.
-const naturalOils = await productRepository.listFeatured(4, 'vi');
+// Full natural-oils catalog (not just the 4 curated `isFeatured` rows)
+// so the homepage carousel below can page/scroll through everything in
+// this category -- same query + ordering (by sortOrder) the real
+// /products/natural-oils/ collection page already uses.
+const naturalOils = await productRepository.listByCategory('natural-oils', 'vi');
 ---
 <HomePage lang="vi" naturalOils={naturalOils} />

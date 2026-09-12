@@ -69,6 +69,7 @@ export const zh: TranslationSchema = {
     title: '精油精粹 · 现代品质',
     description: '我们秉承传统智慧，精选天然原料，同时符合现代品质标准，为您带来值得信赖的精油产品。',
     ctaLabel: '探索产品',
+    ctaSecondaryLabel: '立即选购',
     imageAlt: '琥珀色精油瓶插画配传承印章，周围环绕天然枝叶',
   },
   healthGoals: {
@@ -258,6 +259,8 @@ export const zh: TranslationSchema = {
     heading: '精选天然植物油',
     ctaViewAll: '查看全部天然植物油',
     collectionPath: 'products/natural-oils',
+    prev: '上一个产品',
+    next: '下一个产品',
   },
   account: {
     metaTitle: '我的账户',

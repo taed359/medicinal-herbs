@@ -70,6 +70,7 @@ export const vi: TranslationSchema = {
     description:
       'Kế thừa tinh hoa chưng cất tinh dầu truyền thống, chúng tôi tuyển chọn nguyên liệu tự nhiên và tuân thủ tiêu chuẩn chất lượng hiện đại, mang đến những sản phẩm tinh dầu đáng tin cậy cho sức khỏe của bạn.',
     ctaLabel: 'Khám Phá Sản Phẩm',
+    ctaSecondaryLabel: 'Mua Ngay',
     imageAlt: 'Minh họa lọ tinh dầu hổ phách cùng con dấu di sản, bao quanh bởi lá và cành cây thiên nhiên',
   },
   healthGoals: {
@@ -273,6 +274,8 @@ export const vi: TranslationSchema = {
     heading: 'Tinh hoa từ thiên nhiên',
     ctaViewAll: 'Xem tất cả dầu thực vật',
     collectionPath: 'products/natural-oils',
+    prev: 'Sản phẩm trước',
+    next: 'Sản phẩm tiếp theo',
   },
   account: {
     metaTitle: 'Tài khoản của tôi',

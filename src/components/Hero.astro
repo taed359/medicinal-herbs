@@ -2,7 +2,7 @@
 import { getImage } from 'astro:assets';
 import heroDesktop from '../assets/images/hero/tinh-dau-hero-desktop.svg';
 import heroMobile from '../assets/images/hero/tinh-dau-hero-mobile.svg';
-import { getTranslations, localeHomePath, type Locale } from '../i18n/utils';
+import { getTranslations, localeHomePath, localePath, type Locale } from '../i18n/utils';
 
 interface Props {
   lang: Locale;
@@ -35,6 +35,14 @@ const slides = [
     // catalogue route exists yet; swap for a real collection URL once
     // one ships.
     ctaHref: `${homeHref}#products`,
+    // Secondary CTA: reuses naturalOils.collectionPath (the same "Dầu
+    // thực vật tự nhiên" collection link used by NaturalOils.astro's
+    // "view all" link) rather than inventing a new href/translation key
+    // -- there is no separate all-collections page yet, and duplicating
+    // the path string here would just be a second place to update if it
+    // ever changes.
+    ctaSecondaryLabel: t.hero.ctaSecondaryLabel,
+    ctaSecondaryHref: localePath(lang, t.naturalOils.collectionPath),
     imageAlt: t.hero.imageAlt,
   },
 ];
@@ -51,6 +59,25 @@ const slide = slides[0];
 // so it's dropped rather than left as a no-op option.
 const desktopOptimized = await getImage({ src: slide.desktopImage, format: 'svg' });
 const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' });
+
+// Trust badges: moved here from the now-unused TrustCertifications.astro
+// (that section/component still exists on disk but is no longer rendered
+// by HomePage.astro -- see that file's diff). Same 5 items, same i18n
+// keys (t.trustCertifications.items/ariaLabel -- untouched), same icons;
+// only the layout changes, from a vertical divided list beside its own
+// intro column into a compact 5-across row directly under the hero CTA.
+//
+// heading = item.subtitle, detail = item.title -- same field mapping
+// TrustCertifications.astro used, preserved deliberately: per that
+// file's own top-of-file note, this wording is the more conservative,
+// already-reviewed phrasing (see that note for the full legal-caution
+// context) and none of it is reworded or shortened here, only laid out
+// smaller.
+const TRUST_ORDER = ['tga', 'nsf', 'gmp', 'fda', 'fingerprinting'] as const;
+const trustItems = TRUST_ORDER.map((key) => ({
+  key,
+  ...t.trustCertifications.items[key],
+}));
 ---
 
 <!--
@@ -79,14 +106,73 @@ const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' }
         <p class="hero-lead m-0">
           {slide.description}
         </p>
-        <a
-          href={slide.ctaHref}
-          data-astro-reload
-          class="hero-cta btn btn-editorial-primary no-underline hover:no-underline"
-        >
-          {slide.ctaLabel}
-          <span aria-hidden="true">→</span>
-        </a>
+        <div class="hero-cta-group">
+          <a
+            href={slide.ctaHref}
+            data-astro-reload
+            class="hero-cta btn btn-editorial-primary no-underline hover:no-underline"
+          >
+            {slide.ctaLabel}
+            <span aria-hidden="true">→</span>
+          </a>
+          <a
+            href={slide.ctaSecondaryHref}
+            data-astro-reload
+            class="hero-cta-secondary btn btn-editorial-secondary no-underline hover:no-underline"
+          >
+            {slide.ctaSecondaryLabel}
+          </a>
+        </div>
+
+        <!-- Compact trust-badge row, evenly spread across all 5 items in
+             one horizontal line at every breakpoint (no wrap, no
+             carousel) -- icon on top, short bold heading, short detail
+             line beneath, per column. -->
+        <ul class="hero-trust-list m-0 p-0 list-none" role="list" aria-label={t.trustCertifications.ariaLabel}>
+          {trustItems.map((item) => (
+            <li class="hero-trust-item">
+              <span class="hero-trust-icon" aria-hidden="true">
+                {item.key === 'tga' && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                    <path d="M9 12.2l2 2 4-4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                )}
+                {item.key === 'nsf' && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M9.3 10.6l1.8 1.8 3.6-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M9 16.3L7.5 21l4.5-2 4.5 2-1.5-4.7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  </svg>
+                )}
+                {item.key === 'gmp' && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 20V11l4 2.5V11l4 2.5V11l4 2.5V7l4-2.5V20H4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                    <path d="M4 20h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                )}
+                {item.key === 'fda' && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 21V10l7-5 7 5v11" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                    <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                    <path d="M9.5 10.6l1.8 1.8 3.2-3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                )}
+                {item.key === 'fingerprinting' && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 4s-7 1-10 4-4 6-4 8 2 4 4 4 4-1 6-4 4-12 4-12Z" stroke="currentColor" stroke-width="1.5" />
+                    <circle cx="16" cy="7" r="1" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1" fill="currentColor" />
+                    <circle cx="9" cy="17" r="1" fill="currentColor" />
+                    <path d="M16 7l-4 5-3 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+                  </svg>
+                )}
+              </span>
+              <h3 class="hero-trust-heading font-serif m-0">{item.subtitle}</h3>
+              <p class="hero-trust-detail m-0">{item.title}</p>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div class="hero-image-frame relative aspect-4/5 overflow-hidden">
@@ -121,7 +207,6 @@ const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' }
 
   .hero-copy {
     min-width: 0;
-    max-width: 38rem;
   }
 
   /* Small decorative line before the eyebrow, matching the mockup's own
@@ -173,15 +258,105 @@ const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' }
     line-height: 1.65;
   }
 
-  .hero-cta {
+  /* Two-CTA group: primary (filled) + secondary (outlined), stacked
+     full-width on mobile so both stay easily tappable, sitting side by
+     side from 640px up once there's room. margin-top lives on the group
+     (not on the individual links) since it's the group's position
+     relative to .hero-lead that matters, not either button alone. */
+  .hero-cta-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .hero-cta,
+  .hero-cta-secondary {
     display: inline-flex;
     width: 100%;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 2rem;
     font-size: 0.875rem;
     line-height: 1.5;
+  }
+
+  /* Trust badges: one row, 5 equal columns, always -- never wraps to a
+     second row at any width (that's the "trải đều theo hàng ngang" ask),
+     so every size value below is tuned to still be legible at the
+     narrowest supported viewport (~360-375px) rather than assuming more
+     room and wrapping later. Each column is its own icon-then-heading-
+     then-detail stack, centered, matching TrustCertifications.astro's
+     old per-row content but as a compact vertical card instead of a wide
+     horizontal row. */
+  .hero-trust-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-cream));
+  }
+
+  /* Spacing between items now comes from the item's own padding-inline
+     (not the grid `gap`, which would otherwise leave a gap-wide space on
+     BOTH sides of each divider line) -- that's what lets the divider
+     below sit flush against each item's right edge with even breathing
+     room on either side of it, rather than floating off-center in a
+     gap. */
+  .hero-trust-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    padding-inline: 0.375rem;
+    text-align: center;
+  }
+
+  /* The divider: a plain border-right on every item except the last, so
+     there's exactly one hairline between each pair of neighbors and none
+     at the outer left/right edges of the row -- no separate pseudo-
+     element or extra markup needed. Same hairline color the row's own
+     top border and TrustCertifications.astro's old row dividers used. */
+  .hero-trust-item:not(:last-child) {
+    border-right: 1px solid color-mix(in srgb, var(--color-pine-dark) 14%, var(--color-cream));
+  }
+
+  /* Same amber-bordered circular badge motif TrustCertifications.astro
+     used (and Process.astro's step seals before it) -- sized to fit a
+     5-across row under the CTA instead of a single-column list. */
+  .hero-trust-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--color-amber-decorative);
+    border-radius: 50%;
+    background: var(--color-cream);
+    color: var(--color-pine);
+  }
+
+  .hero-trust-icon svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+
+  .hero-trust-heading {
+    margin-top: 0.625rem;
+    color: var(--color-pine-dark);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .hero-trust-detail {
+    margin-top: 0.25rem;
+    color: var(--color-body);
+    font-size: 0.6875rem;
+    line-height: 1.35;
   }
 
   /* Contained, rounded, softly-shadowed image frame -- replaces Stage
@@ -199,10 +374,27 @@ const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' }
     box-shadow: 0 30px 60px -20px color-mix(in srgb, var(--color-pine-dark) 35%, transparent);
   }
 
+  @media (min-width: 480px) {
+    .hero-trust-item { padding-inline: 0.5rem; }
+    .hero-trust-icon { width: 46px; height: 46px; }
+    .hero-trust-icon svg { width: 1.25rem; height: 1.25rem; }
+    .hero-trust-heading { font-size: 0.8125rem; }
+    .hero-trust-detail { font-size: 0.75rem; }
+  }
+
   @media (min-width: 640px) {
     .hero-heading { font-size: 3.25rem; }
     .hero-lead { font-size: 1.03125rem; }
-    .hero-cta { width: auto; }
+    .hero-cta-group { flex-direction: row; }
+    .hero-cta,
+    .hero-cta-secondary { width: auto; }
+
+    .hero-trust-list { margin-top: 2rem; }
+    .hero-trust-item { padding-inline: 0.75rem; }
+    .hero-trust-icon { width: 56px; height: 56px; }
+    .hero-trust-icon svg { width: 1.5rem; height: 1.5rem; }
+    .hero-trust-heading { margin-top: 0.75rem; font-size: 0.9375rem; }
+    .hero-trust-detail { font-size: 0.8125rem; }
   }
 
   @media (min-width: 1024px) {
@@ -219,7 +411,14 @@ const mobileOptimized = await getImage({ src: slide.mobileImage, format: 'svg' }
       max-width: 33rem;
       justify-self: end;
     }
+
+    .hero-trust-item { padding-inline: 1rem; }
+    .hero-trust-icon { width: 64px; height: 64px; }
+    .hero-trust-icon svg { width: 1.75rem; height: 1.75rem; }
+    .hero-trust-heading { font-size: 1rem; }
+    .hero-trust-detail { font-size: 0.875rem; }
   }
 
   html[lang="zh"] .hero-heading { letter-spacing: 0; }
+  html[lang="zh"] .hero-trust-heading { letter-spacing: 0; }
 </style>
