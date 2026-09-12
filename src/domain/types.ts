@@ -63,6 +63,19 @@ export interface CategoryView {
   description: string | null;
 }
 
+/**
+ * CategoryView plus a published-product count -- powers a category
+ * switcher/filter sidebar (see CategoryFilterList.astro, modeled on a
+ * Hyva/Magento layered-navigation "Category" filter block: a list of
+ * categories, each showing how many products it holds). Kept as its own
+ * type rather than adding `productCount` to CategoryView directly, since
+ * most CategoryView callers (breadcrumbs, PDP category lookups) have no
+ * use for a count and no cheap way to get one without an extra query.
+ */
+export interface CategoryWithCountView extends CategoryView {
+  productCount: number;
+}
+
 /** Full detail view for a single product detail page (PDP). */
 export interface ProductDetailView {
   id: string;
@@ -111,6 +124,16 @@ export interface ProductSummaryView {
    *  default variant yet (shouldn't happen for a published product, but
    *  the repository can't guarantee it). */
   variantId: string | null;
+  /** One of 'cold-pressed' | 'expeller-pressed' | 'refined' |
+   *  'virgin-unrefined' for every currently-seeded product, but read as a
+   *  plain string here (not that union) since the repository doesn't
+   *  enforce it -- see ProductDetailView.extractionMethod for the same
+   *  convention. Surfaced on the summary view specifically so listing
+   *  pages can build a client-side attribute filter without a second
+   *  query per product (see CategoryFilterList.astro's sibling
+   *  ExtractionMethodFilter.astro). Null for a product that hasn't been
+   *  given a real value yet. */
+  extractionMethod: string | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,136 @@
+---
+/**
+ * The single script that actually applies this listing page's product
+ * filters -- render this ONCE per listing page, alongside whichever of
+ * ExtractionMethodFilter.astro / PriceRangeFilter.astro that page uses
+ * (Natural Oils uses both; Wholesale uses only the extraction one, since
+ * it has no real price data -- see PriceRangeFilter's own doc comment).
+ * Renders no markup of its own.
+ *
+ * Combines every present filter dimension with AND (a card must match
+ * the checked extraction methods, if any are checked, AND fall in the
+ * selected price range, if one is selected) and applies the result to
+ * the grid in one pass. Deliberately centralized here rather than each
+ * filter component running its own independent script: two scripts each
+ * unconditionally setting `li.hidden` from only their own dimension
+ * would race and overwrite each other's result on the same `<li>` --
+ * e.g. picking a price range would silently un-hide a card the
+ * extraction-method filter had just hidden. See ExtractionMethodFilter's
+ * own doc comment for the same note from that side.
+ *
+ * Also keeps two other pieces of on-page state honest whenever the
+ * filter selection changes:
+ *  - Pager.astro's "items X-Y of Z" line, which is otherwise static
+ *    build-time text and would keep showing the unfiltered total
+ *    forever (reported directly: filtering to "Tinh luyện" showed 4
+ *    cards but the count still said the full unfiltered total).
+ *  - the URL's `?extraction=`/`?price=` query params, via
+ *    `history.replaceState`, so a filtered view is shareable/
+ *    bookmarkable and survives a reload without ever triggering a
+ *    navigation or a new static page (this listing is still fully
+ *    static -- see the pageSize comment in `[...page].astro`).
+ *
+ * Both the pager-amount line and the empty-state message are marked
+ * `role="status" aria-live="polite"` (see Pager.astro and each
+ * `[...page].astro`'s own `<p data-pl-empty-state>`), so a screen-reader
+ * user checking a filter checkbox/radio hears the updated result count
+ * or the "no products match" message -- neither would otherwise be
+ * announced, since toggling `hidden`/`textContent` on an already-visited
+ * element is silent by default.
+ */
+---
+<script>
+  function initProductFilters(): void {
+    const grid = document.querySelector<HTMLElement>('[data-product-view]');
+    if (!grid) return;
+
+    const extractionRoot = document.querySelector<HTMLElement>('[data-extraction-filter]');
+    const priceRoot = document.querySelector<HTMLElement>('[data-price-filter]');
+    const emptyState = document.querySelector<HTMLElement>('[data-pl-empty-state]');
+    const pagerAmount = document.querySelector<HTMLElement>('[data-pager-amount]');
+    const pagerTemplate = pagerAmount?.getAttribute('data-items-range-template') ?? null;
+
+    const extractionCheckboxes = extractionRoot
+      ? Array.from(extractionRoot.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+      : [];
+    const priceRadios = priceRoot
+      ? Array.from(priceRoot.querySelectorAll<HTMLInputElement>('input[type="radio"]'))
+      : [];
+
+    function applyFilters(): void {
+      const checkedMethods = extractionCheckboxes.filter((cb) => cb.checked).map((cb) => cb.value);
+      const selectedPrice = priceRadios.find((r) => r.checked);
+      const priceMin = selectedPrice?.dataset.min ? Number(selectedPrice.dataset.min) : null;
+      const priceMax = selectedPrice?.dataset.max ? Number(selectedPrice.dataset.max) : null;
+
+      // Every card in the grid, regardless of which filters it has data
+      // for -- Wholesale cards never carry `data-price-minor` (no price
+      // filter rendered there), which is fine: `priceRoot` is null on
+      // that page, so `selectedPrice` is always undefined and the price
+      // check below short-circuits to "matches" for every card.
+      const items = Array.from(grid.querySelectorAll<HTMLElement>('[data-extraction-method]'));
+      let visibleCount = 0;
+      for (const item of items) {
+        const method = item.getAttribute('data-extraction-method') ?? '';
+        const priceAttr = item.getAttribute('data-price-minor');
+        const price = priceAttr ? Number(priceAttr) : null;
+
+        const matchesMethod = checkedMethods.length === 0 || checkedMethods.includes(method);
+        // Lower bound inclusive, upper bound exclusive -- matches
+        // PriceRangeFilter.astro's own bucket-count comparison exactly,
+        // so what a bucket's rendered count promises is what selecting
+        // it actually shows.
+        const matchesPrice =
+          !selectedPrice ||
+          (price !== null && (priceMin === null || price >= priceMin) && (priceMax === null || price < priceMax));
+
+        const show = matchesMethod && matchesPrice;
+        item.hidden = !show;
+        if (show) visibleCount += 1;
+      }
+
+      if (emptyState) emptyState.hidden = visibleCount !== 0 || items.length === 0;
+
+      if (pagerAmount && pagerTemplate) {
+        pagerAmount.textContent = pagerTemplate
+          .replace('{start}', visibleCount > 0 ? '1' : '0')
+          .replace('{end}', String(visibleCount))
+          .replace('{total}', String(visibleCount));
+      }
+
+      const url = new URL(window.location.href);
+      if (checkedMethods.length > 0) url.searchParams.set('extraction', checkedMethods.join(','));
+      else url.searchParams.delete('extraction');
+      if (selectedPrice) url.searchParams.set('price', selectedPrice.value);
+      else url.searchParams.delete('price');
+      history.replaceState(history.state, '', url);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    const initialMethods = (params.get('extraction') ?? '').split(',').filter(Boolean);
+    for (const cb of extractionCheckboxes) {
+      cb.checked = initialMethods.includes(cb.value);
+      cb.addEventListener('change', applyFilters);
+    }
+
+    const initialPrice = params.get('price');
+    for (const radio of priceRadios) {
+      radio.checked = initialPrice !== null && radio.value === initialPrice;
+      radio.addEventListener('change', applyFilters);
+    }
+
+    extractionRoot?.querySelector<HTMLButtonElement>('[data-extraction-reset]')?.addEventListener('click', () => {
+      for (const cb of extractionCheckboxes) cb.checked = false;
+      applyFilters();
+    });
+    priceRoot?.querySelector<HTMLButtonElement>('[data-price-reset]')?.addEventListener('click', () => {
+      for (const radio of priceRadios) radio.checked = false;
+      applyFilters();
+    });
+
+    applyFilters();
+  }
+
+  document.addEventListener('astro:page-load', initProductFilters);
+</script>

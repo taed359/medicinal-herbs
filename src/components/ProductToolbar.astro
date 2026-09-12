@@ -23,6 +23,14 @@ import { sortHref } from '../lib/product-sort';
  * back to the CSS default (grid). No data fetching, no build-time
  * concern, and nothing here scales badly with catalog size.
  *
+ * The localStorage key is namespaced per `categoryId` (e.g.
+ * "pv-product-view:natural-oils" vs "pv-product-view:wholesale"), NOT
+ * shared across every listing page -- switching category (even via the
+ * CategoryFilterList sidebar link's `data-astro-reload` hard navigation)
+ * should not carry one category's Grid/List preference onto a
+ * completely different one. Confirmed directly with the user rather than
+ * assumed either way.
+ *
  * Sort By + direction are NOT client-side: this project's storefront is
  * fully static (`output: 'static'`), so there is no server to re-query
  * and no client-side dataset larger than one page to re-sort correctly
@@ -49,6 +57,13 @@ interface Props {
   sortKey: SortKey;
   sortDir: SortDir;
   basePath: string;
+  /** Which category this toolbar belongs to (e.g. "natural-oils",
+   *  "wholesale" -- same value CategoryFilterList's `activeCategoryId`
+   *  prop gets on the same page). Namespaces the Grid/List
+   *  localStorage key per category (see the view-toggle script's own
+   *  doc comment) so switching category doesn't carry one category's
+   *  view preference onto another's listing. */
+  categoryId: string;
   /** The listing page's current 1-based page number (`page.currentPage`)
    * -- every link this toolbar renders stays on this page number instead
    * of resetting to page 1 (see this component's own doc comment above
@@ -67,12 +82,23 @@ interface Props {
   sortPriceLabel: string;
   sortDirectionAscLabel: string;
   sortDirectionDescLabel: string;
+  /** Optional extra class(es) on the root `.no-toolbar` element -- e.g. a
+   * listing page placing this toolbar into a specific CSS Grid cell (see
+   * natural-oils' `[...page].astro`). Deliberately applied to `.no-toolbar`
+   * itself rather than requiring callers to wrap this component in their
+   * own positioning `<div>`: the view-toggle script below finds its grid
+   * wrapper via `toolbar.parentElement.querySelector('[data-product-view]')`
+   * (see that script's own doc comment), so an extra wrapper div around
+   * this component would put the grid element outside `parentElement`'s
+   * subtree and silently break the Grid/List toggle. */
+  class?: string;
 }
 
 const {
   sortKey,
   sortDir,
   basePath,
+  categoryId,
   currentPage,
   showPriceSort,
   viewGridLabel,
@@ -83,6 +109,7 @@ const {
   sortPriceLabel,
   sortDirectionAscLabel,
   sortDirectionDescLabel,
+  class: cls,
 } = Astro.props;
 
 const sortOptions: { key: SortKey; label: string }[] = [
@@ -95,7 +122,7 @@ const directionHref = sortHref(basePath, sortKey, sortDir === 'asc' ? 'desc' : '
 const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirectionDescLabel;
 ---
 
-<div class="no-toolbar" data-view-toggle>
+<div class:list={["no-toolbar", cls]} data-view-toggle data-category-id={categoryId}>
   <div class="no-toolbar-views" role="group">
     <button
       type="button"
@@ -135,7 +162,7 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
       ))}
     </select>
 
-    <a class="no-toolbar-dir" href={directionHref} aria-label={directionLabel}>
+    <a class="no-toolbar-dir" href={directionHref} aria-label={directionLabel} data-toolbar-dir>
       <svg
         width="12"
         height="12"
@@ -166,7 +193,7 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
   // is Astro's own event for exactly this: it fires after the initial load
   // AND after every soft-navigation swap, so re-running init on it keeps
   // the toolbar working no matter how the page was reached.
-  const STORAGE_KEY = 'pv-product-view';
+  const STORAGE_KEY_PREFIX = 'pv-product-view';
 
   function initProductToolbar() {
     document.querySelectorAll<HTMLElement>('[data-view-toggle]').forEach((toolbar) => {
@@ -180,6 +207,14 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
       const container = toolbar.parentElement?.querySelector<HTMLElement>('[data-product-view]');
       const buttons = toolbar.querySelectorAll<HTMLButtonElement>('[data-view-mode]');
 
+      // Namespaced per category (see this file's own doc comment above)
+      // so Natural Oils and Wholesale each remember their own Grid/List
+      // choice instead of sharing one global preference. Falls back to
+      // the un-namespaced key only if `categoryId` was somehow left
+      // empty, rather than silently storing nothing.
+      const categoryId = toolbar.dataset.categoryId;
+      const storageKey = categoryId ? `${STORAGE_KEY_PREFIX}:${categoryId}` : STORAGE_KEY_PREFIX;
+
       function applyMode(mode: string) {
         if (container) container.setAttribute('data-product-view', mode);
         buttons.forEach((btn) => {
@@ -189,7 +224,7 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
 
       let stored: string | null = null;
       try {
-        stored = localStorage.getItem(STORAGE_KEY);
+        stored = localStorage.getItem(storageKey);
       } catch {
         stored = null;
       }
@@ -201,7 +236,7 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
           if (mode !== 'grid' && mode !== 'list') return;
           applyMode(mode);
           try {
-            localStorage.setItem(STORAGE_KEY, mode);
+            localStorage.setItem(storageKey, mode);
           } catch {
             /* per-viewer convenience only -- fine to drop silently */
           }
@@ -209,12 +244,38 @@ const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirection
       });
     });
 
+    // Preserve any active ExtractionMethodFilter/PriceRangeFilter
+    // selection (see ProductFilterScript.astro) across a Sort change.
+    // Both `sortHref()` values below are plain static-route paths with
+    // no query string of their own, so appending the CURRENT page's
+    // `location.search` (e.g. "?extraction=refined&price=...") is safe
+    // and never collides with an existing "?"/"&". Read fresh on every
+    // `initProductToolbar()` call (i.e. on every `astro:page-load`, this
+    // page's own current URL) rather than cached once, so re-sorting
+    // twice in a row still carries whatever is active at that moment.
+    // Without this, picking a filter and then just re-sorting the SAME
+    // filtered result set would silently drop the filter -- reported
+    // directly by the user as unwanted behavior.
+    const currentSearch = window.location.search;
+
     document.querySelectorAll<HTMLSelectElement>('[data-sort-select]').forEach((select) => {
       if (select.dataset.wired === 'true') return;
       select.dataset.wired = 'true';
+      if (currentSearch) {
+        Array.from(select.options).forEach((opt) => {
+          if (opt.value) opt.value += currentSearch;
+        });
+      }
       select.addEventListener('change', () => {
         if (select.value) window.location.assign(select.value);
       });
+    });
+
+    document.querySelectorAll<HTMLAnchorElement>('[data-toolbar-dir]').forEach((link) => {
+      if (link.dataset.wired === 'true') return;
+      link.dataset.wired = 'true';
+      const href = link.getAttribute('href');
+      if (currentSearch && href) link.setAttribute('href', href + currentSearch);
     });
   }
 

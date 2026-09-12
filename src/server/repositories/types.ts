@@ -13,6 +13,7 @@ import type {
   ProductDetailView,
   ProductSummaryView,
   CategoryView,
+  CategoryWithCountView,
 } from '../../domain/types';
 
 export interface ProductRepository {
@@ -36,4 +37,13 @@ export interface ProductRepository {
 export interface CategoryRepository {
   getBySlug(slug: string, locale: Locale): Promise<CategoryView | null>;
   listPublished(locale: Locale): Promise<CategoryView[]>;
+
+  /**
+   * All published categories, each with its published-product count.
+   * Powers CategoryFilterList.astro (a category switcher/filter sidebar
+   * shown on the product listing pages) -- separate from
+   * `listPublished` so the common, count-free callers (breadcrumbs, nav)
+   * never pay for the extra join/aggregation.
+   */
+  listPublishedWithCounts(locale: Locale): Promise<CategoryWithCountView[]>;
 }

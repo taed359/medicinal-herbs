@@ -230,6 +230,8 @@ export const vi: TranslationSchema = {
     featuredLabel: 'Bài viết nổi bật',
     readMore: 'Đọc bài viết',
     ctaViewAll: 'Xem tất cả',
+    backToList: 'Quay lại Góc Sức Khỏe',
+    otherArticlesHeading: 'Bài viết khác',
     basePath: 'blogs',
     items: {
       childrensHealth: {
@@ -237,24 +239,64 @@ export const vi: TranslationSchema = {
         description:
           'Những gợi ý nhẹ nhàng, dễ áp dụng để chăm sóc sức khỏe và đề kháng tự nhiên cho trẻ.',
         slug: 'childrens-health',
+        bodyHtml: `
+          <p>Trẻ nhỏ có làn da và hệ hô hấp nhạy cảm hơn người lớn rất nhiều, vì vậy mọi thói quen chăm sóc sức khỏe tại nhà nên bắt đầu từ những điều đơn giản và nhẹ nhàng nhất: giấc ngủ đều đặn, không khí trong lành, và một không gian sống thoáng đãng, ít ẩm mốc.</p>
+          <h2>Xây dựng thói quen thư giãn trước giờ ngủ</h2>
+          <p>Một buổi tối yên tĩnh — tắm nước ấm, đọc sách, giảm ánh sáng xanh từ màn hình — giúp trẻ dễ đi vào giấc ngủ hơn. Một số gia đình dùng máy khuếch tán tinh dầu với nồng độ rất loãng trong phòng khách hoặc phòng chơi (không phải phòng ngủ kín, không xịt trực tiếp lên trẻ) như một phần của nghi thức thư giãn buổi tối, tương tự cách dùng nến thơm hay nhạc nhẹ.</p>
+          <h2>Những lưu ý an toàn cần nhớ</h2>
+          <ul>
+            <li>Trẻ dưới 3 tuổi rất nhạy cảm với tinh dầu đậm đặc — không thoa trực tiếp lên da trẻ nhỏ nếu chưa có hướng dẫn của bác sĩ hoặc chuyên gia.</li>
+            <li>Luôn giữ tinh dầu và các sản phẩm chăm sóc ngoài tầm với của trẻ.</li>
+            <li>Ưu tiên không gian thông thoáng, tránh khuếch tán liên tục trong phòng kín nhiều giờ.</li>
+          </ul>
+          <p>Những thói quen nhỏ này không thay thế cho việc thăm khám định kỳ. Nếu trẻ có dấu hiệu bất thường về sức khỏe, hãy đưa trẻ đến gặp bác sĩ nhi khoa thay vì tự điều trị tại nhà.</p>
+        `,
       },
       chronicIllness: {
         title: 'Chăm sóc bệnh mạn tính',
         description:
           'Cách kết hợp tinh dầu và lối sống khoa học để hỗ trợ kiểm soát bệnh mạn tính hằng ngày.',
         slug: 'chronic-illness',
+        bodyHtml: `
+          <p>Sống chung với một bệnh mạn tính — từ đau khớp, mất ngủ kéo dài đến các vấn đề tiêu hóa — đòi hỏi một kế hoạch chăm sóc lâu dài, kiên trì hơn là tìm một giải pháp tức thời. Bên cạnh phác đồ điều trị của bác sĩ, một số thói quen sinh hoạt có thể hỗ trợ quá trình này diễn ra nhẹ nhàng hơn.</p>
+          <h2>Duy trì nhịp sinh hoạt ổn định</h2>
+          <p>Ngủ đúng giờ, ăn uống điều độ và vận động nhẹ nhàng mỗi ngày (đi bộ, giãn cơ) giúp cơ thể duy trì năng lượng ổn định hơn là những đợt gắng sức rồi kiệt sức. Với người có bệnh mạn tính, sự đều đặn thường quan trọng hơn cường độ.</p>
+          <h2>Thư giãn tinh thần cũng là một phần của chăm sóc</h2>
+          <p>Căng thẳng kéo dài có thể khiến các triệu chứng mạn tính trở nên khó chịu hơn. Một vài phút hít thở sâu cùng hương tinh dầu dịu nhẹ (oải hương, cam bergamot) trước khi ngủ, hoặc trong lúc thiền/yoga, là một cách đơn giản để tạo khoảng lặng cho tâm trí — đây là biện pháp hỗ trợ thư giãn, không phải phương pháp điều trị bệnh.</p>
+          <p><strong>Lưu ý quan trọng:</strong> Nếu bạn đang dùng thuốc điều trị dài hạn, hãy trao đổi với bác sĩ trước khi kết hợp thêm bất kỳ sản phẩm hay thói quen chăm sóc mới nào, kể cả các sản phẩm có nguồn gốc tự nhiên.</p>
+        `,
       },
       womensHealth: {
         title: 'Sức khỏe phụ nữ',
         description:
           'Từ cân bằng nội tiết đến sắc đẹp và sức bền – những kiến thức nền tảng, dễ thực hành.',
         slug: 'women-health',
+        bodyHtml: `
+          <p>Cơ thể phụ nữ trải qua nhiều giai đoạn thay đổi nội tiết trong suốt cuộc đời — từ chu kỳ kinh nguyệt hằng tháng đến các giai đoạn lớn hơn như mang thai hay tiền mãn kinh. Việc quan sát cơ thể mình và điều chỉnh cách chăm sóc theo từng giai đoạn giúp bạn chủ động hơn thay vì bị động ứng phó.</p>
+          <h2>Lắng nghe cơ thể theo từng giai đoạn chu kỳ</h2>
+          <p>Năng lượng, giấc ngủ và tâm trạng có thể thay đổi đáng kể trong một chu kỳ. Một vài ngày cần vận động nhẹ nhàng hơn, ngủ sớm hơn, hoặc đơn giản là dành thời gian cho bản thân — đều là những phản ứng bình thường, không phải dấu hiệu của sự yếu đuối.</p>
+          <h2>Những nghi thức chăm sóc nhỏ mỗi ngày</h2>
+          <ul>
+            <li>Một vài giọt tinh dầu hoa hồng hoặc oải hương khi dưỡng da buổi tối, kết hợp massage nhẹ, giúp thư giãn sau một ngày dài.</li>
+            <li>Uống đủ nước và ưu tiên thực phẩm tươi, ít chế biến sẵn trong những ngày cơ thể nhạy cảm hơn.</li>
+            <li>Ngủ đủ giấc — đây vẫn là yếu tố ảnh hưởng lớn nhất đến cân bằng nội tiết mà nhiều người bỏ qua.</li>
+          </ul>
+          <p>Nếu bạn gặp các triệu chứng kéo dài hoặc bất thường (đau nhiều, rối loạn chu kỳ, thay đổi tâm trạng nghiêm trọng), hãy tìm đến bác sĩ chuyên khoa thay vì chỉ dựa vào các biện pháp chăm sóc tại nhà.</p>
+        `,
       },
       tcmBasics: {
         title: 'Chuỗi kiến thức Y học cổ truyền',
         description:
           'Hiểu về nguyên lý âm dương – ngũ hành và cách ứng dụng tinh gọn trong chăm sóc hằng ngày.',
         slug: 'tcm-basics',
+        bodyHtml: `
+          <p>Y học cổ truyền phương Đông nhìn sức khỏe không phải như một trạng thái "không có bệnh", mà như một sự cân bằng liên tục giữa các yếu tố bên trong và bên ngoài cơ thể. Hai khái niệm nền tảng thường được nhắc đến là Âm Dương và Ngũ Hành.</p>
+          <h2>Âm Dương — hai mặt cân bằng</h2>
+          <p>Âm và Dương là hai lực đối lập nhưng bổ sung cho nhau: nóng – lạnh, động – tĩnh, ngày – đêm. Theo quan niệm này, một cơ thể khỏe mạnh là khi hai yếu tố này ở trạng thái hài hòa; sự lệch quá nhiều về một phía (ví dụ quá "nóng" hay quá "lạnh") có thể biểu hiện qua các dấu hiệu như mất ngủ, dễ cáu gắt, hoặc mệt mỏi kéo dài.</p>
+          <h2>Ngũ Hành — năm yếu tố liên kết</h2>
+          <p>Kim, Mộc, Thủy, Hỏa, Thổ là năm yếu tố được cho là ảnh hưởng lẫn nhau và tương ứng với các cơ quan, mùa trong năm và cả trạng thái cảm xúc khác nhau. Đây là một khung tư duy giúp nhìn cơ thể như một hệ thống liên kết, thay vì các bộ phận tách biệt.</p>
+          <p>Ngày nay, nhiều nguyên liệu thảo dược truyền thống — bao gồm các loại tinh dầu thực vật — vẫn được sử dụng trong đời sống hằng ngày như một phần của lối sống cân bằng, song song với y học hiện đại chứ không thay thế. Đó cũng là tinh thần mà chúng tôi theo đuổi: kế thừa tri thức truyền thống, đồng thời tuân thủ các tiêu chuẩn kiểm định chất lượng hiện đại cho từng sản phẩm.</p>
+        `,
       },
     },
   },
@@ -276,6 +318,28 @@ export const vi: TranslationSchema = {
     collectionPath: 'products/natural-oils',
     prev: 'Sản phẩm trước',
     next: 'Sản phẩm tiếp theo',
+  },
+  categoryFilter: {
+    heading: 'Danh mục',
+    itemAriaLabel: '{name}, {count} sản phẩm',
+  },
+  extractionFilter: {
+    heading: 'Phương pháp chiết xuất',
+    methodColdPressed: 'Ép lạnh',
+    methodExpellerPressed: 'Ép cơ học',
+    methodRefined: 'Tinh luyện',
+    methodVirginUnrefined: 'Nguyên chất chưa tinh luyện',
+    itemAriaLabel: '{name}, {count} sản phẩm',
+    resetLabel: 'Xóa lọc',
+    emptyState: 'Không có sản phẩm nào phù hợp với bộ lọc đã chọn.',
+  },
+  priceFilter: {
+    heading: 'Khoảng giá',
+    rangeUnder: 'Dưới {max}',
+    rangeBetween: '{min} – {max}',
+    rangeOver: 'Từ {min}',
+    itemAriaLabel: '{name}, {count} sản phẩm',
+    resetLabel: 'Xóa lọc',
   },
   account: {
     metaTitle: 'Tài khoản của tôi',

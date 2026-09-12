@@ -288,6 +288,30 @@ const categoryLabel = t.naturalOils.eyebrow;
   // Active at EVERY breakpoint (no matchMedia gate like HealthGoals' own
   // mobile-only swiper) -- this carousel is the section's only layout at
   // any width, not one half of a carousel/grid split.
+  //
+  // Bug fixed here: navigating away and then back (browser Back button)
+  // used to leave this carousel visibly broken -- one or more slides
+  // collapsed to a sliver with their text wrapped word-per-line. Root
+  // cause: Astro's ClientRouter caches the CURRENT page's live DOM (i.e.
+  // already mutated by Swiper -- loop-mode's cloned duplicate slides,
+  // per-slide inline pixel widths, the wrapper's translate3d transform,
+  // the `swiper-initialized` class that turns off this file's own
+  // `:not(.swiper-initialized)` pre-init CSS) as the snapshot it restores
+  // on Back, then still fires `astro:page-load` for that restored page.
+  // The restored DOM nodes are brand new (so `(el as any).swiper` below
+  // is correctly falsy and doesn't skip re-init), but they already carry
+  // Swiper's own prior output -- initializing a fresh Swiper instance on
+  // top of that (instead of on clean markup) is what produces the
+  // corrupted slide widths in the screenshot. Fix: tear down every active
+  // instance on `astro:before-swap`, which fires on the outgoing page
+  // right before Astro swaps/caches it -- `destroy(true, true)` removes
+  // Swiper's classes/inline styles and reverses loop-mode's slide
+  // cloning, so whatever Astro snapshots afterward is the original,
+  // un-mutated markup, and the next `astro:page-load` re-init (whether
+  // from a real navigation or a restored Back/Forward snapshot) always
+  // starts from a clean slate.
+  let activeSwipers: InstanceType<typeof Swiper>[] = [];
+
   function initNaturalOilsSwipers() {
     const roots = document.querySelectorAll<HTMLElement>('[data-natural-oils-root]');
     roots.forEach((root) => {
@@ -303,7 +327,7 @@ const categoryLabel = t.naturalOils.eyebrow;
       // correct fallback rather than a visibly glitchy loop.
       const slideCount = el.querySelectorAll('.swiper-slide').length;
 
-      new Swiper(el, {
+      const swiper = new Swiper(el, {
         modules: [Navigation, Keyboard, A11y],
         loop: slideCount >= 6,
         slidesPerView: 1.15,
@@ -324,7 +348,15 @@ const categoryLabel = t.naturalOils.eyebrow;
           1280: { slidesPerView: 4.2, spaceBetween: 28 },
         },
       });
+      activeSwipers.push(swiper);
     });
+  }
+
+  function destroyNaturalOilsSwipers() {
+    activeSwipers.forEach((swiper) => {
+      if (!swiper.destroyed) swiper.destroy(true, true);
+    });
+    activeSwipers = [];
   }
 
   if (document.readyState === 'loading') {
@@ -333,4 +365,5 @@ const categoryLabel = t.naturalOils.eyebrow;
     initNaturalOilsSwipers();
   }
   document.addEventListener('astro:page-load', initNaturalOilsSwipers);
+  document.addEventListener('astro:before-swap', destroyNaturalOilsSwipers);
 </script>

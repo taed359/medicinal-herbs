@@ -1,0 +1,108 @@
+---
+import type { Locale } from '../i18n/utils';
+import { getTranslations } from '../i18n/utils';
+
+/**
+ * Real-attribute filter for the product listing sidebar, sitting below
+ * CategoryFilterList.astro -- see extractionFilter's own doc comment in
+ * i18n/utils.ts for why extractionMethod is the one product attribute
+ * that's actually worth filtering on today (the other candidates the
+ * user asked about, countryOfOriginCode/manufacturerName, are both
+ * constants across the whole seeded catalog).
+ *
+ * PURE CLIENT-SIDE, same posture as ProductToolbar's Grid/List toggle:
+ * this static site has no server to re-query, so filtering just shows/
+ * hides the `<li data-extraction-method>` cards already in the grid
+ * (see the listing pages' `[...page].astro`) rather than fetching
+ * anything. This is only correct because those pages now render a
+ * category's FULL catalog on a single static page (pageSize bumped to
+ * 24 specifically for this) -- if a category ever needed real
+ * pagination again, filtering would need to move server-side or become
+ * combinatorial static routes instead.
+ *
+ * THIS COMPONENT IS MARKUP-ONLY. The actual filtering script lives in
+ * ProductFilterScript.astro (render that once per listing page,
+ * alongside this component and/or PriceRangeFilter.astro) -- it reads
+ * every filter root present on the page (this one's checkboxes, and
+ * PriceRangeFilter's radios when that's also rendered) and applies
+ * their COMBINED (AND) result to the grid in one pass. That had to move
+ * out of here once a second, independent filter dimension (price) was
+ * added: two separate scripts each unconditionally setting
+ * `li.hidden` from their own dimension alone would race and clobber
+ * each other's result on the same `<li>`.
+ *
+ * State is reflected in the URL's `?extraction=` query param (comma-
+ * separated method values) via `history.replaceState`, so a filtered
+ * view is shareable/bookmarkable and survives a reload, but never
+ * triggers a navigation or a new static page.
+ */
+interface Props {
+  lang: Locale;
+  /** Every product's extractionMethod on the current page, in display
+   *  order -- used only to compute which values actually occur and
+   *  their counts; a value with 0 products in this category is not
+   *  rendered as an option (same "don't show empty filter options"
+   *  posture as a real Magento layered-navigation block). */
+  extractionMethods: Array<string | null>;
+}
+const { lang, extractionMethods } = Astro.props;
+const t = getTranslations(lang);
+
+const METHOD_ORDER = ['cold-pressed', 'expeller-pressed', 'refined', 'virgin-unrefined'] as const;
+const METHOD_LABELS: Record<(typeof METHOD_ORDER)[number], string> = {
+  'cold-pressed': t.extractionFilter.methodColdPressed,
+  'expeller-pressed': t.extractionFilter.methodExpellerPressed,
+  refined: t.extractionFilter.methodRefined,
+  'virgin-unrefined': t.extractionFilter.methodVirginUnrefined,
+};
+
+const counts = new Map<string, number>();
+for (const m of extractionMethods) {
+  if (!m) continue;
+  counts.set(m, (counts.get(m) ?? 0) + 1);
+}
+const options = METHOD_ORDER.filter((m) => counts.has(m)).map((value) => ({
+  value,
+  label: METHOD_LABELS[value],
+  count: counts.get(value) ?? 0,
+}));
+---
+{options.length > 0 && (
+  <details class="ext-filter group" data-extraction-filter open>
+    <summary class="ext-filter-heading eyebrow">
+      {t.extractionFilter.heading}
+      <span class="p-1 rounded-lg border border-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </span>
+    </summary>
+    <ul class="ext-filter-list m-0 mt-3 p-0 list-none" role="list">
+      {options.map((opt) => {
+        const label = t.extractionFilter.itemAriaLabel
+          .replace('{name}', opt.label)
+          .replace('{count}', String(opt.count));
+        return (
+          <li class="ext-filter-item">
+            <label class="ext-filter-label">
+              <input type="checkbox" class="ext-filter-checkbox" value={opt.value} aria-label={label} />
+              <span>{opt.label}</span>
+              <span class="ext-filter-count" aria-hidden="true">({opt.count})</span>
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+    <button type="button" class="ext-filter-reset" data-extraction-reset>{t.extractionFilter.resetLabel}</button>
+  </details>
+)}
+<style>
+  .ext-filter { margin: 0; margin-top: 1.25rem; padding: 1.25rem 1.375rem; border: 0; background: var(--color-paper-2); border-radius: var(--radius-editorial); border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
+  .ext-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-amber); text-transform: uppercase; cursor: pointer; list-style: none; }
+  .ext-filter-heading::-webkit-details-marker { display: none; }
+  html[lang="zh"] .ext-filter-heading { letter-spacing: 0; }
+  .ext-filter-item + .ext-filter-item { border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2)); }
+  .ext-filter-label { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.625rem; color: var(--color-body); font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
+  .ext-filter-checkbox { flex-shrink: 0; width: 1rem; height: 1rem; accent-color: var(--color-pine-dark); }
+  .ext-filter-count { margin-left: auto; flex-shrink: 0; color: var(--color-amber-decorative); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .ext-filter-reset { margin-top: 0.875rem; padding: 0; border: 0; background: none; color: var(--color-pine-dark); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .ext-filter-reset:hover, .ext-filter-reset:focus-visible { color: var(--color-amber); }
+</style>

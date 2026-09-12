@@ -143,23 +143,38 @@ body {
   margin: 0;
   width: 100%;
   min-height: 100%;
-  /* `overflow-x: hidden` guards against the page ever legitimately
-   * needing to scroll horizontally. It used to be paired with
-   * `overscroll-behavior-x: none` as a defensive guard against a
-   * WebKit/iOS Safari bug where TrustMarquee's very wide animated ticker
-   * track could leak into the page's computed scrollable width and let a
-   * horizontal swipe reveal the body background past the edge -- but
-   * that property also silently disables the browser's native two-finger
-   * swipe back/forward gesture (trackpad on desktop, edge-swipe on
-   * mobile) site-wide, which is a real regression for anyone navigating
-   * that way. TrustMarquee.astro now carries its own standards-correct,
-   * scoped fix for the actual bug (`overflow: clip; contain: paint;` on
-   * its own <section>/.marquee-viewport -- see that file), so the
-   * site-wide swipe-nav-disabling property is no longer needed here. If
-   * a similar edge-reveal bug ever resurfaces on Safari/iOS, fix it at
-   * the offending component the same way TrustMarquee does, rather than
-   * reintroducing this site-wide `overscroll-behavior-x: none`. */
-  overflow-x: hidden;
+  /* Guards against the page ever legitimately needing to scroll
+   * horizontally. It used to be paired with `overscroll-behavior-x: none`
+   * as a defensive guard against a WebKit/iOS Safari bug where
+   * TrustMarquee's very wide animated ticker track could leak into the
+   * page's computed scrollable width and let a horizontal swipe reveal
+   * the body background past the edge -- but that property also
+   * silently disables the browser's native two-finger swipe back/forward
+   * gesture (trackpad on desktop, edge-swipe on mobile) site-wide, which
+   * is a real regression for anyone navigating that way. TrustMarquee.astro
+   * now carries its own standards-correct, scoped fix for the actual bug
+   * (`overflow: clip; contain: paint;` on its own <section>/.marquee-viewport
+   * -- see that file), so the site-wide swipe-nav-disabling property is
+   * no longer needed here. If a similar edge-reveal bug ever resurfaces
+   * on Safari/iOS, fix it at the offending component the same way
+   * TrustMarquee does, rather than reintroducing this site-wide
+   * `overscroll-behavior-x: none`.
+   *
+   * `clip`, not `hidden`: confirmed by real Playwright repro (both
+   * Chromium, contrary to the assumption this was Safari-only) that
+   * `overflow-x: hidden` here breaks EVERY `position: sticky` element on
+   * the page (e.g. the natural-oils/wholesale filter sidebar's
+   * `.pl-sidebar`, reported by the user as "not following" scroll at
+   * all) -- per the CSS overflow spec, pairing a non-`visible`/non-`clip`
+   * `overflow-x` with a `visible` `overflow-y` forces the computed
+   * `overflow-y` to `auto`, turning `body`/`html` into a scroll container
+   * and breaking sticky's normal viewport-relative behavior. `clip` is
+   * exempted from that pairing rule (spec explicitly excludes it, same
+   * as `visible`), so it clips horizontal overflow exactly like `hidden`
+   * did (verified: a 3000px-wide element under 800px viewport still
+   * produces zero horizontal scroll) while leaving `overflow-y` genuinely
+   * `visible` and sticky intact. */
+  overflow-x: clip;
 }
 * {
   box-sizing: border-box;

@@ -1,0 +1,135 @@
+---
+import type { Locale } from '../i18n/utils';
+import { getTranslations } from '../i18n/utils';
+
+/**
+ * Price-range filter for the product listing sidebar -- Natural Oils
+ * only. Wholesale's own [...page].astro never renders this: every
+ * Wholesale product is deliberately "price on request" (priceMinor
+ * always null, same fact that already stops that category's own Price
+ * SORT option from being generated -- see its getStaticPaths comment),
+ * so there is no real price data there to filter on.
+ *
+ * BOUNDARIES ARE HARD-CODED, not computed from an algorithm (e.g. equal-
+ * width or equal-count buckets), because this is a small, static, one-
+ * time-seeded catalog rather than a live one a merchant keeps re-pricing.
+ * Chosen by actually looking at the real seeded default-variant prices
+ * (see seed-natural-oils-variant-sizes.ts's own BASE_VARIANTS list,
+ * which carries each product's real current base price): today's 19
+ * products range 79,000 - 420,000 VND with a natural gap between
+ * 150,000 and 230,000 -- so 150,000 / 300,000 splits them into three
+ * non-empty, reasonably even buckets (9 / 5 / 5). Revisit these two
+ * numbers if the catalog's price spread changes enough to make a bucket
+ * empty or badly lopsided.
+ *
+ * Single-select (radio), unlike ExtractionMethodFilter's checkboxes --
+ * see priceFilter's own doc comment in i18n/utils.ts. Filtering itself
+ * is NOT done here: ProductFilterScript.astro is the one script that
+ * reads both this component's and ExtractionMethodFilter's selections
+ * together and applies the combined (AND) result to the grid -- see
+ * that component's own doc comment for why the logic has to live in one
+ * shared place rather than in each filter component separately.
+ */
+interface Props {
+  lang: Locale;
+  /** Every product's default-variant priceMinor on the current page, in
+   *  display order (null entries -- shouldn't happen for Natural Oils,
+   *  but tolerated -- are simply excluded from every bucket's count). */
+  prices: Array<number | null>;
+  currency?: string;
+}
+const { lang, prices, currency = 'VND' } = Astro.props;
+const t = getTranslations(lang);
+
+function formatPrice(minorUnits: number): string {
+  return new Intl.NumberFormat(lang === 'zh' ? 'zh-CN' : 'vi-VN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(minorUnits);
+}
+
+// See this component's own doc comment above for why these two numbers.
+const BOUNDARIES = [150000, 300000] as const;
+
+const realPrices = prices.filter((p): p is number => p != null);
+
+const buckets = [
+  {
+    value: `under-${BOUNDARIES[0]}`,
+    min: null as number | null,
+    max: BOUNDARIES[0],
+    label: t.priceFilter.rangeUnder.replace('{max}', formatPrice(BOUNDARIES[0])),
+  },
+  {
+    value: `${BOUNDARIES[0]}-${BOUNDARIES[1]}`,
+    min: BOUNDARIES[0],
+    max: BOUNDARIES[1],
+    label: t.priceFilter.rangeBetween
+      .replace('{min}', formatPrice(BOUNDARIES[0]))
+      .replace('{max}', formatPrice(BOUNDARIES[1])),
+  },
+  {
+    value: `over-${BOUNDARIES[1]}`,
+    min: BOUNDARIES[1],
+    max: null as number | null,
+    label: t.priceFilter.rangeOver.replace('{min}', formatPrice(BOUNDARIES[1])),
+  },
+].map((bucket) => ({
+  ...bucket,
+  // Lower bound inclusive, upper bound exclusive -- see
+  // ProductFilterScript.astro's matching comparison, which uses the
+  // exact same >=/< pairing so a price sitting exactly on a boundary
+  // (e.g. a future 150,000 VND product) counts in one bucket only.
+  count: realPrices.filter(
+    (price) => (bucket.min === null || price >= bucket.min) && (bucket.max === null || price < bucket.max)
+  ).length,
+}));
+
+const options = buckets.filter((b) => b.count > 0);
+---
+{options.length > 0 && (
+  <details class="price-filter group" data-price-filter open>
+    <summary class="price-filter-heading eyebrow">
+      {t.priceFilter.heading}
+      <span class="p-1 rounded-lg border border-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </span>
+    </summary>
+    <ul class="price-filter-list m-0 mt-3 p-0 list-none" role="list">
+      {options.map((opt) => {
+        const label = t.priceFilter.itemAriaLabel.replace('{name}', opt.label).replace('{count}', String(opt.count));
+        return (
+          <li class="price-filter-item">
+            <label class="price-filter-label">
+              <input
+                type="radio"
+                name="price-range"
+                class="price-filter-radio"
+                value={opt.value}
+                data-min={opt.min ?? ''}
+                data-max={opt.max ?? ''}
+                aria-label={label}
+              />
+              <span>{opt.label}</span>
+              <span class="price-filter-count" aria-hidden="true">({opt.count})</span>
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+    <button type="button" class="price-filter-reset" data-price-reset>{t.priceFilter.resetLabel}</button>
+  </details>
+)}
+<style>
+  .price-filter { margin: 0; margin-top: 1.25rem; padding: 1.25rem 1.375rem; border: 0; background: var(--color-paper-2); border-radius: var(--radius-editorial); border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
+  .price-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-amber); text-transform: uppercase; cursor: pointer; list-style: none; }
+  .price-filter-heading::-webkit-details-marker { display: none; }
+  html[lang="zh"] .price-filter-heading { letter-spacing: 0; }
+  .price-filter-item + .price-filter-item { border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2)); }
+  .price-filter-label { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.625rem; color: var(--color-body); font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
+  .price-filter-radio { flex-shrink: 0; width: 1rem; height: 1rem; accent-color: var(--color-pine-dark); }
+  .price-filter-count { margin-left: auto; flex-shrink: 0; color: var(--color-amber-decorative); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .price-filter-reset { margin-top: 0.875rem; padding: 0; border: 0; background: none; color: var(--color-pine-dark); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .price-filter-reset:hover, .price-filter-reset:focus-visible { color: var(--color-amber); }
+</style>

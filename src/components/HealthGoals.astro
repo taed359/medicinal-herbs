@@ -473,6 +473,21 @@ const t = getTranslations(lang);
   // carousel without a full page reload; each root's own
   // `(el as any).swiper` guard below prevents ever double-initializing
   // once created.
+  // Bug fixed here (same root cause and fix as NaturalOils.astro's
+  // identical carousel script -- see that file's comment for the full
+  // writeup): Astro's ClientRouter caches the outgoing page's live,
+  // already-Swiper-mutated DOM for Back/Forward restores, then still
+  // fires `astro:page-load` on it. The restored element is a new DOM
+  // node, so the `(el as any).swiper` guard below doesn't catch it, and
+  // a fresh Swiper instance ends up initializing on top of Swiper's own
+  // prior output (loop-cloned slides, inline widths, transforms) instead
+  // of clean markup -- producing the exact same collapsed/garbled slide
+  // NaturalOils.astro showed after pressing Back. Tearing every instance
+  // down on `astro:before-swap` (fired on the outgoing page right before
+  // Astro swaps/caches it) restores clean markup before that snapshot is
+  // taken, so the next init always starts fresh.
+  let activeSwipers: InstanceType<typeof Swiper>[] = [];
+
   function initHealthGoalsSwipers() {
     if (window.matchMedia('(min-width: 1024px)').matches) return;
 
@@ -483,7 +498,7 @@ const t = getTranslations(lang);
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      new Swiper(el, {
+      const swiper = new Swiper(el, {
         modules: [Pagination, Navigation, Keyboard, A11y],
         loop: true,
         slidesPerView: 1.5,
@@ -505,7 +520,15 @@ const t = getTranslations(lang);
           640: { slidesPerView: 3, spaceBetween: 20 },
         },
       });
+      activeSwipers.push(swiper);
     });
+  }
+
+  function destroyHealthGoalsSwipers() {
+    activeSwipers.forEach((swiper) => {
+      if (!swiper.destroyed) swiper.destroy(true, true);
+    });
+    activeSwipers = [];
   }
 
   if (document.readyState === 'loading') {
@@ -514,5 +537,6 @@ const t = getTranslations(lang);
     initHealthGoalsSwipers();
   }
   document.addEventListener('astro:page-load', initHealthGoalsSwipers);
+  document.addEventListener('astro:before-swap', destroyHealthGoalsSwipers);
   window.addEventListener('resize', initHealthGoalsSwipers);
 </script>

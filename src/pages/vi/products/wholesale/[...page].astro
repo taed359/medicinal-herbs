@@ -5,7 +5,10 @@ import HerbProductCard from '../../../../components/HerbProductCard.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import Pager from '../../../../components/Pager.astro';
 import ProductToolbar from '../../../../components/ProductToolbar.astro';
-import { productRepository } from '../../../../server/repositories';
+import CategoryFilterList from '../../../../components/CategoryFilterList.astro';
+import ExtractionMethodFilter from '../../../../components/ExtractionMethodFilter.astro';
+import ProductFilterScript from '../../../../components/ProductFilterScript.astro';
+import { productRepository, categoryRepository } from '../../../../server/repositories';
 import { sortProductSummaries, sortRouteSlug, type SortDir, type SortKey } from '../../../../lib/product-sort';
 import { getTranslations, localePath, type Locale } from '../../../../i18n/utils';
 import { naturalOilsPlaceholderImage } from '../../../../lib/product-image-fallback';
@@ -37,7 +40,15 @@ export const getStaticPaths = (async ({ paginate }) => {
       // existing bare URL instead of gaining a `/sort/...` segment.
       const slug = sortKey === 'position' && sortDir === 'asc' ? null : `sort/${sortKey}-${sortDir}`;
 
-      return paginate(sorted, { pageSize: 12 }).map((entry) => {
+      // pageSize 24: comfortably covers this category's full catalog
+      // (19 natural-oils / 15 wholesale products today) so it always
+      // renders as a single static page. Required for the extraction-
+      // method filter below to work correctly -- it's pure client-side
+      // show/hide over the cards already in the DOM (same static-site
+      // constraint as the Sort control above), so if the category ever
+      // spanned multiple pages the filter would silently miss items on
+      // other pages. Bump this again if the catalog grows past ~24.
+      return paginate(sorted, { pageSize: 24 }).map((entry) => {
         // Astro's own page-number segment for this entry: undefined on
         // page 1, '2' / '3' / ... afterwards -- a rest param (`[...page]`)
         // accepts a multi-segment string, so prefixing it with the sort
@@ -75,6 +86,13 @@ function formatPrice(minorUnits: number, currency: string, locale: Locale): stri
 
 const categoryLabel = t.wholesale.eyebrow;
 const basePath = localePath(lang, t.wholesale.collectionPath);
+
+// Category switcher sidebar (see CategoryFilterList.astro) -- every
+// published category with its own product count, same real data this
+// page's own product grid is built from (listPublishedWithCounts uses
+// the identical `products.isPublished = true` predicate as
+// productRepository.listByCategory above).
+const categoriesWithCounts = await categoryRepository.listPublishedWithCounts(lang);
 
 // The Pager below must link between pages of the SAME active sort,
 // not reset back to the default (position, ascending) listing --
@@ -124,68 +142,133 @@ const products = page.data.map((p) => ({
         <h2 id="collection-heading" class="no-heading m-0">{t.wholesale.heading}</h2>
       </div>
 
-      <ProductToolbar
-        sortKey={sortKey}
-        sortDir={sortDir}
-        basePath={basePath}
-        currentPage={page.currentPage}
-        showPriceSort={false}
-        viewGridLabel={t.toolbar.viewGridLabel}
-        viewListLabel={t.toolbar.viewListLabel}
-        sortByLabel={t.toolbar.sortByLabel}
-        sortPositionLabel={t.toolbar.sortPositionLabel}
-        sortNameLabel={t.toolbar.sortNameLabel}
-        sortPriceLabel={t.toolbar.sortPriceLabel}
-        sortDirectionAscLabel={t.toolbar.sortDirectionAscLabel}
-        sortDirectionDescLabel={t.toolbar.sortDirectionDescLabel}
-      />
+      <div class="pl-layout lg:grid lg:grid-cols-[240px_1fr] lg:items-start lg:gap-x-8">
+        {/* Two grid items, sidebar then content, placed by plain DOM
+            order (first child -> column 1, second -> column 2) -- no
+            explicit row/column needed since there's nothing else in this
+            grid to mis-place. Deliberately NOT the same flat "every item
+            gets its own explicit row/column" layout used earlier: with
+            Toolbar/grid/empty-state/Pager each as their own direct grid
+            item sharing row 2/3 with the sidebar, CSS Grid sizes each ROW
+            to its TALLEST item across both columns -- so filtering the
+            product grid down to a handful of cards left row 2 as tall as
+            the (unfiltered-height) sidebar, and Pager sat below that
+            leftover blank space instead of right under the last visible
+            card (reported directly by the user, screenshot showed the
+            gap). Grouping Toolbar+grid+empty-state+Pager into their own
+            `.pl-content` column below fixes this: that column's own
+            height now depends only on ITS OWN (possibly filtered)
+            content, completely independent of the sidebar's height. */}
+        <div class="pl-sidebar mb-6 lg:mb-0">
+          <CategoryFilterList lang={lang} categories={categoriesWithCounts} activeCategoryId="wholesale" />
+          <ExtractionMethodFilter lang={lang} extractionMethods={products.map((p) => p.extractionMethod)} />
+        </div>
 
-      <ul
-        class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
-        role="list"
-        tabindex="0"
-        data-product-view="grid"
-      >
-        {products.map((p) => {
-          const isPlaceholder = !p.primaryImage;
-          const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
-          const alt = p.primaryImage?.alt || p.name;
-          return (
-            <li class="no-slide h-full">
-              <HerbProductCard
-                lang={lang}
-                name={p.name}
-                categoryLabel={categoryLabel}
-                href={p.href}
-                image={image}
-                alt={alt}
-                isPlaceholder={isPlaceholder}
-                formattedPrice={p.formattedPrice}
-                variantId={p.variantId}
-                canAddToCart={p.canAddToCart}
-              />
-            </li>
-          );
-        })}
-      </ul>
+        <div class="pl-content">
+        <ProductToolbar
+          sortKey={sortKey}
+          sortDir={sortDir}
+          basePath={basePath}
+          categoryId="wholesale"
+          currentPage={page.currentPage}
+          showPriceSort={false}
+          viewGridLabel={t.toolbar.viewGridLabel}
+          viewListLabel={t.toolbar.viewListLabel}
+          sortByLabel={t.toolbar.sortByLabel}
+          sortPositionLabel={t.toolbar.sortPositionLabel}
+          sortNameLabel={t.toolbar.sortNameLabel}
+          sortPriceLabel={t.toolbar.sortPriceLabel}
+          sortDirectionAscLabel={t.toolbar.sortDirectionAscLabel}
+          sortDirectionDescLabel={t.toolbar.sortDirectionDescLabel}
+        />
 
-      <Pager
-        page={page}
-        basePath={pagerBasePath}
-        prevLabel={t.pager.prevLabel}
-        nextLabel={t.pager.nextLabel}
-        pageLabel={t.pager.pageLabel}
-        itemsRangeLabel={t.pager.itemsRangeLabel}
-      />
+        <ul
+          class="no-track m-0 flex list-none gap-4 overflow-x-auto p-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3"
+          role="list"
+          tabindex="0"
+          data-product-view="grid"
+        >
+          {products.map((p) => {
+            const isPlaceholder = !p.primaryImage;
+            const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
+            const alt = p.primaryImage?.alt || p.name;
+            return (
+              <li class="no-slide h-full" data-extraction-method={p.extractionMethod ?? ''}>
+                <HerbProductCard
+                  lang={lang}
+                  name={p.name}
+                  categoryLabel={categoryLabel}
+                  href={p.href}
+                  image={image}
+                  alt={alt}
+                  isPlaceholder={isPlaceholder}
+                  formattedPrice={p.formattedPrice}
+                  variantId={p.variantId}
+                  canAddToCart={p.canAddToCart}
+                />
+              </li>
+            );
+          })}
+        </ul>
+
+        <p class="pl-empty-state" data-pl-empty-state role="status" aria-live="polite" hidden>
+          {t.extractionFilter.emptyState}
+        </p>
+
+        <Pager
+          page={page}
+          basePath={pagerBasePath}
+          prevLabel={t.pager.prevLabel}
+          nextLabel={t.pager.nextLabel}
+          pageLabel={t.pager.pageLabel}
+          itemsRangeLabel={t.pager.itemsRangeLabel}
+        />
+        </div>
+      </div>
     </div>
   </section>
 </Layout>
 
+<ProductFilterScript />
+
 <style>
+  /* Grid item default `min-width: auto` can let a track sized `1fr`
+     blow out to fit an intrinsically-wide descendant -- `.no-track`'s
+     `overflow-x-auto` horizontal scroller is exactly that kind of
+     content. Explicit `min-width: 0` keeps `.pl-content` shrinkable to
+     its grid track instead. */
+  .pl-content { min-width: 0; }
+
+  /* Sticky filter sidebar, desktop only: `.pl-sidebar` and `.pl-content`
+     are the only two items in `.pl-layout`'s single grid row, so the
+     row's own height already equals the taller of the two (almost
+     always `.pl-content`, once there are more than a couple of product
+     cards) -- CSS Grid gives `.pl-sidebar` that same taller row height
+     as its own grid-area to move within, so `position: sticky` here
+     scrolls it right along with the page and pins it once its top edge
+     reaches `top: 7rem`, then releases it again as `.pl-content`'s
+     bottom approaches -- no JS, and it can never escape past the
+     bottom of the product list/pager since it's bounded by its own
+     grid area. Deliberately NOT `position: fixed`, which would ignore
+     `.pl-content`'s height entirely and stay pinned even past the end
+     of the page (e.g. over the footer). `top: 7rem` matches the same
+     sticky-under-Header offset already used by TrustCertifications.astro's
+     `.tc-intro` and ProductDetail.astro's `.pd-gallery`, clearing the
+     84px/5.25rem sticky Header (Header.astro) plus breathing room. */
+  @media (min-width: 1024px) {
+    .pl-sidebar {
+      position: sticky;
+      top: 7rem;
+    }
+  }
+
   /* Products only: mobile horizontal scroll, grid from sm+ (2 cols),
-     4 cols on lg -- same .no-track/.no-slide pattern as NaturalOils.astro's
+     3 cols on lg -- same .no-track/.no-slide pattern as NaturalOils.astro's
      homepage rail, so this paginated listing feels like the same product
-     row rather than a visually different grid. */
+     row rather than a visually different grid. Capped at 3 (not 4) on lg
+     now that the CategoryFilterList sidebar takes a 240px column out of
+     the row -- 4 columns in the remaining `1fr` would squeeze each card
+     narrower than HerbProductCard's own comfortable minimum. */
   .no-track { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .no-track::-webkit-scrollbar { display: none; }
   .no-slide { flex: 0 0 82%; scroll-snap-align: start; }
@@ -194,6 +277,12 @@ const products = page.data.map((p) => ({
     .no-track { gap: 1.375rem; }
     .no-slide { flex: unset; scroll-snap-align: unset; }
   }
+
+  /* Shown by ExtractionMethodFilter.astro's script in place of the
+     grid when the selected filter matches zero of this category's
+     products; occupies the same grid cell as the (now-empty) `<ul>`
+     so it reads as "grid contents" rather than pushing the Pager up. */
+  .pl-empty-state { padding-block: 2.5rem 1rem; text-align: center; color: var(--color-body); font-size: 0.9375rem; }
 
   .no-eyebrow { color: var(--color-brand); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
   @media (min-width: 640px) { .no-eyebrow { font-size: 1.375rem; } }

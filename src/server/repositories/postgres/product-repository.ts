@@ -285,6 +285,7 @@ class PostgresProductRepository implements ProductRepository {
         isFeatured: products.isFeatured,
         sortOrder: products.sortOrder,
         name: productTranslations.name,
+        extractionMethod: products.extractionMethod,
       })
       .from(products)
       .innerJoin(
@@ -322,6 +323,7 @@ class PostgresProductRepository implements ProductRepository {
         compareAtMinor: price?.compareAtMinor ?? null,
         currency: price?.currency ?? null,
         variantId: variantId ?? null,
+        extractionMethod: row.extractionMethod,
       };
     });
   }

@@ -114,8 +114,23 @@ const langHrefs: Record<AuthLocale, string> = {
             </div>
 
             <div class="auth-row-between">
+              {/* Checked by default -- matches the common e-commerce pattern
+                  (Baymard Institute recommends persisting sign-in by
+                  default, at least 14 days; Adobe Commerce/Magento exposes
+                  this exact default as a store-owner setting, defaulting
+                  most installs to checked) rather than requiring every
+                  customer to opt in just to avoid being logged out the
+                  moment they close the tab. Unchecking still works exactly
+                  as before -- see the client script below and
+                  customer-auth.ts's emailAndPassword.rememberMe handling
+                  -- this only flips which state is the default. */}
               <label class="auth-checkbox-row auth-checkbox-row--inline">
-                <input type="checkbox" id="remember-me" name="rememberMe" />
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  name="rememberMe"
+                  checked
+                />
                 {t.login.rememberMe}
               </label>
               <a class="auth-forgot-link" href={forgotPasswordHref}>{t.login.forgotPasswordLink}</a>

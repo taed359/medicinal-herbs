@@ -113,10 +113,17 @@ for (let n = 1; n <= page.lastPage; n += 1) {
 
 {page.total > 0 && (
   <div class="pager-toolbar">
-    <p class="pager-amount">{itemsRangeText}</p>
+    {/* `data-items-range-template` carries the raw, un-substituted
+        label (still with its "{start}"/"{end}"/"{total}" tokens) so
+        ProductFilterScript.astro's coordinator can recompute this text
+        against the currently VISIBLE (filtered) card count -- this
+        static line would otherwise keep showing the unfiltered total
+        forever, since nothing here re-renders when a client-side filter
+        runs. See that component's own doc comment. */}
+    <p class="pager-amount" data-pager-amount data-items-range-template={itemsRangeLabel} role="status" aria-live="polite">{itemsRangeText}</p>
 
     {page.lastPage > 1 && (
-      <nav class="pager" aria-label="Pagination">
+      <nav class="pager" aria-label="Pagination" data-pager>
         {prevHref ? (
           <a class="pager-arrow" href={prevHref} aria-label={prevLabel}>
             <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
@@ -313,3 +320,43 @@ for (let n = 1; n <= page.lastPage; n += 1) {
     }
   }
 </style>
+
+<script>
+  // Preserve any active ExtractionMethodFilter/PriceRangeFilter selection
+  // (see ProductFilterScript.astro) across a page-number/prev/next click --
+  // same fix and same reasoning as ProductToolbar.astro's Sort/direction
+  // links, which this component's own doc comment already points to as
+  // sharing the exact "plain static <a>, no query string of its own"
+  // shape. Currently a no-op in practice: every listing page's pageSize
+  // is bumped to cover a category's full catalog today, so `page.lastPage`
+  // is always 1 and this <nav> never renders (see [...page].astro's own
+  // pageSize comment) -- kept so a future catalog big enough to need real
+  // pagination again doesn't silently reintroduce this same bug.
+  //
+  // Re-init pattern matches ProductToolbar.astro exactly, for the same
+  // reason: Layout.astro's <ClientRouter /> intercepts these as SOFT
+  // navigations, and a browser never re-runs a <script type="module">
+  // whose content it has already executed, so re-wiring on
+  // `astro:page-load` is required to keep working after the first page.
+  function initPagerLinks(): void {
+    const currentSearch = window.location.search;
+    if (!currentSearch) return;
+
+    document.querySelectorAll<HTMLElement>('[data-pager]').forEach((nav) => {
+      if (nav.dataset.wired === 'true') return;
+      nav.dataset.wired = 'true';
+
+      nav.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+        const href = link.getAttribute('href');
+        if (href) link.setAttribute('href', href + currentSearch);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPagerLinks);
+  } else {
+    initPagerLinks();
+  }
+  document.addEventListener('astro:page-load', initPagerLinks);
+</script>

@@ -1,0 +1,141 @@
+---
+// Category switcher/filter sidebar for the product listing pages
+// (src/pages/{lang}/products/{category}/[...page].astro). Modeled on a
+// Hyva/Magento layered-navigation "Category" filter block -- a list of
+// categories, each with a product count badge, e.g.:
+//
+//   <dl class="card"><dt>Category</dt>
+//     <dd><ol><li><a aria-label="Jackets filter, 12 available products">
+//       <span>Jackets</span><span class="county">(12)</span>
+//     </a></li>...</ol></dd>
+//   </dl>
+//
+// Adapted rather than ported verbatim: this catalog's categories are a
+// flat list (natural-oils, wholesale -- see categories.parentId in
+// schema.ts, unused today), not a parent/child hierarchy to narrow down
+// within, so this reads as a plain category switcher ("browse this
+// other category") rather than an additive filter -- the current
+// category renders as a non-link, aria-current label instead of a link
+// back to the page already being viewed.
+import type { Locale } from '../i18n/utils';
+import { getTranslations, localePath } from '../i18n/utils';
+import type { CategoryWithCountView } from '../domain/types';
+
+interface Props {
+  lang: Locale;
+  categories: CategoryWithCountView[];
+  activeCategoryId: string;
+}
+const { lang, categories, activeCategoryId } = Astro.props;
+const t = getTranslations(lang);
+---
+<details class="cat-filter group" open>
+  <summary class="cat-filter-heading eyebrow m-0">
+    {t.categoryFilter.heading}
+    <span class="p-1 rounded-lg border border-gray-300">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </span>
+  </summary>
+  <ul class="cat-filter-list m-0 mt-3 p-0 list-none" role="list">
+    {categories.map((cat) => {
+      const isActive = cat.id === activeCategoryId;
+      const label = t.categoryFilter.itemAriaLabel
+        .replace('{name}', cat.name)
+        .replace('{count}', String(cat.productCount));
+      return (
+        <li class="cat-filter-item">
+          {isActive ? (
+            <span class="cat-filter-link cat-filter-link--active" aria-current="page" aria-label={label}>
+              <span>{cat.name}</span>
+              <span class="cat-filter-count" aria-hidden="true">({cat.productCount})</span>
+            </span>
+          ) : (
+            <a href={localePath(lang, `products/${cat.slug}`)} data-astro-reload aria-label={label} class="cat-filter-link">
+              <span>{cat.name}</span>
+              <span class="cat-filter-count" aria-hidden="true">({cat.productCount})</span>
+            </a>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+</details>
+
+<style>
+  .cat-filter {
+    /* Standalone card, not container-page -- the listing pages place
+       this inside their own grid column (see [...page].astro), so it
+       only needs to fill that column, never the full page width. */
+    background: var(--color-paper-2);
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2));
+    border-radius: var(--radius-editorial);
+    padding: 1.25rem 1.375rem;
+  }
+
+  /* `<summary>` -- collapse/expand toggle, matching the user-provided
+     Hyva/Magento-style chevron pattern (`.group` + `group-open:` on a
+     native `<details>`, no JS needed). Browsers give `<summary>` its own
+     default disclosure marker (a triangle, or on WebKit a
+     `::-webkit-details-marker`) -- suppressed below since this custom
+     chevron span replaces it. */
+  /* No border-bottom/padding-bottom here (there was one before this
+     summary grew a boxed chevron) -- kept, the divider line sat right
+     under the new chevron box and read as visual clutter, and made this
+     header inconsistent with ExtractionMethodFilter's/PriceRangeFilter's
+     borderless ones now that all three share the same boxed-chevron
+     summary style. `.cat-filter-list`'s own `mt-3` still gives the list
+     breathing room below without a divider. */
+  .cat-filter-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--color-amber);
+    text-transform: uppercase;
+    cursor: pointer;
+    list-style: none;
+  }
+  .cat-filter-heading::-webkit-details-marker { display: none; }
+  html[lang="zh"] .cat-filter-heading { letter-spacing: 0; }
+
+  .cat-filter-item + .cat-filter-item {
+    border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2));
+  }
+
+  .cat-filter-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.625rem;
+    color: var(--color-body);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  a.cat-filter-link:hover,
+  a.cat-filter-link:focus-visible {
+    color: var(--color-pine-dark);
+  }
+  a.cat-filter-link:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  .cat-filter-link--active {
+    color: var(--color-pine-dark);
+    font-weight: 600;
+  }
+
+  .cat-filter-count {
+    flex-shrink: 0;
+    color: var(--color-amber-decorative);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

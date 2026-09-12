@@ -1,0 +1,27 @@
+---
+import HealthReadDetailPage from '../../../components/HealthReadDetailPage.astro';
+import { SLUG_TO_KEY, type HRKey } from '../../../lib/health-reads-slugs';
+
+import imgChild from '../../../assets/images/health-reads/childrens-health.svg';
+import imgChronic from '../../../assets/images/health-reads/chronic-illness.svg';
+import imgWomen from '../../../assets/images/health-reads/women-health.svg';
+import imgTcm from '../../../assets/images/health-reads/tcm-basics.svg';
+
+const lang = 'zh' as const;
+
+export async function getStaticPaths() {
+  return Object.keys(SLUG_TO_KEY).map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const articleKey = SLUG_TO_KEY[slug!];
+if (!articleKey) throw new Error('Not found');
+
+const images: Record<HRKey, typeof imgChild> = {
+  childrensHealth: imgChild,
+  chronicIllness: imgChronic,
+  womensHealth: imgWomen,
+  tcmBasics: imgTcm,
+};
+---
+<HealthReadDetailPage lang={lang} articleKey={articleKey} images={images} />

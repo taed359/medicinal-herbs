@@ -237,11 +237,18 @@ export interface TranslationSchema {
     ctaViewAll: string;
     basePath: string; // e.g., "blogs"
     items: {
-      childrensHealth: { title: string; description: string; slug: string };
-      chronicIllness: { title: string; description: string; slug: string };
-      womensHealth: { title: string; description: string; slug: string };
-      tcmBasics: { title: string; description: string; slug: string };
+      childrensHealth: { title: string; description: string; slug: string; bodyHtml: string };
+      chronicIllness: { title: string; description: string; slug: string; bodyHtml: string };
+      womensHealth: { title: string; description: string; slug: string; bodyHtml: string };
+      tcmBasics: { title: string; description: string; slug: string; bodyHtml: string };
     };
+    // Shown on each article detail page (HealthReadDetailPage.astro) as a
+    // link back to the homepage section, and as the label for the "other
+    // articles" list at the bottom of every article -- reuses `heading`
+    // above for the page's own <h1>-adjacent eyebrow rather than adding a
+    // near-duplicate string.
+    backToList: string;
+    otherArticlesHeading: string;
   };
   expertCta: {
     eyebrow: string;
@@ -257,6 +264,64 @@ export interface TranslationSchema {
     collectionPath: string; // e.g., "products/natural-oils"
     prev: string;
     next: string;
+  };
+  // Category switcher/filter sidebar shown on product listing pages (see
+  // CategoryFilterList.astro) -- modeled on a Hyva/Magento layered-
+  // navigation "Category" filter block (a list of categories with
+  // product counts), adapted for this catalog's flat category list
+  // (natural-oils, wholesale) rather than a parent/child hierarchy.
+  categoryFilter: {
+    heading: string;
+    // "{name}" and "{count}" tokens -- accessible name for each category
+    // link, read out in full by screen readers even though the visible
+    // text is split across two <span>s (name + a "(count)" badge).
+    itemAriaLabel: string;
+  };
+  // Real-attribute filter shown below CategoryFilterList on the same
+  // sidebar -- modeled on the same Hyva/Magento layered-navigation
+  // reference, but scoped to the one product attribute that actually
+  // varies meaningfully across this catalog today (confirmed against the
+  // real seed data, not assumed): extractionMethod. countryOfOriginCode
+  // and manufacturerName are both hard-coded constants across every
+  // seeded product ('VN' / 'ABC Company'), so a filter on either would
+  // always match 100% of products -- not implemented for that reason.
+  // Pure client-side show/hide over the cards already in the DOM (see
+  // ExtractionMethodFilter.astro's own doc comment for why that only
+  // works because the listing pages now render a category's full
+  // catalog on one static page).
+  extractionFilter: {
+    heading: string;
+    // Fixed 4-value enum from the schema (see
+    // ProductDetailView.extractionMethod) -- one label per value rather
+    // than a lookup map keyed by the raw DB string, so a typo in the DB
+    // value degrades to "no label" instead of a wrong translation.
+    methodColdPressed: string;
+    methodExpellerPressed: string;
+    methodRefined: string;
+    methodVirginUnrefined: string;
+    // "{name}" and "{count}" tokens, same convention as
+    // categoryFilter.itemAriaLabel above.
+    itemAriaLabel: string;
+    resetLabel: string;
+    // Shown in place of the grid when every card is hidden by the
+    // current filter selection.
+    emptyState: string;
+  };
+  // Price-range filter -- Natural Oils only (see PriceRangeFilter.astro's
+  // own doc comment): Wholesale is deliberately "price on request" on
+  // every product (priceMinor is always null there -- same reason its
+  // own [...page].astro never generates a Price SORT option either), so
+  // a price FILTER there would have nothing real to filter on. Single-
+  // select (radio), unlike extractionFilter's checkboxes, matching a
+  // typical Magento/Hyva "Price" layered-navigation block where the
+  // ranges are mutually exclusive.
+  priceFilter: {
+    heading: string;
+    rangeUnder: string; // "{max}" token, already currency-formatted
+    rangeBetween: string; // "{min}" and "{max}" tokens
+    rangeOver: string; // "{min}" token
+    itemAriaLabel: string; // "{name}" and "{count}" tokens
+    resetLabel: string;
   };
   account: {
     metaTitle: string;
