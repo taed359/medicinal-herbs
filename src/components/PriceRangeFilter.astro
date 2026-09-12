@@ -29,6 +29,13 @@ import { getTranslations } from '../i18n/utils';
  * together and applies the combined (AND) result to the grid -- see
  * that component's own doc comment for why the logic has to live in one
  * shared place rather than in each filter component separately.
+ *
+ * The `(N)` count next to each bucket and each radio's own `aria-label`
+ * both START as the true catalog-wide count computed below, but are
+ * then kept LIVE by ProductFilterScript.astro's dynamic facet counts --
+ * see ExtractionMethodFilter's own doc comment for the identical
+ * mechanism (this component's `data-name` + this root's
+ * `data-item-aria-template` are read the exact same way).
  */
 interface Props {
   lang: Locale;
@@ -89,10 +96,10 @@ const buckets = [
 const options = buckets.filter((b) => b.count > 0);
 ---
 {options.length > 0 && (
-  <details class="price-filter group" data-price-filter open>
+  <details class="price-filter group" data-price-filter data-item-aria-template={t.priceFilter.itemAriaLabel} open>
     <summary class="price-filter-heading eyebrow">
       {t.priceFilter.heading}
-      <span class="p-1 rounded-lg border border-gray-300">
+      <span class="p-1 rounded-lg border price-filter-chevron">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
       </span>
     </summary>
@@ -109,6 +116,7 @@ const options = buckets.filter((b) => b.count > 0);
                 value={opt.value}
                 data-min={opt.min ?? ''}
                 data-max={opt.max ?? ''}
+                data-name={opt.label}
                 aria-label={label}
               />
               <span>{opt.label}</span>
@@ -125,11 +133,23 @@ const options = buckets.filter((b) => b.count > 0);
   .price-filter { margin: 0; margin-top: 1.25rem; padding: 1.25rem 1.375rem; border: 0; background: var(--color-paper-2); border-radius: var(--radius-editorial); border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
   .price-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-amber); text-transform: uppercase; cursor: pointer; list-style: none; }
   .price-filter-heading::-webkit-details-marker { display: none; }
+  /* Border color matches this same card's own outer border (the
+     `.price-filter` rule above) -- a faint color-mix tint, not
+     `.no-toolbar-view-btn`'s solid `--color-border` (tried first, but
+     read as too strong/defined next to this card's own soft edge) and
+     not the generic Tailwind `border-gray-300` it replaced before that
+     (a cool gray clashing against this site's warm cream/amber
+     palette either way). */
+  .price-filter-chevron { border-color: color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
   html[lang="zh"] .price-filter-heading { letter-spacing: 0; }
   .price-filter-item + .price-filter-item { border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2)); }
   .price-filter-label { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.625rem; color: var(--color-body); font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
   .price-filter-radio { flex-shrink: 0; width: 1rem; height: 1rem; accent-color: var(--color-pine-dark); }
   .price-filter-count { margin-left: auto; flex-shrink: 0; color: var(--color-amber-decorative); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  /* Dimmed, not hidden/disabled, when ProductFilterScript.astro's
+     dynamic recount finds 0 matches for this bucket under the other
+     active filters -- see ExtractionMethodFilter's identical rule. */
+  .price-filter-item.is-zero-match .price-filter-label { opacity: 0.45; }
   .price-filter-reset { margin-top: 0.875rem; padding: 0; border: 0; background: none; color: var(--color-pine-dark); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   .price-filter-reset:hover, .price-filter-reset:focus-visible { color: var(--color-amber); }
 </style>

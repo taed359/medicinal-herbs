@@ -1,0 +1,128 @@
+---
+import type { Locale } from '../i18n/utils';
+import { getTranslations } from '../i18n/utils';
+
+/**
+ * Volume/size filter for the product listing sidebar -- Natural Oils
+ * only. Wholesale's own [...page].astro never renders this: every
+ * Wholesale product's netQuantityValue is the same constant ('20' l
+ * drums, see seed-wholesale-products.ts's DRUM_LITERS), the same "field
+ * exists but never varies" situation countryOfOriginCode/manufacturerName
+ * were already rejected for when ExtractionMethodFilter was designed --
+ * see extractionFilter's own doc comment in i18n/utils.ts.
+ *
+ * Reflects each product's DEFAULT variant size only (e.g. "100 ml"), NOT
+ * every size that product is actually sold in -- see
+ * ProductSummaryView.netQuantityValue's own doc comment: every Natural
+ * Oils product also has a smaller and a larger non-default sibling
+ * variant (seed-natural-oils-variant-sizes.ts), selectable only on the
+ * product detail page and invisible to this listing-level filter. Same
+ * simplification PriceRangeFilter.astro already makes for `priceMinor`.
+ *
+ * Checkbox (OR-within), like ExtractionMethodFilter, not
+ * PriceRangeFilter's radio -- "show me either 30ml or 100ml" is a normal
+ * multi-select size-filter request (matches a real Magento/Shopify
+ * "Size" swatch filter), and nothing here requires the mutually-exclusive
+ * ranges a radio implies.
+ *
+ * THIS COMPONENT IS MARKUP-ONLY, same posture as ExtractionMethodFilter/
+ * PriceRangeFilter -- the actual filtering logic lives in
+ * ProductFilterScript.astro, which reads this component's checkboxes
+ * alongside the other filter roots and applies their COMBINED (AND)
+ * result to the grid in one pass.
+ *
+ * State is reflected in the URL's `?volume=` query param (comma-separated
+ * "value:unit" pairs, e.g. "30:ml,100:ml") via `history.replaceState` --
+ * same convention as `?extraction=`/`?price=`.
+ *
+ * The `(N)` count next to each option and each checkbox's own
+ * `aria-label` both START as the true catalog-wide count computed below,
+ * but are then kept LIVE by ProductFilterScript.astro's dynamic facet
+ * counts -- see ExtractionMethodFilter's own doc comment for the
+ * identical mechanism (this component's `data-name` + this root's
+ * `data-item-aria-template` are read the exact same way).
+ */
+interface Props {
+  lang: Locale;
+  /** Every product's default-variant [netQuantityValue, netQuantityUnit]
+   *  on the current page, in display order -- used only to compute which
+   *  (value, unit) pairs actually occur and their counts. A pair with 0
+   *  products in this category is not rendered as an option, same
+   *  "don't show empty filter options" posture as ExtractionMethodFilter. */
+  volumes: Array<{ value: string | null; unit: string | null }>;
+}
+const { lang, volumes } = Astro.props;
+const t = getTranslations(lang);
+
+const counts = new Map<string, { value: string; unit: string; count: number }>();
+for (const v of volumes) {
+  if (!v.value || !v.unit) continue;
+  const key = `${v.value}:${v.unit}`;
+  const existing = counts.get(key);
+  if (existing) existing.count += 1;
+  else counts.set(key, { value: v.value, unit: v.unit, count: 1 });
+}
+
+// Smallest volume first (numeric, not lexicographic -- "30" must sort
+// before "100").
+const options = Array.from(counts.entries())
+  .map(([key, entry]) => ({ key, ...entry, label: `${entry.value} ${entry.unit}` }))
+  .sort((a, b) => Number(a.value) - Number(b.value));
+---
+{options.length > 0 && (
+  <details class="vol-filter group" data-volume-filter data-item-aria-template={t.volumeFilter.itemAriaLabel} open>
+    <summary class="vol-filter-heading eyebrow">
+      {t.volumeFilter.heading}
+      <span class="p-1 rounded-lg border vol-filter-chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </span>
+    </summary>
+    <ul class="vol-filter-list m-0 mt-3 p-0 list-none" role="list">
+      {options.map((opt) => {
+        const label = t.volumeFilter.itemAriaLabel.replace('{name}', opt.label).replace('{count}', String(opt.count));
+        return (
+          <li class="vol-filter-item">
+            <label class="vol-filter-label">
+              <input
+                type="checkbox"
+                class="vol-filter-checkbox"
+                value={opt.key}
+                data-value={opt.value}
+                data-unit={opt.unit}
+                data-name={opt.label}
+                aria-label={label}
+              />
+              <span>{opt.label}</span>
+              <span class="vol-filter-count" aria-hidden="true">({opt.count})</span>
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+    <button type="button" class="vol-filter-reset" data-volume-reset>{t.volumeFilter.resetLabel}</button>
+  </details>
+)}
+<style>
+  .vol-filter { margin: 0; margin-top: 1.25rem; padding: 1.25rem 1.375rem; border: 0; background: var(--color-paper-2); border-radius: var(--radius-editorial); border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
+  .vol-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-amber); text-transform: uppercase; cursor: pointer; list-style: none; }
+  .vol-filter-heading::-webkit-details-marker { display: none; }
+  /* Border color matches this same card's own outer border (the
+     `.vol-filter` rule above) -- a faint color-mix tint, not
+     `.no-toolbar-view-btn`'s solid `--color-border` (tried first, but
+     read as too strong/defined next to this card's own soft edge) and
+     not the generic Tailwind `border-gray-300` it replaced before that
+     (a cool gray clashing against this site's warm cream/amber
+     palette either way). */
+  .vol-filter-chevron { border-color: color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
+  html[lang="zh"] .vol-filter-heading { letter-spacing: 0; }
+  .vol-filter-item + .vol-filter-item { border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2)); }
+  .vol-filter-label { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.625rem; color: var(--color-body); font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
+  .vol-filter-checkbox { flex-shrink: 0; width: 1rem; height: 1rem; accent-color: var(--color-pine-dark); }
+  .vol-filter-count { margin-left: auto; flex-shrink: 0; color: var(--color-amber-decorative); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  /* Dimmed, not hidden/disabled, when ProductFilterScript.astro's
+     dynamic recount finds 0 matches for this size under the other
+     active filters -- see ExtractionMethodFilter's identical rule. */
+  .vol-filter-item.is-zero-match .vol-filter-label { opacity: 0.45; }
+  .vol-filter-reset { margin-top: 0.875rem; padding: 0; border: 0; background: none; color: var(--color-pine-dark); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .vol-filter-reset:hover, .vol-filter-reset:focus-visible { color: var(--color-amber); }
+</style>

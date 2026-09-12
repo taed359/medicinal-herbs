@@ -35,6 +35,19 @@ import { getTranslations } from '../i18n/utils';
  * separated method values) via `history.replaceState`, so a filtered
  * view is shareable/bookmarkable and survives a reload, but never
  * triggers a navigation or a new static page.
+ *
+ * The `(N)` count next to each option and each checkbox's own
+ * `aria-label` both START as the true catalog-wide count computed below,
+ * but are then kept LIVE by ProductFilterScript.astro's dynamic facet
+ * counts: whenever any filter (in this dimension or another) changes,
+ * that script recomputes each option's count against the OTHER active
+ * dimensions (price/volume) -- same "OR within a dimension, AND across
+ * dimensions" convention every other part of this filter set already
+ * follows -- and rewrites both the visible `.ext-filter-count` text and
+ * the checkbox's `aria-label` (via `data-name` + this root's
+ * `data-item-aria-template`, since the script has no access to this
+ * component's own translated template string otherwise). See that
+ * script's own doc comment for the full mechanism.
  */
 interface Props {
   lang: Locale;
@@ -68,10 +81,10 @@ const options = METHOD_ORDER.filter((m) => counts.has(m)).map((value) => ({
 }));
 ---
 {options.length > 0 && (
-  <details class="ext-filter group" data-extraction-filter open>
+  <details class="ext-filter group" data-extraction-filter data-item-aria-template={t.extractionFilter.itemAriaLabel} open>
     <summary class="ext-filter-heading eyebrow">
       {t.extractionFilter.heading}
-      <span class="p-1 rounded-lg border border-gray-300">
+      <span class="p-1 rounded-lg border ext-filter-chevron">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
       </span>
     </summary>
@@ -83,7 +96,7 @@ const options = METHOD_ORDER.filter((m) => counts.has(m)).map((value) => ({
         return (
           <li class="ext-filter-item">
             <label class="ext-filter-label">
-              <input type="checkbox" class="ext-filter-checkbox" value={opt.value} aria-label={label} />
+              <input type="checkbox" class="ext-filter-checkbox" value={opt.value} data-name={opt.label} aria-label={label} />
               <span>{opt.label}</span>
               <span class="ext-filter-count" aria-hidden="true">({opt.count})</span>
             </label>
@@ -98,11 +111,24 @@ const options = METHOD_ORDER.filter((m) => counts.has(m)).map((value) => ({
   .ext-filter { margin: 0; margin-top: 1.25rem; padding: 1.25rem 1.375rem; border: 0; background: var(--color-paper-2); border-radius: var(--radius-editorial); border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
   .ext-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-amber); text-transform: uppercase; cursor: pointer; list-style: none; }
   .ext-filter-heading::-webkit-details-marker { display: none; }
+  /* Border color matches this same card's own outer border (the
+     `.ext-filter` rule above) -- a faint color-mix tint, not
+     `.no-toolbar-view-btn`'s solid `--color-border` (tried first, but
+     read as too strong/defined next to this card's own soft edge) and
+     not the generic Tailwind `border-gray-300` it replaced before that
+     (a cool gray clashing against this site's warm cream/amber
+     palette either way). */
+  .ext-filter-chevron { border-color: color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
   html[lang="zh"] .ext-filter-heading { letter-spacing: 0; }
   .ext-filter-item + .ext-filter-item { border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2)); }
   .ext-filter-label { display: flex; align-items: center; gap: 0.5rem; padding-block: 0.625rem; color: var(--color-body); font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
   .ext-filter-checkbox { flex-shrink: 0; width: 1rem; height: 1rem; accent-color: var(--color-pine-dark); }
   .ext-filter-count { margin-left: auto; flex-shrink: 0; color: var(--color-amber-decorative); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  /* Dimmed, not hidden/disabled, when ProductFilterScript.astro's
+     dynamic recount finds 0 matches for this option under the other
+     active filters -- still selectable (e.g. to combine with loosening
+     another filter), just visually deprioritized. */
+  .ext-filter-item.is-zero-match .ext-filter-label { opacity: 0.45; }
   .ext-filter-reset { margin-top: 0.875rem; padding: 0; border: 0; background: none; color: var(--color-pine-dark); font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   .ext-filter-reset:hover, .ext-filter-reset:focus-visible { color: var(--color-amber); }
 </style>

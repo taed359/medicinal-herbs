@@ -8,6 +8,7 @@ import ProductToolbar from '../../../../components/ProductToolbar.astro';
 import CategoryFilterList from '../../../../components/CategoryFilterList.astro';
 import ExtractionMethodFilter from '../../../../components/ExtractionMethodFilter.astro';
 import PriceRangeFilter from '../../../../components/PriceRangeFilter.astro';
+import VolumeFilter from '../../../../components/VolumeFilter.astro';
 import ProductFilterScript from '../../../../components/ProductFilterScript.astro';
 import { productRepository, categoryRepository } from '../../../../server/repositories';
 import { sortProductSummaries, sortRouteSlug, type SortDir, type SortKey } from '../../../../lib/product-sort';
@@ -164,6 +165,7 @@ const products = page.data.map((p) => ({
           <CategoryFilterList lang={lang} categories={categoriesWithCounts} activeCategoryId="natural-oils" />
           <ExtractionMethodFilter lang={lang} extractionMethods={products.map((p) => p.extractionMethod)} />
           <PriceRangeFilter lang={lang} prices={products.map((p) => p.priceMinor)} currency={products[0]?.currency ?? 'VND'} />
+          <VolumeFilter lang={lang} volumes={products.map((p) => ({ value: p.netQuantityValue, unit: p.netQuantityUnit }))} />
         </div>
 
         <div class="pl-content">
@@ -195,7 +197,7 @@ const products = page.data.map((p) => ({
             const image = p.primaryImage?.url ?? naturalOilsPlaceholderImage.src;
             const alt = p.primaryImage?.alt || p.name;
             return (
-              <li class="no-slide h-full" data-extraction-method={p.extractionMethod ?? ''} data-price-minor={p.priceMinor ?? ''}>
+              <li class="no-slide h-full" data-extraction-method={p.extractionMethod ?? ''} data-price-minor={p.priceMinor ?? ''} data-volume={p.netQuantityValue && p.netQuantityUnit ? `${p.netQuantityValue}:${p.netQuantityUnit}` : ''}>
                 <HerbProductCard
                   lang={lang}
                   name={p.name}

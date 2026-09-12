@@ -341,6 +341,11 @@ export const vi: TranslationSchema = {
     itemAriaLabel: '{name}, {count} sản phẩm',
     resetLabel: 'Xóa lọc',
   },
+  volumeFilter: {
+    heading: 'Dung tích',
+    itemAriaLabel: '{name}, {count} sản phẩm',
+    resetLabel: 'Xóa lọc',
+  },
   account: {
     metaTitle: 'Tài khoản của tôi',
     welcomeHeading: 'Xin chào, {name}',

@@ -32,7 +32,7 @@ const t = getTranslations(lang);
 <details class="cat-filter group" open>
   <summary class="cat-filter-heading eyebrow m-0">
     {t.categoryFilter.heading}
-    <span class="p-1 rounded-lg border border-gray-300">
+    <span class="p-1 rounded-lg border cat-filter-chevron">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" class="transition-transform group-open:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
     </span>
   </summary>
@@ -99,6 +99,14 @@ const t = getTranslations(lang);
     list-style: none;
   }
   .cat-filter-heading::-webkit-details-marker { display: none; }
+  /* Border color matches this same card's own outer border (the
+     `.cat-filter` rule above) -- a faint color-mix tint, not
+     `.no-toolbar-view-btn`'s solid `--color-border` (tried first, but
+     read as too strong/defined next to this card's own soft edge) and
+     not the generic Tailwind `border-gray-300` it replaced before that
+     (a cool gray clashing against this site's warm cream/amber
+     palette either way). */
+  .cat-filter-chevron { border-color: color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2)); }
   html[lang="zh"] .cat-filter-heading { letter-spacing: 0; }
 
   .cat-filter-item + .cat-filter-item {

@@ -2,21 +2,23 @@
 /**
  * The single script that actually applies this listing page's product
  * filters -- render this ONCE per listing page, alongside whichever of
- * ExtractionMethodFilter.astro / PriceRangeFilter.astro that page uses
- * (Natural Oils uses both; Wholesale uses only the extraction one, since
- * it has no real price data -- see PriceRangeFilter's own doc comment).
- * Renders no markup of its own.
+ * ExtractionMethodFilter.astro / PriceRangeFilter.astro / VolumeFilter.astro
+ * that page uses (Natural Oils uses all three; Wholesale uses only the
+ * extraction one, since it has no real price or volume data -- see
+ * PriceRangeFilter's and VolumeFilter's own doc comments). Renders no
+ * markup of its own.
  *
  * Combines every present filter dimension with AND (a card must match
  * the checked extraction methods, if any are checked, AND fall in the
- * selected price range, if one is selected) and applies the result to
- * the grid in one pass. Deliberately centralized here rather than each
- * filter component running its own independent script: two scripts each
- * unconditionally setting `li.hidden` from only their own dimension
- * would race and overwrite each other's result on the same `<li>` --
- * e.g. picking a price range would silently un-hide a card the
- * extraction-method filter had just hidden. See ExtractionMethodFilter's
- * own doc comment for the same note from that side.
+ * selected price range, if one is selected, AND match one of the checked
+ * volumes, if any are checked) and applies the result to the grid in one
+ * pass. Deliberately centralized here rather than each filter component
+ * running its own independent script: two scripts each unconditionally
+ * setting `li.hidden` from only their own dimension would race and
+ * overwrite each other's result on the same `<li>` -- e.g. picking a
+ * price range would silently un-hide a card the extraction-method filter
+ * had just hidden. See ExtractionMethodFilter's own doc comment for the
+ * same note from that side.
  *
  * Also keeps two other pieces of on-page state honest whenever the
  * filter selection changes:
@@ -24,7 +26,7 @@
  *    build-time text and would keep showing the unfiltered total
  *    forever (reported directly: filtering to "Tinh luyện" showed 4
  *    cards but the count still said the full unfiltered total).
- *  - the URL's `?extraction=`/`?price=` query params, via
+ *  - the URL's `?extraction=`/`?price=`/`?volume=` query params, via
  *    `history.replaceState`, so a filtered view is shareable/
  *    bookmarkable and survives a reload without ever triggering a
  *    navigation or a new static page (this listing is still fully
@@ -37,6 +39,13 @@
  * or the "no products match" message -- neither would otherwise be
  * announced, since toggling `hidden`/`textContent` on an already-visited
  * element is silent by default.
+ *
+ * Also runs `updateFacetCounts` after every filter change: rewrites each
+ * OTHER dimension's option counts/aria-labels against the current
+ * selection ("dynamic"/"smart" facet counts, matching Amazon/Shopify/
+ * Algolia-style layered navigation) -- see that function's own doc
+ * comment for the exact rule and why 0-match options are dimmed, not
+ * hidden or disabled.
  */
 ---
 <script>
@@ -46,6 +55,7 @@
 
     const extractionRoot = document.querySelector<HTMLElement>('[data-extraction-filter]');
     const priceRoot = document.querySelector<HTMLElement>('[data-price-filter]');
+    const volumeRoot = document.querySelector<HTMLElement>('[data-volume-filter]');
     const emptyState = document.querySelector<HTMLElement>('[data-pl-empty-state]');
     const pagerAmount = document.querySelector<HTMLElement>('[data-pager-amount]');
     const pagerTemplate = pagerAmount?.getAttribute('data-items-range-template') ?? null;
@@ -56,40 +66,79 @@
     const priceRadios = priceRoot
       ? Array.from(priceRoot.querySelectorAll<HTMLInputElement>('input[type="radio"]'))
       : [];
+    const volumeCheckboxes = volumeRoot
+      ? Array.from(volumeRoot.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+      : [];
+
+    // Each filter root's own translated "{name}, {count} sản phẩm"-style
+    // template (see each component's `data-item-aria-template`) -- read
+    // once here since `updateFacetCounts` below needs it to rewrite each
+    // option's `aria-label` after a dynamic recount, and this script has
+    // no other access to that component's translated strings.
+    const extractionTemplate = extractionRoot?.getAttribute('data-item-aria-template') ?? null;
+    const priceTemplate = priceRoot?.getAttribute('data-item-aria-template') ?? null;
+    const volumeTemplate = volumeRoot?.getAttribute('data-item-aria-template') ?? null;
+
+    function matchesMethod(method: string, methods: string[]): boolean {
+      return methods.length === 0 || methods.includes(method);
+    }
+    // Lower bound inclusive, upper bound exclusive -- matches
+    // PriceRangeFilter.astro's own bucket-count comparison exactly, so
+    // what a bucket's rendered count promises is what selecting it
+    // actually shows. Also doubles as "does this price fall in THIS
+    // SPECIFIC bucket" when `radio` isn't necessarily the currently
+    // selected one -- see updateFacetCounts's price loop below.
+    function matchesPrice(price: number | null, radio: HTMLInputElement | undefined): boolean {
+      if (!radio) return true;
+      const min = radio.dataset.min ? Number(radio.dataset.min) : null;
+      const max = radio.dataset.max ? Number(radio.dataset.max) : null;
+      return price !== null && (min === null || price >= min) && (max === null || price < max);
+    }
+    function matchesVolume(volume: string, volumes: string[]): boolean {
+      return volumes.length === 0 || volumes.includes(volume);
+    }
+
+    interface ProductEntry {
+      item: HTMLElement;
+      method: string;
+      price: number | null;
+      volume: string;
+    }
 
     function applyFilters(): void {
       const checkedMethods = extractionCheckboxes.filter((cb) => cb.checked).map((cb) => cb.value);
       const selectedPrice = priceRadios.find((r) => r.checked);
-      const priceMin = selectedPrice?.dataset.min ? Number(selectedPrice.dataset.min) : null;
-      const priceMax = selectedPrice?.dataset.max ? Number(selectedPrice.dataset.max) : null;
+      const checkedVolumes = volumeCheckboxes.filter((cb) => cb.checked).map((cb) => cb.value);
 
       // Every card in the grid, regardless of which filters it has data
-      // for -- Wholesale cards never carry `data-price-minor` (no price
-      // filter rendered there), which is fine: `priceRoot` is null on
-      // that page, so `selectedPrice` is always undefined and the price
-      // check below short-circuits to "matches" for every card.
-      const items = Array.from(grid.querySelectorAll<HTMLElement>('[data-extraction-method]'));
+      // for -- Wholesale cards never carry `data-price-minor`/`data-volume`
+      // (no price/volume filter rendered there), which is fine: `priceRoot`/
+      // `volumeRoot` are null on that page, so `selectedPrice` is always
+      // undefined and `checkedVolumes` is always empty, and every match
+      // check above short-circuits to "matches" for every card.
+      const entries: ProductEntry[] = Array.from(grid.querySelectorAll<HTMLElement>('[data-extraction-method]')).map(
+        (item) => {
+          const priceAttr = item.getAttribute('data-price-minor');
+          return {
+            item,
+            method: item.getAttribute('data-extraction-method') ?? '',
+            price: priceAttr ? Number(priceAttr) : null,
+            volume: item.getAttribute('data-volume') ?? '',
+          };
+        }
+      );
+
       let visibleCount = 0;
-      for (const item of items) {
-        const method = item.getAttribute('data-extraction-method') ?? '';
-        const priceAttr = item.getAttribute('data-price-minor');
-        const price = priceAttr ? Number(priceAttr) : null;
-
-        const matchesMethod = checkedMethods.length === 0 || checkedMethods.includes(method);
-        // Lower bound inclusive, upper bound exclusive -- matches
-        // PriceRangeFilter.astro's own bucket-count comparison exactly,
-        // so what a bucket's rendered count promises is what selecting
-        // it actually shows.
-        const matchesPrice =
-          !selectedPrice ||
-          (price !== null && (priceMin === null || price >= priceMin) && (priceMax === null || price < priceMax));
-
-        const show = matchesMethod && matchesPrice;
-        item.hidden = !show;
+      for (const entry of entries) {
+        const show =
+          matchesMethod(entry.method, checkedMethods) &&
+          matchesPrice(entry.price, selectedPrice) &&
+          matchesVolume(entry.volume, checkedVolumes);
+        entry.item.hidden = !show;
         if (show) visibleCount += 1;
       }
 
-      if (emptyState) emptyState.hidden = visibleCount !== 0 || items.length === 0;
+      if (emptyState) emptyState.hidden = visibleCount !== 0 || entries.length === 0;
 
       if (pagerAmount && pagerTemplate) {
         pagerAmount.textContent = pagerTemplate
@@ -103,7 +152,66 @@
       else url.searchParams.delete('extraction');
       if (selectedPrice) url.searchParams.set('price', selectedPrice.value);
       else url.searchParams.delete('price');
+      if (checkedVolumes.length > 0) url.searchParams.set('volume', checkedVolumes.join(','));
+      else url.searchParams.delete('volume');
       history.replaceState(history.state, '', url);
+
+      updateFacetCounts(entries, checkedMethods, selectedPrice, checkedVolumes);
+    }
+
+    // Rewrites each filter option's own "(N)" badge and `aria-label` to
+    // reflect how many products would match if the OTHER dimensions'
+    // current selections stayed as they are -- i.e. this dimension's own
+    // selection is deliberately ignored when computing ITS OWN options'
+    // counts (so e.g. checking "Tinh luyện" doesn't make every other
+    // Extraction option's count collapse to 0 -- they still count
+    // against the full set, staying selectable to broaden the
+    // selection), while the other two dimensions' active filters DO
+    // apply. Standard "smart"/dynamic layered-navigation behavior
+    // (Amazon, Shopify Search & Discovery, Algolia, Elasticsearch-backed
+    // Magento) -- see the chat this was proposed in for the reasoning.
+    //
+    // A recount of 0 only dims the option (`is-zero-match`, see each
+    // component's own `<style>`), never hides or disables it -- the
+    // catalog value is still real and still worth combining with a
+    // broader selection elsewhere, and hiding/disabling would be a
+    // bigger, riskier behavior change than this feature asked for.
+    function updateFacetCounts(
+      entries: ProductEntry[],
+      checkedMethods: string[],
+      selectedPrice: HTMLInputElement | undefined,
+      checkedVolumes: string[]
+    ): void {
+      function updateOption(input: HTMLInputElement, countClass: string, template: string | null, count: number): void {
+        const label = input.closest('label');
+        const countEl = label?.querySelector<HTMLElement>(`.${countClass}`);
+        if (countEl) countEl.textContent = `(${count})`;
+        if (template) {
+          input.setAttribute('aria-label', template.replace('{name}', input.dataset.name ?? '').replace('{count}', String(count)));
+        }
+        input.closest('li')?.classList.toggle('is-zero-match', count === 0);
+      }
+
+      const forExtraction = entries.filter(
+        (e) => matchesPrice(e.price, selectedPrice) && matchesVolume(e.volume, checkedVolumes)
+      );
+      for (const cb of extractionCheckboxes) {
+        updateOption(cb, 'ext-filter-count', extractionTemplate, forExtraction.filter((e) => e.method === cb.value).length);
+      }
+
+      const forPrice = entries.filter(
+        (e) => matchesMethod(e.method, checkedMethods) && matchesVolume(e.volume, checkedVolumes)
+      );
+      for (const radio of priceRadios) {
+        updateOption(radio, 'price-filter-count', priceTemplate, forPrice.filter((e) => matchesPrice(e.price, radio)).length);
+      }
+
+      const forVolume = entries.filter(
+        (e) => matchesMethod(e.method, checkedMethods) && matchesPrice(e.price, selectedPrice)
+      );
+      for (const cb of volumeCheckboxes) {
+        updateOption(cb, 'vol-filter-count', volumeTemplate, forVolume.filter((e) => e.volume === cb.value).length);
+      }
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -120,12 +228,22 @@
       radio.addEventListener('change', applyFilters);
     }
 
+    const initialVolumes = (params.get('volume') ?? '').split(',').filter(Boolean);
+    for (const cb of volumeCheckboxes) {
+      cb.checked = initialVolumes.includes(cb.value);
+      cb.addEventListener('change', applyFilters);
+    }
+
     extractionRoot?.querySelector<HTMLButtonElement>('[data-extraction-reset]')?.addEventListener('click', () => {
       for (const cb of extractionCheckboxes) cb.checked = false;
       applyFilters();
     });
     priceRoot?.querySelector<HTMLButtonElement>('[data-price-reset]')?.addEventListener('click', () => {
       for (const radio of priceRadios) radio.checked = false;
+      applyFilters();
+    });
+    volumeRoot?.querySelector<HTMLButtonElement>('[data-volume-reset]')?.addEventListener('click', () => {
+      for (const cb of volumeCheckboxes) cb.checked = false;
       applyFilters();
     });
 

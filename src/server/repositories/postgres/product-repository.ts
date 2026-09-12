@@ -298,15 +298,28 @@ class PostgresProductRepository implements ProductRepository {
     const productIds = rows.map((r) => r.id);
     const imageMap = await fetchPrimaryImages(productIds, locale);
 
-    // Default-variant current price, per product, in one extra pass.
+    // Default-variant current price, per product, in one extra pass --
+    // netQuantityValue/netQuantityUnit added to this same select (no new
+    // query) power VolumeFilter.astro exactly the way `extractionMethod`
+    // above powers ExtractionMethodFilter.astro. See ProductSummaryView's
+    // own doc comment for why this is the DEFAULT variant's size only,
+    // not every size the product is sold in.
     const defaultVariantRows = productIds.length
       ? await db
-          .select({ productId: productVariants.productId, id: productVariants.id })
+          .select({
+            productId: productVariants.productId,
+            id: productVariants.id,
+            netQuantityValue: productVariants.netQuantityValue,
+            netQuantityUnit: productVariants.netQuantityUnit,
+          })
           .from(productVariants)
           .where(and(inArray(productVariants.productId, productIds), eq(productVariants.isDefault, true)))
       : [];
     const priceMap = await fetchCurrentPricing(defaultVariantRows.map((v) => v.id));
     const variantIdByProduct = new Map(defaultVariantRows.map((v) => [v.productId, v.id]));
+    const volumeByProduct = new Map(
+      defaultVariantRows.map((v) => [v.productId, { value: v.netQuantityValue, unit: v.netQuantityUnit }])
+    );
 
     return rows.map((row) => {
       const variantId = variantIdByProduct.get(row.id);
@@ -324,6 +337,8 @@ class PostgresProductRepository implements ProductRepository {
         currency: price?.currency ?? null,
         variantId: variantId ?? null,
         extractionMethod: row.extractionMethod,
+        netQuantityValue: volumeByProduct.get(row.id)?.value ?? null,
+        netQuantityUnit: volumeByProduct.get(row.id)?.unit ?? null,
       };
     });
   }

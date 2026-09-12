@@ -323,6 +323,22 @@ export interface TranslationSchema {
     itemAriaLabel: string; // "{name}" and "{count}" tokens
     resetLabel: string;
   };
+  // Volume/size filter -- Natural Oils only (see VolumeFilter.astro's own
+  // doc comment): Wholesale's netQuantityValue is a constant ('20' l
+  // drums for every product), same reason countryOfOriginCode/
+  // manufacturerName were rejected as filter candidates earlier. Checkbox
+  // (OR-within), like extractionFilter, not priceFilter's radio --
+  // wanting "either 30ml or 100ml" is a normal size-filter request, same
+  // convention as a real Magento/Shopify "Size" swatch filter. Option
+  // labels are generated directly from each product's stored
+  // netQuantityValue/netQuantityUnit (e.g. "30 ml"), not a translated
+  // enum -- there's no fixed small vocabulary to translate, unlike
+  // extractionMethod's 4 known codes.
+  volumeFilter: {
+    heading: string;
+    itemAriaLabel: string; // "{name}" and "{count}" tokens
+    resetLabel: string;
+  };
   account: {
     metaTitle: string;
     welcomeHeading: string; // "{name}" token

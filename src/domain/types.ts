@@ -134,6 +134,20 @@ export interface ProductSummaryView {
    *  ExtractionMethodFilter.astro). Null for a product that hasn't been
    *  given a real value yet. */
   extractionMethod: string | null;
+  /** The DEFAULT variant's own netQuantityValue/netQuantityUnit (e.g.
+   *  '100' / 'ml') -- the same variant `priceMinor`/`variantId` above
+   *  already come from, NOT every size this product is sold in (see
+   *  seed-natural-oils-variant-sizes.ts: every Natural Oils product also
+   *  has a smaller and a larger non-default sibling variant, selectable
+   *  only on the product detail page, invisible here by design -- same
+   *  simplification `priceMinor` above already makes). Powers
+   *  VolumeFilter.astro exactly the way `extractionMethod` powers
+   *  ExtractionMethodFilter.astro. Both null for Wholesale, where every
+   *  product's netQuantityValue is the same constant ('20' l drums) --
+   *  see VolumeFilter.astro's own doc comment for why that makes it not
+   *  worth filtering on there. */
+  netQuantityValue: string | null;
+  netQuantityUnit: string | null;
 }
 
 // ---------------------------------------------------------------------------

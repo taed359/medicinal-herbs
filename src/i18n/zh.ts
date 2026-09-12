@@ -326,6 +326,11 @@ export const zh: TranslationSchema = {
     itemAriaLabel: '{name}，{count} 件商品',
     resetLabel: '清除筛选',
   },
+  volumeFilter: {
+    heading: '容量',
+    itemAriaLabel: '{name}，{count} 件商品',
+    resetLabel: '清除筛选',
+  },
   account: {
     metaTitle: '我的账户',
     welcomeHeading: '您好，{name}',
