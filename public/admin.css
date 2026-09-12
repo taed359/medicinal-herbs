@@ -1,36 +1,104 @@
 /**
- * Shared admin design tokens + a small reusable utility set (Phase 7 of
- * the Product Editor/Grid audit). Served as a static file and linked from
- * AdminLayout.astro's <head> so every admin page can rely on these
- * classes instead of redefining buttons/badges/cards/fields per file.
- * Storefront pages never link this file -- it has zero effect there.
+ * Shared admin design system (visual redesign pass). Served as a static
+ * file and linked from AdminLayout.astro's <head> (and now also from
+ * admin/login.astro) so every admin page/screen relies on these tokens
+ * and utility classes instead of redefining buttons/badges/cards/fields
+ * per file. Storefront pages never link this file -- it has zero effect
+ * there.
  *
- * Tokens mirror the colors already established across the admin area
- * (AdminLayout.astro, the products grid, the product form) rather than
- * introducing a new palette.
+ * Design intent: a calm, professional "product admin" surface (the kind
+ * of chrome you'd find in Stripe/Linear/Vercel-style dashboards) rather
+ * than a re-skin of the storefront's editorial herbal aesthetic. The
+ * brand's own deep maroon + warm gold are used deliberately (as the
+ * primary action color, active-state color, and one accent), but status
+ * semantics (published/paid/pending/etc.) get their own dedicated
+ * success/warning/info/danger colors, independent of the brand color --
+ * reusing maroon for "success" would read as an error/warning state to
+ * anyone used to conventional status coloring.
  */
 
 :root {
-  --admin-brand: #3f5b45;
-  --admin-brand-soft: #e4efe6;
-  --admin-brand-soft-text: #2f6b3f;
-  --admin-bg: #f6f5f1;
+  color-scheme: light;
+
+  /* --- Brand (used for primary actions, links, active nav, focus) ---- */
+  --admin-brand: #8b1e2e;
+  --admin-brand-hover: #6f1724;
+  --admin-brand-active: #5c1320;
+  --admin-brand-soft: #f7e8ea;
+  --admin-brand-soft-text: #8b1e2e;
+
+  --admin-gold: #c9a15a;
+  --admin-gold-soft: #fbf1de;
+  --admin-gold-text: #8a6116;
+
+  /* --- Status semantics (independent of brand) ------------------------ */
+  --admin-success: #1f7a46;
+  --admin-success-soft: #e7f5ec;
+  --admin-success-text: #1f7a46;
+  --admin-warning: #9a6b12;
+  --admin-warning-soft: #fbf1de;
+  --admin-warning-text: #9a6b12;
+  --admin-info: #2b5a8a;
+  --admin-info-soft: #e6eef7;
+  --admin-info-text: #2b5a8a;
+  --admin-indigo: #3454a8;
+  --admin-indigo-soft: #e8effd;
+  --admin-indigo-text: #3454a8;
+  --admin-danger: #b3261e;
+  --admin-danger-soft: #fbeae8;
+  --admin-danger-border: #f0c9c4;
+  --admin-neutral-soft: #edeae2;
+
+  /* --- Legacy aliases kept for anything still reading these names ----- */
+  --admin-featured-soft: var(--admin-gold-soft);
+  --admin-featured-text: var(--admin-gold-text);
+
+  /* --- Surfaces / text -------------------------------------------------*/
+  --admin-bg: #faf8f4;
   --admin-surface: #fff;
-  --admin-border: #e3e1dc;
-  --admin-border-strong: #cbcbc0;
-  --admin-text: #1f2421;
-  --admin-text-muted: #6b6f63;
-  --admin-text-subtle: #8a8d81;
-  --admin-danger: #9b1c1c;
-  --admin-danger-soft: #fdecea;
-  --admin-danger-border: #f3c8c3;
-  --admin-featured-soft: #fbf0da;
-  --admin-featured-text: #8a6116;
-  --admin-focus: #7fae87;
-  --admin-radius-lg: 12px;
+  --admin-surface-sunken: #f5f2ec;
+  --admin-border: #e8e3d9;
+  --admin-border-strong: #d7d0c2;
+  --admin-text: #221c1a;
+  --admin-text-muted: #6d6459;
+  --admin-text-subtle: #9b9284;
+  --admin-focus: #b98b93;
+
+  /* --- Shape / elevation ------------------------------------------------*/
+  --admin-radius-lg: 14px;
   --admin-radius: 10px;
-  --admin-radius-sm: 6px;
+  --admin-radius-sm: 7px;
+  --admin-radius-btn: 8px;
   --admin-radius-pill: 999px;
+  --admin-shadow-xs: 0 1px 2px rgba(34, 20, 17, 0.06);
+  --admin-shadow-sm: 0 1px 2px rgba(34, 20, 17, 0.04), 0 1px 8px -2px rgba(34, 20, 17, 0.06);
+  --admin-shadow-md: 0 6px 16px -6px rgba(34, 20, 17, 0.14), 0 2px 6px -2px rgba(34, 20, 17, 0.06);
+  --admin-shadow-lg: 0 20px 45px -12px rgba(34, 20, 17, 0.28), 0 6px 16px -6px rgba(34, 20, 17, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Slim, unobtrusive scrollbars on the surfaces that scroll internally
+ * (table wrappers, the sidebar, confirm dialogs) -- Firefox + WebKit.
+ * Falls back to the platform default everywhere this isn't supported;
+ * nothing here changes layout or functionality. */
+.admin-table-scroll,
+.admin-sidebar,
+.confirm-product-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--admin-border-strong) transparent;
+}
+.admin-table-scroll::-webkit-scrollbar,
+.confirm-product-list::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.admin-table-scroll::-webkit-scrollbar-thumb,
+.confirm-product-list::-webkit-scrollbar-thumb {
+  background: var(--admin-border-strong);
+  border-radius: var(--admin-radius-pill);
 }
 
 /* Buttons -------------------------------------------------------------- */
@@ -39,7 +107,7 @@
   font-weight: 600;
   font-size: 0.85rem;
   padding: 0.55rem 1.1rem;
-  border-radius: var(--admin-radius-pill);
+  border-radius: var(--admin-radius-btn);
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
@@ -49,32 +117,45 @@
   gap: 0.4rem;
   white-space: nowrap;
   line-height: 1.2;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, transform 0.08s ease;
 }
 .admin-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.admin-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
 .admin-btn-primary {
   background: var(--admin-brand);
   color: #fff;
+  box-shadow: var(--admin-shadow-xs);
+}
+.admin-btn-primary:hover:not(:disabled) {
+  background: var(--admin-brand-hover);
+}
+.admin-btn-primary:active:not(:disabled) {
+  background: var(--admin-brand-active);
 }
 .admin-btn-secondary {
   background: var(--admin-surface);
-  color: #34382f;
+  color: #34302c;
   border-color: var(--admin-border-strong);
 }
-.admin-btn-secondary:hover {
+.admin-btn-secondary:hover:not(:disabled) {
   border-color: var(--admin-brand);
   color: var(--admin-brand);
+  background: var(--admin-brand-soft);
 }
 .admin-btn-danger {
   background: var(--admin-danger-soft);
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
 }
-.admin-btn-danger:hover {
+.admin-btn-danger:hover:not(:disabled) {
   background: var(--admin-danger);
   color: #fff;
+  border-color: var(--admin-danger);
 }
 .admin-btn-text {
   background: transparent;
@@ -82,7 +163,7 @@
   color: var(--admin-text-muted);
   padding: 0.5rem 0.4rem;
 }
-.admin-btn-text:hover {
+.admin-btn-text:hover:not(:disabled) {
   color: var(--admin-brand);
 }
 .admin-btn-sm {
@@ -98,27 +179,70 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Badges ----------------------------------------------------------------*/
 .admin-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.6rem;
+  padding: 0.2rem 0.65rem;
   border-radius: var(--admin-radius-pill);
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #ece9e2;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: var(--admin-neutral-soft);
   color: var(--admin-text-muted);
   white-space: nowrap;
 }
 .admin-badge-published {
-  background: var(--admin-brand-soft);
-  color: var(--admin-brand-soft-text);
+  background: var(--admin-success-soft);
+  color: var(--admin-success-text);
 }
 .admin-badge-featured {
-  background: var(--admin-featured-soft);
-  color: var(--admin-featured-text);
+  background: var(--admin-gold-soft);
+  color: var(--admin-gold-text);
+}
+
+/* Order-status / payment-status badges -- one closed palette shared by
+ * the dashboard's "Recent orders" list, the Orders Grid, and the order
+ * detail page (previously duplicated verbatim in all three files' own
+ * page-scoped <style> blocks -- centralized here so there is exactly one
+ * place that defines what each status looks like). Deliberately NOT
+ * reusing --admin-brand (maroon) for "good" states like completed/paid --
+ * see this file's top-of-file doc comment for why status semantics stay
+ * independent of the brand color. */
+.admin-badge-status-pending {
+  background: var(--admin-neutral-soft);
+  color: var(--admin-text-muted);
+}
+.admin-badge-status-confirmed {
+  background: var(--admin-info-soft);
+  color: var(--admin-info-text);
+}
+.admin-badge-status-processing {
+  background: var(--admin-warning-soft);
+  color: var(--admin-warning-text);
+}
+.admin-badge-status-shipped {
+  background: var(--admin-indigo-soft);
+  color: var(--admin-indigo-text);
+}
+.admin-badge-status-completed {
+  background: var(--admin-success-soft);
+  color: var(--admin-success-text);
+}
+.admin-badge-status-cancelled {
+  background: var(--admin-danger-soft);
+  color: var(--admin-danger);
+}
+.admin-badge-paid {
+  background: var(--admin-success-soft);
+  color: var(--admin-success-text);
+}
+.admin-badge-refunded {
+  background: var(--admin-danger-soft);
+  color: var(--admin-danger);
 }
 
 /* Cards / sections ------------------------------------------------------*/
@@ -127,6 +251,7 @@ textarea:focus-visible,
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius);
   padding: 1.25rem 1.4rem;
+  box-shadow: var(--admin-shadow-sm);
 }
 /* Spacing between stacked cards comes from the parent's flex `gap`
  * (.product-form-main / .product-form-sidebar) -- a sibling margin here
@@ -138,11 +263,45 @@ textarea:focus-visible,
   font-size: 0.98rem;
   font-weight: 700;
   color: var(--admin-text);
+  letter-spacing: -0.005em;
 }
 .admin-card-subtitle {
   margin: 0 0 1rem;
   font-size: 0.82rem;
   color: var(--admin-text-muted);
+}
+
+/* Reusable icon chip -- a small rounded square carrying a tinted
+ * background + accent-colored icon/initial, used by the dashboard's stat
+ * cards and anywhere else that wants the same "icon in a soft-tinted
+ * box" treatment (the sidebar brand mark and topbar avatar predate this
+ * and keep their own bespoke markup/styles in AdminLayout.astro). */
+.admin-icon-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--admin-radius);
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand);
+}
+.admin-icon-chip-gold {
+  background: var(--admin-gold-soft);
+  color: var(--admin-gold-text);
+}
+.admin-icon-chip-success {
+  background: var(--admin-success-soft);
+  color: var(--admin-success-text);
+}
+.admin-icon-chip-info {
+  background: var(--admin-info-soft);
+  color: var(--admin-info-text);
+}
+.admin-icon-chip-warning {
+  background: var(--admin-warning-soft);
+  color: var(--admin-warning-text);
 }
 
 /* Form fields -------------------------------------------------------------*/
@@ -166,7 +325,7 @@ textarea:focus-visible,
 .admin-field > label {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #34382f;
+  color: #34302c;
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
@@ -175,13 +334,26 @@ textarea:focus-visible,
 .admin-field select,
 .admin-field textarea {
   font: inherit;
-  padding: 0.5rem 0.65rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--admin-border-strong);
   border-radius: var(--admin-radius-sm);
   background: var(--admin-surface);
   color: var(--admin-text);
   width: 100%;
   box-sizing: border-box;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.admin-field input:hover,
+.admin-field select:hover,
+.admin-field textarea:hover {
+  border-color: var(--admin-border-strong);
+}
+.admin-field input:focus,
+.admin-field select:focus,
+.admin-field textarea:focus {
+  border-color: var(--admin-brand);
+  box-shadow: 0 0 0 3px var(--admin-brand-soft);
+  outline: none;
 }
 .admin-field textarea {
   resize: vertical;
@@ -263,7 +435,7 @@ textarea:focus-visible,
   border-radius: var(--admin-radius-sm);
   color: var(--admin-text-muted);
   font-size: 0.85rem;
-  background: var(--admin-bg);
+  background: var(--admin-surface-sunken);
 }
 .admin-pending-note {
   margin: 0.5rem 0 0;
@@ -279,7 +451,7 @@ textarea:focus-visible,
   gap: 0.5rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #34382f;
+  color: #34302c;
 }
 .admin-checkbox-row input {
   width: auto;

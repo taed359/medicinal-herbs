@@ -1,0 +1,479 @@
+---
+/**
+ * Order detail (/admin/orders/[id]) -- the single most important new
+ * page in this pass: it's the ONLY place an operator can move an order
+ * forward (status) or record that it's been paid (paymentStatus).
+ * Before this page existed, every order placed through checkout was
+ * permanently stuck at status 'pending' / paymentStatus 'unpaid' unless
+ * someone hand-edited the database directly (see order-service.ts's own
+ * top-of-file doc comment, and claude/admin-gap-audit-2026-09-12.md).
+ *
+ * Read-only sections (order info, customer/shipping, items, totals) are
+ * a historical snapshot -- order_items freezes product name/sku/price at
+ * order time (see schema.ts's own doc comment on that table), so nothing
+ * here is ever editable except the two status fields. `id` is the
+ * internal primary key (the route param), matching
+ * `/admin/products/[id]/edit`'s own convention -- everything
+ * customer-facing keys off `orderNumber` instead (see order-service.ts),
+ * but an admin route needs a stable id divorced from the human-facing
+ * order number.
+ *
+ * No status-transition state machine is enforced here (e.g. "can't go
+ * from cancelled back to pending") -- an operator can freely set any of
+ * the 6 statuses at any time, including to correct a mistake. This is a
+ * deliberate first-pass scope decision, not an oversight: the DB itself
+ * only constrains VALUES (see orders_status_check), never sequence, and
+ * inventing a transition graph without a real operational workflow to
+ * validate it against risks blocking a legitimate correction more than
+ * it prevents a real mistake.
+ */
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { adminOrderRepository } from '../../../server/repositories/admin';
+import { ADMIN_ORDER_STATUSES, ADMIN_ORDER_PAYMENT_STATUSES } from '../../../domain/admin-order-types';
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+
+const id = Astro.params.id;
+if (!id) {
+  return Astro.redirect('/admin/orders');
+}
+
+const order = await adminOrderRepository.getById(id);
+if (!order) {
+  return new Response(null, { status: 404 });
+}
+
+// Read once and never re-shown on a later visit -- same "saved=1 marker,
+// consumed once" pattern AdminProductForm.astro's own save flow uses
+// (see its fetch handler: `window.location.href = \`${path}?saved=1\``).
+const justSaved = Astro.url.searchParams.get('saved') === '1';
+
+function formatMoney(minor: number, currency: string): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(minor);
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('vi-VN');
+}
+
+function formatStatus(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = { cod: 'COD', bank_transfer: 'Bank transfer' };
+
+const shippingLine2 = [order.shippingWard, order.shippingDistrict, order.shippingProvince].filter(Boolean).join(', ');
+---
+<AdminLayout title={`Order ${order.orderNumber}`} activeNav="orders" adminUser={adminUser}>
+  <a href="/admin/orders" class="order-back-link">&larr; Back to orders</a>
+
+  <div class="order-header">
+    <div>
+      <h2 class="order-header-number">{order.orderNumber}</h2>
+      <p class="order-header-date">Placed {formatDateTime(order.createdAt)}</p>
+    </div>
+    <div class="order-header-badges">
+      <span class:list={['admin-badge', `admin-badge-status-${order.status}`]}>{formatStatus(order.status)}</span>
+      <span class:list={['admin-badge', { 'admin-badge-paid': order.paymentStatus === 'paid', 'admin-badge-refunded': order.paymentStatus === 'refunded' }]}>
+        {formatStatus(order.paymentStatus)}
+      </span>
+    </div>
+  </div>
+
+  <p class="order-save-success" data-save-success hidden={!justSaved}>Order updated.</p>
+  <p class="admin-error-text order-save-error" data-save-error role="alert" hidden></p>
+
+  <div class="order-layout">
+    <div class="order-main">
+      <section class="admin-card">
+        <h3 class="admin-card-title">Items</h3>
+        <div class="order-items-scroll">
+          <table class="order-items-table">
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col" class="col-optional">SKU</th>
+                <th scope="col">Unit price</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Line total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.items.map((item) => (
+                <tr>
+                  <td>
+                    <span class="order-item-name">{item.productName}</span>
+                    {item.variantLabel && <span class="order-item-variant">{item.variantLabel}</span>}
+                    <span class="order-item-sku-mobile">SKU: {item.sku}</span>
+                  </td>
+                  <td class="col-optional">{item.sku}</td>
+                  <td>{formatMoney(item.unitPriceMinor, order.currency)}</td>
+                  <td>{item.quantity}</td>
+                  <td>{formatMoney(item.lineTotalMinor, order.currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="order-totals">
+          <div class="order-totals-row">
+            <span>Subtotal</span>
+            <span>{formatMoney(order.subtotalMinor, order.currency)}</span>
+          </div>
+          <div class="order-totals-row">
+            <span>Shipping</span>
+            <span>{order.shippingFeeMinor > 0 ? formatMoney(order.shippingFeeMinor, order.currency) : 'Free'}</span>
+          </div>
+          <div class="order-totals-row order-totals-total">
+            <span>Total</span>
+            <span>{formatMoney(order.totalMinor, order.currency)}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Shipping address</h3>
+        <address class="order-address">
+          {order.customerName}<br />
+          {order.shippingAddressLine1}<br />
+          {shippingLine2 && <>{shippingLine2}<br /></>}
+          {order.shippingCountryCode}
+        </address>
+      </section>
+
+      {order.note && (
+        <section class="admin-card">
+          <h3 class="admin-card-title">Note from customer</h3>
+          <p class="order-note">{order.note}</p>
+        </section>
+      )}
+    </div>
+
+    <div class="order-sidebar">
+      <section class="admin-card order-action-card">
+        <h3 class="admin-card-title">Update order</h3>
+        <p class="admin-card-subtitle">Change the fulfilment status and/or payment status.</p>
+        <form id="order-status-form" data-order-status-form data-order-id={order.id}>
+          <div class="admin-field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+              {ADMIN_ORDER_STATUSES.map((s) => (
+                <option value={s} selected={order.status === s}>{formatStatus(s)}</option>
+              ))}
+            </select>
+          </div>
+          <div class="admin-field">
+            <label for="paymentStatus">Payment status</label>
+            <select id="paymentStatus" name="paymentStatus">
+              {ADMIN_ORDER_PAYMENT_STATUSES.map((s) => (
+                <option value={s} selected={order.paymentStatus === s}>{formatStatus(s)}</option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" class="admin-btn admin-btn-primary order-save-button" data-save-button>Save changes</button>
+        </form>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Customer</h3>
+        <dl class="order-detail-list">
+          <div>
+            <dt>Name</dt>
+            <dd>{order.customerName}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd><a href={`mailto:${order.customerEmail}`}>{order.customerEmail}</a></dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd><a href={`tel:${order.customerPhone}`}>{order.customerPhone}</a></dd>
+          </div>
+          <div>
+            <dt>Account</dt>
+            <dd>{order.customerId ? 'Registered customer' : 'Guest checkout'}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="admin-card">
+        <h3 class="admin-card-title">Payment</h3>
+        <dl class="order-detail-list">
+          <div>
+            <dt>Method</dt>
+            <dd>{PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}</dd>
+          </div>
+          <div>
+            <dt>Last updated</dt>
+            <dd>{formatDateTime(order.updatedAt)}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-order-status-form]');
+  const saveButton = document.querySelector<HTMLButtonElement>('[data-save-button]');
+  const successEl = document.querySelector<HTMLElement>('[data-save-success]');
+  const errorEl = document.querySelector<HTMLElement>('[data-save-error]');
+
+  if (form && saveButton) {
+    const orderId = form.dataset.orderId;
+    let submitting = false;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (submitting || !orderId) return;
+      submitting = true;
+
+      if (successEl) successEl.hidden = true;
+      if (errorEl) errorEl.hidden = true;
+
+      const originalText = saveButton.textContent;
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving…';
+
+      const formData = new FormData(form);
+      const payload = {
+        status: formData.get('status'),
+        paymentStatus: formData.get('paymentStatus'),
+      };
+
+      try {
+        const res = await fetch(`/api/admin/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          // Reload so the status badges at the top of the page (and every
+          // other read-only field) reflect what the server actually
+          // persisted, same "reload with a saved=1 marker" pattern the
+          // product editor's own save flow uses.
+          window.location.href = `${window.location.pathname}?saved=1`;
+          return;
+        }
+
+        const body = await res.json().catch(() => null);
+        if (errorEl) {
+          errorEl.textContent = body?.error || `Request failed (${res.status}).`;
+          errorEl.hidden = false;
+        }
+      } catch {
+        if (errorEl) {
+          errorEl.textContent = 'Something went wrong. Please try again.';
+          errorEl.hidden = false;
+        }
+      } finally {
+        submitting = false;
+        saveButton.disabled = false;
+        saveButton.textContent = originalText;
+      }
+    });
+  }
+</script>
+
+<style>
+  .order-back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--admin-text-muted);
+    text-decoration: none;
+  }
+  .order-back-link:hover {
+    color: var(--admin-brand);
+  }
+
+  .order-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .order-header-number {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--admin-text);
+  }
+  .order-header-date {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+  }
+  .order-header-badges {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .order-save-success {
+    margin: 0 0 1rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-brand-soft);
+    color: var(--admin-brand-soft-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .order-save-error {
+    margin: 0 0 1rem;
+  }
+
+  .order-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .order-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  .order-main,
+  .order-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .order-items-scroll {
+    overflow-x: auto;
+  }
+  .order-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .order-items-table th,
+  .order-items-table td {
+    padding: 0.6rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--admin-border);
+  }
+  .order-items-table th:first-child,
+  .order-items-table td:first-child {
+    padding-left: 0;
+  }
+  .order-items-table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-muted);
+    background: var(--admin-surface-sunken);
+  }
+  .order-item-name {
+    display: block;
+    font-weight: 600;
+    color: var(--admin-text);
+  }
+  .order-item-variant {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--admin-text-muted);
+  }
+  .order-item-sku-mobile {
+    display: block;
+    font-size: 0.74rem;
+    color: var(--admin-text-subtle);
+  }
+  @media (min-width: 560px) {
+    .order-item-sku-mobile {
+      display: none;
+    }
+  }
+  .col-optional {
+    display: none;
+  }
+  @media (min-width: 560px) {
+    .col-optional {
+      display: table-cell;
+    }
+  }
+
+  .order-totals {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-width: 20rem;
+    margin-left: auto;
+  }
+  .order-totals-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    color: var(--admin-text-muted);
+  }
+  .order-totals-total {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--admin-brand);
+  }
+
+  .order-address {
+    font-style: normal;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--admin-text);
+  }
+
+  .order-note {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--admin-text);
+    white-space: pre-wrap;
+  }
+
+  .order-action-card {
+    border-top: 3px solid var(--admin-brand);
+  }
+
+  .order-save-button {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .order-detail-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .order-detail-list dt {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-subtle);
+  }
+  .order-detail-list dd {
+    margin: 0.1rem 0 0;
+    font-size: 0.9rem;
+    color: var(--admin-text);
+  }
+  .order-detail-list dd a {
+    color: var(--admin-brand);
+  }
+
+  /* Order-status / payment-status badge colors now live in the shared
+     /admin.css (.admin-badge-status-*, .admin-badge-paid,
+     .admin-badge-refunded) -- see that file's top-of-file doc comment. */
+</style>

@@ -14,7 +14,7 @@
 export const prerender = false;
 
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { adminProductRepository } from '../../server/repositories/admin';
+import { adminProductRepository, adminOrderRepository } from '../../server/repositories/admin';
 
 const adminUser = Astro.locals.adminUser;
 if (!adminUser) {
@@ -30,35 +30,85 @@ const baseParams = {
   direction: 'desc' as const,
 };
 
-const [recent, published, draft, inventorySummary] = await Promise.all([
+const [recent, published, draft, inventorySummary, orderStats, recentOrders] = await Promise.all([
   adminProductRepository.list({ ...baseParams, pageSize: 5, status: 'all' }),
   adminProductRepository.list({ ...baseParams, pageSize: 1, status: 'published' }),
   adminProductRepository.list({ ...baseParams, pageSize: 1, status: 'draft' }),
   adminProductRepository.getInventorySummary(),
+  adminOrderRepository.getStats(),
+  adminOrderRepository.listRecent(5),
 ]);
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('vi-VN');
 }
+
+function formatMoney(minor: number, currency: string): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(minor);
+}
+
+function formatStatus(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 ---
 <AdminLayout title="Dashboard" activeNav="dashboard" adminUser={adminUser}>
   <div class="dashboard-stats">
     <section class="admin-card dashboard-stat">
-      <p class="dashboard-stat-label">Total products</p>
-      <p class="dashboard-stat-value">{recent.total}</p>
+      <span class="admin-icon-chip" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5v-9Zm0 0L12 12l8.5-4.5M12 12v9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </span>
+      <div class="dashboard-stat-body">
+        <p class="dashboard-stat-label">Total products</p>
+        <p class="dashboard-stat-value">{recent.total}</p>
+      </div>
     </section>
     <section class="admin-card dashboard-stat">
-      <p class="dashboard-stat-label">Published</p>
-      <p class="dashboard-stat-value">{published.total}</p>
+      <span class="admin-icon-chip admin-icon-chip-success" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12.5 11.5 15 16 9.5M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </span>
+      <div class="dashboard-stat-body">
+        <p class="dashboard-stat-label">Published</p>
+        <p class="dashboard-stat-value">{published.total}</p>
+      </div>
     </section>
     <section class="admin-card dashboard-stat">
-      <p class="dashboard-stat-label">Draft</p>
-      <p class="dashboard-stat-value">{draft.total}</p>
+      <span class="admin-icon-chip" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M16.5 3.5 20.5 7.5 8 20H4v-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </span>
+      <div class="dashboard-stat-body">
+        <p class="dashboard-stat-label">Draft</p>
+        <p class="dashboard-stat-value">{draft.total}</p>
+      </div>
+    </section>
+    <section class="admin-card dashboard-stat">
+      <span class="admin-icon-chip admin-icon-chip-warning" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" /><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </span>
+      <div class="dashboard-stat-body">
+        <p class="dashboard-stat-label">Pending orders</p>
+        <p class="dashboard-stat-value">{orderStats.pendingCount}</p>
+      </div>
+    </section>
+    <section class="admin-card dashboard-stat">
+      <span class="admin-icon-chip admin-icon-chip-gold" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 7.5h18M3 7.5v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9M3 7.5l2.2-3.5a2 2 0 0 1 1.7-1h10.2a2 2 0 0 1 1.7 1L21 7.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /><circle cx="12" cy="13.5" r="2.25" stroke="currentColor" stroke-width="1.75" /></svg>
+      </span>
+      <div class="dashboard-stat-body">
+        <p class="dashboard-stat-label">Paid revenue</p>
+        <p class="dashboard-stat-value dashboard-stat-value-money">
+          {orderStats.currency ? formatMoney(orderStats.paidRevenueMinor, orderStats.currency) : '—'}
+        </p>
+      </div>
     </section>
     {inventorySummary.hasTrackedVariants && (
       <section class="admin-card dashboard-stat">
-        <p class="dashboard-stat-label">Low stock</p>
-        <p class="dashboard-stat-value">{inventorySummary.lowStockCount}</p>
+        <span class="admin-icon-chip admin-icon-chip-info" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 2 20h20L12 3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" /><path d="M12 10v4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /><circle cx="12" cy="17" r="0.9" fill="currentColor" /></svg>
+        </span>
+        <div class="dashboard-stat-body">
+          <p class="dashboard-stat-label">Low stock</p>
+          <p class="dashboard-stat-value">{inventorySummary.lowStockCount}</p>
+        </div>
       </section>
     )}
   </div>
@@ -83,31 +133,72 @@ function formatDate(iso: string): string {
     )}
     <a href="/admin/products" class="dashboard-view-all">View all products &rarr;</a>
   </section>
+
+  <section class="admin-card">
+    <h3 class="admin-card-title">Recent orders</h3>
+    <p class="admin-card-subtitle">The 5 most recently placed orders.</p>
+    {recentOrders.length === 0 ? (
+      <p class="admin-empty-note">No orders yet. New orders placed at checkout will show up here.</p>
+    ) : (
+      <ul class="dashboard-recent-list">
+        {recentOrders.map((order) => (
+          <li class="dashboard-recent-row">
+            <a href={`/admin/orders/${order.id}`} class="dashboard-recent-name">{order.orderNumber}</a>
+            <span class="dashboard-recent-customer">{order.customerName}</span>
+            <span class:list={['admin-badge', `admin-badge-status-${order.status}`]}>
+              {formatStatus(order.status)}
+            </span>
+            <span class="dashboard-recent-date">{formatDate(order.createdAt)}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+    <a href="/admin/orders" class="dashboard-view-all">View all orders &rarr;</a>
+  </section>
 </AdminLayout>
 
 <style>
   .dashboard-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
     gap: 1rem;
     margin-bottom: 1.25rem;
   }
   .dashboard-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
     padding: 1.1rem 1.25rem;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+  .dashboard-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-shadow-md);
+  }
+  .dashboard-stat-body {
+    min-width: 0;
   }
   .dashboard-stat-label {
-    margin: 0 0 0.35rem;
-    font-size: 0.78rem;
+    margin: 0 0 0.3rem;
+    font-size: 0.76rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--admin-text-muted);
+    white-space: nowrap;
   }
   .dashboard-stat-value {
     margin: 0;
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     font-weight: 700;
     color: var(--admin-text);
+    letter-spacing: -0.01em;
+  }
+  /* Currency strings ("₫1.234.567") run noticeably longer than a bare
+   * integer count -- a smaller size keeps this card's value on one line
+   * at the same card width every other stat card uses. */
+  .dashboard-stat-value-money {
+    font-size: 1.4rem;
   }
 
   .dashboard-recent-list {
@@ -146,6 +237,21 @@ function formatDate(iso: string): string {
     color: var(--admin-text-muted);
     white-space: nowrap;
   }
+  /* Recent-orders row only -- the customer name sits between the order
+   * number and the status badge, so it needs its own truncation
+   * treatment rather than competing with .dashboard-recent-name's
+   * flex: 1 for the same growable space. */
+  .dashboard-recent-customer {
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 12rem;
+  }
+  /* Order-status badge colors now live in the shared /admin.css
+   * (.admin-badge-status-*) -- see that file's top-of-file doc comment
+   * for why status colors stay independent of the brand color. */
   .dashboard-view-all {
     font-size: 0.85rem;
     font-weight: 600;

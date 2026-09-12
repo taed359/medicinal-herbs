@@ -5,5 +5,6 @@
  * interface to its Postgres implementation, so admin pages/routes only
  * ever depend on the interface in ./types.ts.
  */
-export type { AdminProductRepository } from './types';
+export type { AdminProductRepository, AdminOrderRepository } from './types';
 export { adminProductRepository } from './postgres/admin-product-repository';
+export { adminOrderRepository } from './postgres/admin-order-repository';

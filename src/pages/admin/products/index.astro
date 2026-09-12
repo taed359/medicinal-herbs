@@ -445,8 +445,8 @@ function formatDate(iso: string): string {
     padding: 0.6rem 1rem;
     margin-bottom: 0.75rem;
     background: var(--admin-brand-soft);
-    border: 1px solid #bcd8c1;
-    border-radius: 8px;
+    border: 1px solid #e6c7cb;
+    border-radius: var(--admin-radius-btn);
     font-size: 0.85rem;
     color: var(--admin-brand-soft-text);
   }
@@ -458,9 +458,9 @@ function formatDate(iso: string): string {
     padding: 3rem 1.5rem;
     text-align: center;
     color: var(--admin-text-muted);
-    background: #fff;
+    background: var(--admin-surface);
     border: 1px dashed var(--admin-border-strong);
-    border-radius: 10px;
+    border-radius: var(--admin-radius);
   }
   .products-empty p {
     margin: 0 0 0.5rem;
@@ -493,11 +493,14 @@ function formatDate(iso: string): string {
     border-bottom: 1px solid var(--admin-border);
     vertical-align: middle;
   }
+  .products-table tbody tr {
+    transition: background-color 0.12s ease;
+  }
   .products-table tbody tr:hover {
-    background: #f9f8f5;
+    background: var(--admin-surface-sunken);
   }
   .products-table tbody tr:has(.row-checkbox:checked) {
-    background: #eef4ef;
+    background: var(--admin-brand-soft);
   }
   .products-table th {
     font-size: 0.72rem;
@@ -505,6 +508,7 @@ function formatDate(iso: string): string {
     letter-spacing: 0.03em;
     color: var(--admin-text-muted);
     white-space: nowrap;
+    background: var(--admin-surface-sunken);
   }
   .col-checkbox {
     width: 2.5rem;
@@ -525,16 +529,16 @@ function formatDate(iso: string): string {
   .products-thumb {
     width: 40px;
     height: 40px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     object-fit: cover;
     display: block;
-    background: #f0efe9;
+    background: var(--admin-surface-sunken);
   }
   .products-thumb-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #b3b6a9;
+    color: var(--admin-text-subtle);
   }
   .products-name-link {
     color: var(--admin-text);
@@ -598,14 +602,14 @@ function formatDate(iso: string): string {
     display: none;
   }
   .confirm-dialog {
-    background: #fff;
-    border-radius: 12px;
+    background: var(--admin-surface);
+    border-radius: var(--admin-radius-lg);
     padding: 1.5rem;
     max-width: 26rem;
     width: 100%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--admin-shadow-lg);
   }
   .confirm-dialog h2 {
     margin: 0 0 0.75rem;
@@ -615,7 +619,7 @@ function formatDate(iso: string): string {
     margin: 0 0 0.75rem;
     padding-left: 1.1rem;
     font-size: 0.85rem;
-    color: #4a4d43;
+    color: var(--admin-text-muted);
     max-height: 9rem;
     overflow-y: auto;
   }
@@ -628,7 +632,7 @@ function formatDate(iso: string): string {
   .confirm-error {
     margin: 0 0 1rem;
     padding: 0.6rem 0.75rem;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background: var(--admin-danger-soft);
     color: var(--admin-danger);
     font-size: 0.85rem;

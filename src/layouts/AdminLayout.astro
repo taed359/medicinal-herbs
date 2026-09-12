@@ -19,7 +19,7 @@
  */
 interface Props {
   title: string;
-  activeNav: 'dashboard' | 'products';
+  activeNav: 'dashboard' | 'products' | 'orders';
   adminUser: { email: string };
 }
 
@@ -38,7 +38,26 @@ const NAV_ITEMS = [
     label: 'Products',
     icon: 'M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5v-9Zm0 0L12 12l8.5-4.5M12 12v9',
   },
+  {
+    key: 'orders' as const,
+    href: '/admin/orders',
+    label: 'Orders',
+    // A simple receipt glyph (outline + a zigzag "torn" bottom edge, 3
+    // line marks for line items) -- same abstract, generic line-icon
+    // language as the other two NAV_ITEMS icons, not evoking any real
+    // brand/carrier mark.
+    icon: 'M5 3.5h13a.75.75 0 0 1 .75.75V20l-2.4-1.6L14 20l-2.4-1.6L9.2 20l-2.4-1.6L4.25 20V4.25A.75.75 0 0 1 5 3.5Z M7.5 8h9M7.5 11.5h9M7.5 15h6',
+  },
 ];
+
+/** Section label for the topbar breadcrumb -- see its own doc comment
+ *  just below for why this is a lookup rather than a hardcoded
+ *  `activeNav === 'products'` check now that a second non-dashboard
+ *  section (orders) exists. */
+const NAV_SECTION_LABELS: Record<'products' | 'orders', string> = {
+  products: 'Products',
+  orders: 'Orders',
+};
 
 const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
 ---
@@ -111,7 +130,9 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
       <div class="admin-main">
         <header class="admin-topbar">
           <div class="admin-topbar-heading">
-            <p class="admin-topbar-breadcrumb">Admin{activeNav === 'products' && title !== 'Products' ? ' / Products' : ''}</p>
+            <p class="admin-topbar-breadcrumb">
+              Admin{activeNav !== 'dashboard' && title !== NAV_SECTION_LABELS[activeNav] ? ` / ${NAV_SECTION_LABELS[activeNav]}` : ''}
+            </p>
             <h1>{title}</h1>
           </div>
 
@@ -139,8 +160,8 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
     <style>
       body {
         margin: 0;
-        font-family: system-ui, sans-serif;
-        background: #F6F1E8;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--admin-bg);
       }
 
       /* Visually hidden until keyboard-focused -- the first focusable
@@ -156,12 +177,12 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         left: 0.75rem;
         z-index: 100;
         padding: 0.6rem 1rem;
-        background: var(--admin-brand, #3f5b45);
+        background: var(--admin-brand, #8b1e2e);
         color: #fff;
         font-size: 0.85rem;
         font-weight: 600;
         text-decoration: none;
-        border-radius: 0 0 var(--admin-radius-sm, 6px) var(--admin-radius-sm, 6px);
+        border-radius: 0 0 var(--admin-radius-sm, 7px) var(--admin-radius-sm, 7px);
         transition: top 0.15s ease;
       }
       .admin-skip-link:focus {
@@ -171,7 +192,7 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
       .admin-shell {
         display: flex;
         min-height: 100vh;
-        color: #1f2421;
+        color: var(--admin-text, #221c1a);
       }
 
       /* ---------------------------------------------------------------
@@ -180,13 +201,14 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
       .admin-sidebar {
         width: 15.5rem;
         flex-shrink: 0;
-        background: #1b1e18;
+        background: #1b120e;
         color: #fff;
         display: flex;
         flex-direction: column;
         padding: 1.1rem 0.9rem;
         transition: width 0.18s ease;
-        overflow: hidden;
+        overflow: hidden auto;
+        box-shadow: 2px 0 16px -8px rgba(0, 0, 0, 0.4);
       }
 
       .admin-sidebar-top {
@@ -214,7 +236,7 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         width: 2.1rem;
         height: 2.1rem;
         border-radius: 8px;
-        background: #3f5b45;
+        background: var(--admin-brand, #8b1e2e);
         font-weight: 700;
         font-size: 0.8rem;
         letter-spacing: 0.02em;
@@ -247,7 +269,7 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         color: #fff;
       }
       .admin-sidebar-toggle:focus-visible {
-        outline: 2px solid #7fae87;
+        outline: 2px solid var(--admin-gold, #c9a15a);
         outline-offset: 2px;
       }
 
@@ -275,7 +297,7 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         color: #fff;
       }
       .admin-sidebar-nav a[aria-current='page'] {
-        background: #3f5b45;
+        background: var(--admin-brand, #8b1e2e);
         color: #fff;
       }
       .admin-sidebar-nav svg {
@@ -323,8 +345,9 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         justify-content: space-between;
         gap: 1rem;
         padding: 1rem 1.75rem;
-        background: #fff;
-        border-bottom: 1px solid #e3e1dc;
+        background: var(--admin-surface, #fff);
+        border-bottom: 1px solid var(--admin-border, #e8e3d9);
+        box-shadow: 0 1px 3px rgba(34, 20, 17, 0.03);
       }
 
       .admin-topbar-breadcrumb {
@@ -333,12 +356,15 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         font-weight: 600;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: #8a8d81;
+        color: var(--admin-text-subtle, #9b9284);
       }
 
       .admin-topbar-heading h1 {
         margin: 0;
         font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--admin-text, #221c1a);
       }
 
       .admin-topbar-user {
@@ -355,15 +381,15 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         width: 2.1rem;
         height: 2.1rem;
         border-radius: 999px;
-        background: #e4efe6;
-        color: #2f6b3f;
+        background: var(--admin-brand-soft, #f7e8ea);
+        color: var(--admin-brand-soft-text, #8b1e2e);
         font-weight: 700;
         font-size: 0.85rem;
       }
 
       .admin-user-email {
         font-size: 0.85rem;
-        color: #4a4d43;
+        color: var(--admin-text-muted, #6d6459);
         max-width: 14rem;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -378,16 +404,17 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
         font-size: 0.85rem;
         font-weight: 600;
         padding: 0.45rem 0.85rem;
-        border: 1px solid #cbcbc0;
-        border-radius: 999px;
-        background: #fff;
-        color: #34382f;
+        border: 1px solid var(--admin-border-strong, #d7d0c2);
+        border-radius: var(--admin-radius-btn, 8px);
+        background: var(--admin-surface, #fff);
+        color: #34302c;
         cursor: pointer;
-        transition: border-color 0.15s ease, background-color 0.15s ease;
+        transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
       }
       .admin-logout-button:hover {
-        border-color: #c0392b;
-        color: #c0392b;
+        border-color: var(--admin-danger, #b3261e);
+        color: var(--admin-danger, #b3261e);
+        background: var(--admin-danger-soft, #fbeae8);
       }
       .admin-logout-button:disabled {
         opacity: 0.6;
@@ -397,9 +424,9 @@ const avatarInitial = adminUser.email.trim().charAt(0).toUpperCase() || '?';
       .logout-error {
         margin: 0.75rem 1.75rem 0;
         padding: 0.6rem 0.85rem;
-        border-radius: 4px;
-        background: #fdecea;
-        color: #9b1c1c;
+        border-radius: var(--admin-radius-sm, 7px);
+        background: var(--admin-danger-soft, #fbeae8);
+        color: var(--admin-danger, #b3261e);
         font-size: 0.85rem;
       }
 

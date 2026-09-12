@@ -1,0 +1,496 @@
+---
+/**
+ * Orders Admin Grid.
+ *
+ * Mirrors src/pages/admin/products/index.astro's own architecture
+ * (server-rendered search/filter/sort/pagination -- every control here
+ * is a real <a>/<form method="get">, the query string is the single
+ * source of truth, the whole page works with JavaScript disabled; JS
+ * only adds auto-submit on filter change). Deliberately simpler than the
+ * Products Grid in two ways: no bulk-select/bulk-delete (deleting a real
+ * order is not something this admin area offers at all -- see
+ * src/pages/api/admin/orders/[id].ts's own doc comment), and no "+ New"
+ * button (orders are created by checkout, never by an operator).
+ *
+ * See src/server/lib/parse-admin-order-list-params.ts for how the query
+ * string is validated and
+ * src/server/repositories/admin/postgres/admin-order-repository.ts for
+ * the query itself.
+ */
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { adminOrderRepository } from '../../../server/repositories/admin';
+import { parseAdminOrderListParams, ORDER_PAGE_SIZE_OPTIONS } from '../../../server/lib/parse-admin-order-list-params';
+import { ADMIN_ORDER_STATUSES, ADMIN_ORDER_PAYMENT_STATUSES } from '../../../domain/admin-order-types';
+import type { AdminOrderSortColumn } from '../../../domain/admin-order-types';
+
+const adminUser = Astro.locals.adminUser;
+if (!adminUser) {
+  return Astro.redirect('/admin/login');
+}
+
+const params = parseAdminOrderListParams(Astro.url.searchParams);
+const { items, total, page, totalPages } = await adminOrderRepository.list(params);
+
+const hasFilters = params.search.trim() !== '' || params.status !== 'all' || params.paymentStatus !== 'all';
+
+/** Builds `/admin/orders?...` preserving every current param except the
+ *  ones explicitly overridden -- same helper shape as the Products
+ *  Grid's own buildHref. */
+function buildHref(
+  overrides: Partial<{
+    q: string;
+    status: string;
+    payment: string;
+    sort: string;
+    direction: string;
+    page: number;
+    limit: number;
+  }>,
+  keepPage = false
+): string {
+  const next = new URLSearchParams();
+
+  const q = overrides.q ?? params.search;
+  if (q) next.set('q', q);
+
+  const status = overrides.status ?? params.status;
+  if (status !== 'all') next.set('status', status);
+
+  const payment = overrides.payment ?? params.paymentStatus;
+  if (payment !== 'all') next.set('payment', payment);
+
+  const sort = overrides.sort ?? params.sort;
+  if (sort !== 'createdAt') next.set('sort', sort);
+
+  const direction = overrides.direction ?? params.direction;
+  if (direction !== 'desc') next.set('direction', direction);
+
+  const limit = overrides.limit ?? params.pageSize;
+  if (limit !== 25) next.set('limit', String(limit));
+
+  const targetPage = overrides.page ?? (keepPage ? params.page : 1);
+  if (targetPage > 1) next.set('page', String(targetPage));
+
+  const qs = next.toString();
+  return qs ? `/admin/orders?${qs}` : '/admin/orders';
+}
+
+function sortHref(column: AdminOrderSortColumn): string {
+  const nextDirection = params.sort === column && params.direction === 'asc' ? 'desc' : 'asc';
+  return buildHref({ sort: column, direction: nextDirection });
+}
+
+function ariaSort(column: AdminOrderSortColumn): 'ascending' | 'descending' | 'none' {
+  if (params.sort !== column) return 'none';
+  return params.direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function formatPrice(totalMinor: number, currency: string): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(totalMinor);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('vi-VN');
+}
+
+/** Title-cases a snake_case-free single-word status value for display
+ *  ('bank_transfer' is the one payment-method value with an underscore
+ *  -- handled with a small explicit map rather than a generic
+ *  underscore-to-space transform for just one value). */
+function formatStatus(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = { cod: 'COD', bank_transfer: 'Bank transfer' };
+---
+<AdminLayout title="Orders" activeNav="orders" adminUser={adminUser}>
+  <form method="get" action="/admin/orders" class="orders-search-form" role="search">
+    <input type="hidden" name="status" value={params.status} />
+    <input type="hidden" name="payment" value={params.paymentStatus} />
+    <input type="hidden" name="sort" value={params.sort} />
+    <input type="hidden" name="direction" value={params.direction} />
+    <input type="hidden" name="limit" value={String(params.pageSize)} />
+    <label for="q" class="sr-only">Search orders</label>
+    <input
+      type="search"
+      id="q"
+      name="q"
+      value={params.search}
+      placeholder="Search by order #, customer name, or email…"
+      class="orders-search-input"
+    />
+    <button type="submit" class="admin-btn admin-btn-secondary">Search</button>
+  </form>
+
+  <form method="get" action="/admin/orders" class="admin-card orders-filters" aria-label="Filter and sort orders">
+    <input type="hidden" name="q" value={params.search} />
+    <input type="hidden" name="limit" value={String(params.pageSize)} />
+
+    <div class="orders-filter-field">
+      <label for="status">Status</label>
+      <select id="status" name="status" data-auto-submit>
+        <option value="all" selected={params.status === 'all'}>All</option>
+        {ADMIN_ORDER_STATUSES.map((s) => (
+          <option value={s} selected={params.status === s}>{formatStatus(s)}</option>
+        ))}
+      </select>
+    </div>
+
+    <div class="orders-filter-field">
+      <label for="payment">Payment status</label>
+      <select id="payment" name="payment" data-auto-submit>
+        <option value="all" selected={params.paymentStatus === 'all'}>All</option>
+        {ADMIN_ORDER_PAYMENT_STATUSES.map((s) => (
+          <option value={s} selected={params.paymentStatus === s}>{formatStatus(s)}</option>
+        ))}
+      </select>
+    </div>
+
+    <div class="orders-filter-field">
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort" data-auto-submit>
+        <option value="createdAt" selected={params.sort === 'createdAt'}>Date placed</option>
+        <option value="totalMinor" selected={params.sort === 'totalMinor'}>Total</option>
+      </select>
+    </div>
+
+    <div class="orders-filter-field">
+      <label for="direction">Direction</label>
+      <select id="direction" name="direction" data-auto-submit>
+        <option value="desc" selected={params.direction === 'desc'}>Descending</option>
+        <option value="asc" selected={params.direction === 'asc'}>Ascending</option>
+      </select>
+    </div>
+
+    <noscript>
+      <button type="submit" class="admin-btn admin-btn-secondary">Apply</button>
+    </noscript>
+
+    {hasFilters && (
+      <a href="/admin/orders" class="orders-clear-filters">Clear filters</a>
+    )}
+  </form>
+
+  {items.length === 0 ? (
+    <div class="orders-empty">
+      {hasFilters ? (
+        <>
+          <p>No orders match your search and filters.</p>
+          <p class="admin-hint">Try a different search term, or clear the filters below.</p>
+          <a href="/admin/orders" class="orders-clear-filters">Clear filters</a>
+        </>
+      ) : (
+        <p>No orders yet. New orders placed at checkout will show up here.</p>
+      )}
+    </div>
+  ) : (
+    <>
+      <div class="admin-card orders-table-scroll">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th scope="col" aria-sort={ariaSort('createdAt')}>
+                <a href={sortHref('createdAt')} class="sort-link">
+                  Date
+                  <span aria-hidden="true">{ariaSort('createdAt') === 'ascending' ? '▲' : ariaSort('createdAt') === 'descending' ? '▼' : ''}</span>
+                </a>
+              </th>
+              <th scope="col">Order #</th>
+              <th scope="col">Customer</th>
+              <th scope="col" class="col-optional">Items</th>
+              <th scope="col" aria-sort={ariaSort('totalMinor')}>
+                <a href={sortHref('totalMinor')} class="sort-link">
+                  Total
+                  <span aria-hidden="true">{ariaSort('totalMinor') === 'ascending' ? '▲' : ariaSort('totalMinor') === 'descending' ? '▼' : ''}</span>
+                </a>
+              </th>
+              <th scope="col" class="col-optional">Payment</th>
+              <th scope="col">Status</th>
+              <th scope="col" aria-label="Actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr>
+                <td class="col-optional">{formatDate(item.createdAt)}</td>
+                <td>
+                  <a href={`/admin/orders/${item.id}`} class="orders-number-link">{item.orderNumber}</a>
+                </td>
+                <td>
+                  <span class="orders-customer-name">{item.customerName}</span>
+                  <span class="orders-customer-email">{item.customerEmail}</span>
+                </td>
+                <td class="col-optional">{item.itemCount}</td>
+                <td>{formatPrice(item.totalMinor, item.currency)}</td>
+                <td class="col-optional">
+                  <span class:list={['admin-badge', { 'admin-badge-paid': item.paymentStatus === 'paid', 'admin-badge-refunded': item.paymentStatus === 'refunded' }]}>
+                    {formatStatus(item.paymentStatus)}
+                  </span>
+                  <span class="orders-payment-method">{PAYMENT_METHOD_LABELS[item.paymentMethod] ?? item.paymentMethod}</span>
+                </td>
+                <td>
+                  <span class:list={['admin-badge', `admin-badge-status-${item.status}`]}>
+                    {formatStatus(item.status)}
+                  </span>
+                </td>
+                <td class="orders-table-actions">
+                  <a href={`/admin/orders/${item.id}`}>View</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="orders-pagination">
+        <form method="get" action="/admin/orders" class="orders-page-size-form">
+          <input type="hidden" name="q" value={params.search} />
+          <input type="hidden" name="status" value={params.status} />
+          <input type="hidden" name="payment" value={params.paymentStatus} />
+          <input type="hidden" name="sort" value={params.sort} />
+          <input type="hidden" name="direction" value={params.direction} />
+          <label for="limit">Rows per page</label>
+          <select id="limit" name="limit" data-auto-submit>
+            {ORDER_PAGE_SIZE_OPTIONS.map((size) => (
+              <option value={size} selected={params.pageSize === size}>{size}</option>
+            ))}
+          </select>
+          <noscript>
+            <button type="submit" class="admin-btn admin-btn-secondary">Apply</button>
+          </noscript>
+        </form>
+
+        <div class="orders-pagination-nav">
+          <span class="orders-pagination-summary">
+            {total === 0 ? '0 results' : `${(page - 1) * params.pageSize + 1}–${Math.min(page * params.pageSize, total)} of ${total}`}
+            {totalPages > 0 && ` · Page ${page} of ${totalPages}`}
+          </span>
+          {page > 1 ? (
+            <a href={buildHref({ page: page - 1 }, true)} class="admin-btn admin-btn-secondary">Previous</a>
+          ) : (
+            <span class="admin-btn admin-btn-secondary is-disabled" aria-disabled="true">Previous</span>
+          )}
+          {page < totalPages ? (
+            <a href={buildHref({ page: page + 1 }, true)} class="admin-btn admin-btn-secondary">Next</a>
+          ) : (
+            <span class="admin-btn admin-btn-secondary is-disabled" aria-disabled="true">Next</span>
+          )}
+        </div>
+      </div>
+    </>
+  )}
+</AdminLayout>
+
+<script>
+  // Progressive enhancement only, same as the Products Grid's own
+  // data-auto-submit script -- every control here already works via
+  // plain <form method="get"> without it.
+  document.querySelectorAll<HTMLSelectElement>('[data-auto-submit]').forEach((select) => {
+    select.addEventListener('change', () => {
+      const form = select.closest('form');
+      if (form instanceof HTMLFormElement) {
+        if (typeof (form as unknown as { requestSubmit?: () => void }).requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .orders-search-form {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 30rem;
+    margin-bottom: 1rem;
+  }
+  .orders-search-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 8px;
+    font: inherit;
+  }
+
+  .orders-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .orders-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .orders-filter-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--admin-text-muted);
+  }
+  .orders-filter-field select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 6px;
+    font: inherit;
+    background: var(--admin-surface);
+  }
+  .orders-clear-filters {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--admin-brand);
+    text-decoration: none;
+    align-self: center;
+  }
+  .orders-clear-filters:hover {
+    text-decoration: underline;
+  }
+
+  .orders-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--admin-text-muted);
+    background: var(--admin-surface);
+    border: 1px dashed var(--admin-border-strong);
+    border-radius: var(--admin-radius);
+  }
+
+  .orders-table-scroll {
+    padding: 0;
+    overflow-x: auto;
+  }
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .orders-table th,
+  .orders-table td {
+    padding: 0.65rem 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid var(--admin-border);
+    white-space: nowrap;
+  }
+  .orders-table th {
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--admin-text-muted);
+    background: var(--admin-surface-sunken);
+  }
+  .orders-table tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  .orders-table tbody tr:hover {
+    background: var(--admin-surface-sunken);
+  }
+  .orders-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .sort-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .sort-link:hover {
+    color: var(--admin-brand);
+  }
+  .col-optional {
+    display: none;
+  }
+  @media (min-width: 720px) {
+    .col-optional {
+      display: table-cell;
+    }
+  }
+
+  .orders-number-link {
+    color: var(--admin-text);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .orders-number-link:hover {
+    color: var(--admin-brand);
+    text-decoration: underline;
+  }
+
+  .orders-customer-name {
+    display: block;
+    font-weight: 600;
+    color: var(--admin-text);
+  }
+  .orders-customer-email {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--admin-text-muted);
+  }
+
+  .orders-payment-method {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--admin-text-muted);
+  }
+
+  .orders-table-actions a {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--admin-brand);
+    text-decoration: none;
+  }
+  .orders-table-actions a:hover {
+    text-decoration: underline;
+  }
+
+  /* Order-status / payment-status badge colors now live in the shared
+     /admin.css (.admin-badge-status-*, .admin-badge-paid,
+     .admin-badge-refunded) -- see that file's top-of-file doc comment.
+     'unpaid' intentionally uses the plain default .admin-badge style
+     (neutral, not alarming -- every order starts unpaid, it isn't itself
+     a problem state). */
+
+  .admin-btn.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .orders-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .orders-page-size-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--admin-text-muted);
+  }
+  .orders-page-size-form select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 6px;
+    font: inherit;
+  }
+  .orders-pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .orders-pagination-summary {
+    font-size: 0.82rem;
+    color: var(--admin-text-muted);
+  }
+</style>

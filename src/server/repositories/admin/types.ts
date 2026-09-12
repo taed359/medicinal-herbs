@@ -16,6 +16,58 @@ import type {
   AdminProductListResult,
   AdminProductWriteInput,
 } from '../../../domain/admin-types';
+import type {
+  AdminOrderDetailView,
+  AdminOrderListItem,
+  AdminOrderListParams,
+  AdminOrderListResult,
+  AdminOrderStats,
+  AdminOrderStatusUpdateInput,
+} from '../../../domain/admin-order-types';
+
+/**
+ * Admin write/read contract for order management. Separate interface
+ * from AdminProductRepository (same reasoning as admin-order-types.ts's
+ * own top-of-file doc comment: orders and products share no query logic
+ * or shapes) -- concrete Postgres implementation under
+ * ./postgres/admin-order-repository.ts, wired together in ./index.ts.
+ */
+export interface AdminOrderRepository {
+  /** Server-side filtered/sorted/paginated order listing -- see the
+   *  Orders Admin Grid's doc comment on
+   *  src/pages/admin/orders/index.astro. Every filter/sort value is
+   *  validated by the caller before reaching here (see
+   *  parseAdminOrderListParams); the repository itself additionally
+   *  guards `sort` against a fixed column allow-list so a bad value can
+   *  never become a raw ORDER BY column. */
+  list(params: AdminOrderListParams): Promise<AdminOrderListResult>;
+
+  /** Full detail for one order (by internal id, not orderNumber -- see
+   *  AdminOrderDetailView's own doc comment), or null if it doesn't
+   *  exist. Used to render /admin/orders/[id] and pre-fill its
+   *  status-update form. */
+  getById(id: string): Promise<AdminOrderDetailView | null>;
+
+  /** Updates status and/or paymentStatus in place. Either field may be
+   *  omitted (left unchanged) -- see AdminOrderStatusUpdateInput's doc
+   *  comment. Throws if `id` doesn't exist. No general `update()` here
+   *  the way products have one: every other order field is a historical
+   *  snapshot from checkout (see schema.ts's own doc comment on
+   *  order_items) and is never meant to be editable from admin. */
+  updateStatus(id: string, input: AdminOrderStatusUpdateInput): Promise<void>;
+
+  /** Dashboard-only summary (total orders, pending count, all-time paid
+   *  revenue) -- see AdminOrderStats's own doc comment for why this is
+   *  an all-time figure rather than a time-windowed one. */
+  getStats(): Promise<AdminOrderStats>;
+
+  /** Most-recently-placed orders, for the dashboard's "Recent orders"
+   *  list -- same role as AdminProductRepository.list()'s pageSize: 5
+   *  call on the product side, but its own dedicated method since order
+   *  listing's sort/filter params would be overkill for "just the
+   *  newest N". */
+  listRecent(limit: number): Promise<AdminOrderListItem[]>;
+}
 
 export interface AdminProductRepository {
   /** All categories (published or not) -- populates the product form's
