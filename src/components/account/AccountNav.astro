@@ -1,0 +1,137 @@
+---
+/**
+ * Sidebar navigation for the signed-in customer account area (Dashboard,
+ * My Orders, plus the still-unwired placeholders) -- extracted out of
+ * src/pages/customer/account.astro so it can be reused as-is by
+ * src/pages/customer/orders/[orderNumber].astro (the new order-detail
+ * page) instead of copy-pasted a second time. Mirrors the Magento 2 (Hyva
+ * theme) "My Account" sidebar's item set structurally, adapted to what
+ * this project's own schema/features actually support -- see
+ * account.astro's own file-level doc comment for the full reasoning on
+ * why Address Book/Settings/Account Information stay "(Sắp ra mắt)"
+ * placeholders rather than real links, and why there's no Wishlist/
+ * Compare/Downloadable/Payment-methods/Newsletter entry at all.
+ *
+ * `active` picks which single item renders as the current, non-link
+ * entry (Magento's own sidebar does the same -- the current section is a
+ * plain <strong>, everything else is a real <a>) -- every OTHER page
+ * value renders that item as a link back to it instead. `active="orders"`
+ * covers BOTH the full order-history page (orders/index.astro) and the
+ * order-detail page (orders/[orderNumber].astro) -- Magento's own sidebar
+ * keeps "My Orders" highlighted on its order-view page too, since it's
+ * still part of that section. Extend the union (and the two branches
+ * below) the day a real Account Information or Settings page exists.
+ */
+import { getTranslations, type Locale } from '../../i18n/utils';
+
+interface Props {
+  lang: Locale;
+  active: 'dashboard' | 'orders';
+}
+const { lang, active } = Astro.props;
+const a = getTranslations(lang).account;
+
+const dashboardHref = `/customer/account?lang=${lang}`;
+const ordersHref = `/customer/orders?lang=${lang}`;
+---
+<aside class="acct-nav" aria-label={a.metaTitle}>
+  <nav>
+    <ul class="m-0 p-0 list-none" role="list">
+      {active === 'dashboard' ? (
+        <li class="acct-nav-item acct-nav-item-current" aria-current="page">{a.navDashboard}</li>
+      ) : (
+        <li class="acct-nav-item"><a href={dashboardHref} data-astro-reload>{a.navDashboard}</a></li>
+      )}
+      <li class="acct-nav-item acct-nav-item-disabled">
+        {a.navAccountInfo}
+        <span class="acct-soon">{a.comingSoonLabel}</span>
+      </li>
+      <li class="acct-nav-item acct-nav-item-disabled">
+        {a.navAddresses}
+        <span class="acct-soon">{a.comingSoonLabel}</span>
+      </li>
+      {active === 'orders' ? (
+        <li class="acct-nav-item acct-nav-item-current" aria-current="page">{a.navOrders}</li>
+      ) : (
+        <li class="acct-nav-item"><a href={ordersHref} data-astro-reload>{a.navOrders}</a></li>
+      )}
+      <li class="acct-nav-item acct-nav-item-disabled">
+        {a.navSettings}
+        <span class="acct-soon">{a.comingSoonLabel}</span>
+      </li>
+      <li class="acct-nav-divider" aria-hidden="true"></li>
+      <li class="acct-nav-item">
+        <button type="button" data-account-logout class="acct-nav-logout">{a.navLogout}</button>
+      </li>
+    </ul>
+  </nav>
+</aside>
+
+<style>
+  .acct-nav {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-editorial);
+    padding: 0.5rem;
+  }
+  @media (min-width: 1024px) {
+    .acct-nav {
+      flex: 0 0 15rem;
+      position: sticky;
+      top: 6rem;
+    }
+  }
+
+  .acct-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9375rem;
+    color: var(--color-heading);
+    border-radius: var(--radius-editorial);
+  }
+  .acct-nav-item a {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+  }
+  .acct-nav-item a:hover,
+  .acct-nav-item a:focus-visible {
+    color: var(--color-amber);
+  }
+  .acct-nav-item-current {
+    font-weight: 700;
+    background: color-mix(in srgb, var(--color-pine) 8%, transparent);
+    color: var(--color-pine-dark);
+  }
+  .acct-nav-item-disabled {
+    color: var(--color-muted);
+    cursor: default;
+  }
+  .acct-soon {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .acct-nav-divider {
+    border-top: 1px solid var(--color-border);
+    margin: 0.5rem 0.375rem;
+  }
+  .acct-nav-logout {
+    font: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--color-body);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .acct-nav-logout:hover,
+  .acct-nav-logout:focus-visible {
+    color: var(--color-amber);
+  }
+</style>

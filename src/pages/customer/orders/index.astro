@@ -1,0 +1,440 @@
+---
+/**
+ * Full, paginated order-history page (/customer/orders?lang=vi|zh) --
+ * modeled on the Magento 2 (Hyva theme) `sales/order/history` template
+ * the user shared as a reference. Fills in the "View all orders" link
+ * the dashboard's own Recent Orders card (src/pages/customer/account.astro)
+ * always deferred on -- see that file's own doc comment -- and gives
+ * AccountNav's "My Orders" sidebar item ({@link
+ * ../../components/account/AccountNav.astro}) a real destination instead
+ * of an in-page anchor on the dashboard.
+ *
+ * Adapted from the Magento reference the same way the dashboard and
+ * order-detail pages were:
+ *   - Columns are Order # / Date / Ship To / Total / Status / View --
+ *     "Ship To" is `orders.customerName` (the recipient name captured
+ *     directly on the order row; see schema.ts's own doc comment on why
+ *     there's no separate address-book entity to join against instead).
+ *   - No "Reorder" column/action -- same deferred status as on the
+ *     order-detail page (needs its own price/stock/active-status
+ *     re-validation logic before it can safely re-add historical items
+ *     to a live cart; see claude/project-status.md's Deferred section).
+ *   - Real pagination (10/20/50 per page, via `?page=&limit=`) backed by
+ *     `listOrdersForCustomerPaged` (order-service.ts) -- a genuine COUNT(*)
+ *     query, not a guessed "is there a next page" from row count alone.
+ *   - "View" opens the real order-detail page
+ *     (/customer/orders/[orderNumber]) added alongside the dashboard --
+ *     not Magento's own tabbed sales/order/view (Invoices/Shipments/
+ *     Credit Memos have no equivalent entity in this schema either).
+ */
+export const prerender = false;
+
+import Layout from '../../../layouts/Layout.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import AccountNav from '../../../components/account/AccountNav.astro';
+import { getTranslations, localePath } from '../../../i18n/utils';
+import { resolveAuthLocale } from '../../../i18n/auth';
+import { listOrdersForCustomerPaged, type CustomerOrderListItem } from '../../../server/commerce/order-service';
+import { formatOrderMoney, formatOrderDate, getOrderStatusLabels } from '../../../lib/order-format';
+
+const lang = resolveAuthLocale(Astro.url.searchParams);
+
+const customerUser = Astro.locals.customerUser;
+if (!customerUser) {
+  const redirectBack = encodeURIComponent(Astro.url.pathname + Astro.url.search);
+  return Astro.redirect(`/customer/login?lang=${lang}&redirect=${redirectBack}`);
+}
+
+const t = getTranslations(lang);
+const a = t.account;
+
+const homeHref = localePath(lang, '');
+const accountHref = `/customer/account?lang=${lang}`;
+
+// Same 10/20/50 choices as the Magento reference's own limiter.
+const ALLOWED_LIMITS = [10, 20, 50] as const;
+const requestedLimit = Number(Astro.url.searchParams.get('limit'));
+const limit = (ALLOWED_LIMITS as readonly number[]).includes(requestedLimit) ? requestedLimit : 10;
+
+const requestedPage = Number(Astro.url.searchParams.get('page'));
+let page = Number.isFinite(requestedPage) && requestedPage >= 1 ? Math.floor(requestedPage) : 1;
+
+let { items, total } = await listOrdersForCustomerPaged(customerUser.id, { limit, offset: (page - 1) * limit });
+let totalPages = total > 0 ? Math.ceil(total / limit) : 1;
+
+// A stale/hand-edited `?page=` past the last real page re-fetches at the
+// clamped page instead of just rendering an empty table.
+if (page > totalPages) {
+  page = totalPages;
+  ({ items, total } = await listOrdersForCustomerPaged(customerUser.id, { limit, offset: (page - 1) * limit }));
+}
+
+const statusLabels = getOrderStatusLabels(t);
+const formatMoney = (minorUnits: number, currency: string) => formatOrderMoney(minorUnits, currency, lang);
+const formatDate = (iso: string) => formatOrderDate(iso, lang);
+
+function orderHref(order: CustomerOrderListItem): string {
+  return `/customer/orders/${encodeURIComponent(order.orderNumber)}?lang=${lang}`;
+}
+
+function pageHref(targetPage: number): string {
+  const params = new URLSearchParams({ lang, limit: String(limit), page: String(targetPage) });
+  return `/customer/orders?${params.toString()}`;
+}
+
+function limitHref(targetLimit: number): string {
+  const params = new URLSearchParams({ lang, limit: String(targetLimit), page: '1' });
+  return `/customer/orders?${params.toString()}`;
+}
+---
+<Layout lang="en" uiLang={lang} htmlLang={lang} title={`${a.navOrders} — ${t.common.siteName}`} noindex={true}>
+  <section class="acct-section py-8 sm:py-10" aria-labelledby="acct-orders-heading">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: a.metaTitle, href: accountHref },
+          { label: a.navOrders, current: true },
+        ]}
+      />
+
+      <h1 id="acct-orders-heading" class="acct-welcome font-serif">{a.navOrders}</h1>
+
+      <div class="acct-layout">
+        <AccountNav lang={lang} active="orders" />
+
+        <div class="acct-main">
+          <section class="acct-card" aria-labelledby="acct-orders-list-heading">
+            <h2 id="acct-orders-list-heading" class="sr-only">{a.navOrders}</h2>
+
+            {items.length === 0 ? (
+              <div class="acct-orders-empty">
+                <p class="acct-orders-empty-heading">{a.ordersEmptyHeading}</p>
+                <p class="acct-orders-empty-body">{a.ordersEmptyBody}</p>
+                <a href={homeHref} data-astro-reload class="btn btn-primary mt-3">{a.continueShoppingButton}</a>
+              </div>
+            ) : (
+              <Fragment>
+                <div class="acct-orders-table-wrap">
+                  <table class="acct-orders-table">
+                    <thead>
+                      <tr>
+                        <th class="acct-th">{a.orderNumberColumn}</th>
+                        <th class="acct-th acct-col-secondary">{a.dateColumn}</th>
+                        <th class="acct-th acct-col-secondary">{a.shipToColumn}</th>
+                        <th class="acct-th">{a.totalColumn}</th>
+                        <th class="acct-th acct-col-secondary">{a.statusColumn}</th>
+                        <th class="acct-th acct-col-view"><span class="sr-only">{a.viewOrderLabel}</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((order) => (
+                        <tr class="acct-tr">
+                          <td class="acct-td" data-label={a.orderNumberColumn}>
+                            <span class="acct-order-number">{order.orderNumber}</span>
+                            <span class="acct-order-date-mobile">{formatDate(order.createdAt)}</span>
+                          </td>
+                          <td class="acct-td acct-col-secondary">{formatDate(order.createdAt)}</td>
+                          <td class="acct-td acct-col-secondary">{order.shipToName}</td>
+                          <td class="acct-td">{formatMoney(order.totalMinor, order.currency)}</td>
+                          <td class="acct-td acct-col-secondary">
+                            <span class="acct-status-badge" data-status={order.status}>{statusLabels[order.status] || order.status}</span>
+                          </td>
+                          <td class="acct-td acct-col-view">
+                            <a href={orderHref(order)} data-astro-reload class="acct-view-link">{a.viewOrderLabel}</a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="acct-orders-toolbar">
+                  <p class="acct-orders-count">{a.ordersCountLabel.replace('{count}', String(total))}</p>
+
+                  <div class="acct-orders-toolbar-right">
+                    {totalPages > 1 && (
+                      <nav class="acct-pager" aria-label={a.navOrders}>
+                        {page > 1 ? (
+                          <a href={pageHref(page - 1)} data-astro-reload class="acct-pager-link">{a.previousPageLabel}</a>
+                        ) : (
+                          <span class="acct-pager-link acct-pager-disabled" aria-disabled="true">{a.previousPageLabel}</span>
+                        )}
+                        <span class="acct-pager-current">
+                          {a.pageOfLabel.replace('{current}', String(page)).replace('{total}', String(totalPages))}
+                        </span>
+                        {page < totalPages ? (
+                          <a href={pageHref(page + 1)} data-astro-reload class="acct-pager-link">{a.nextPageLabel}</a>
+                        ) : (
+                          <span class="acct-pager-link acct-pager-disabled" aria-disabled="true">{a.nextPageLabel}</span>
+                        )}
+                      </nav>
+                    )}
+
+                    <div class="acct-per-page">
+                      <span class="acct-per-page-label">{a.perPageLabel}</span>
+                      {ALLOWED_LIMITS.map((l) => (
+                        l === limit ? (
+                          <span class="acct-per-page-current" aria-current="true">{l}</span>
+                        ) : (
+                          <a href={limitHref(l)} data-astro-reload class="acct-per-page-link">{l}</a>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Fragment>
+            )}
+          </section>
+
+          <p class="acct-back-row">
+            <a href={accountHref} data-astro-reload class="acct-back-link">← {a.backToAccountLabel}</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .acct-section {
+    background: var(--color-cream);
+    min-height: 60vh;
+  }
+
+  .acct-welcome {
+    font-size: 1.625rem;
+    font-weight: 500;
+    color: var(--color-pine-dark);
+    margin: 0 0 1.5rem;
+  }
+  html[lang="zh"] .acct-welcome { letter-spacing: 0; }
+
+  .acct-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  @media (min-width: 1024px) {
+    .acct-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+  }
+
+  .acct-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .acct-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-editorial);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .acct-card { padding: 1.75rem 2rem; }
+  }
+
+  /* ---------- Empty state ---------- */
+  .acct-orders-empty {
+    text-align: center;
+    padding: 1.5rem 0;
+  }
+  .acct-orders-empty-heading {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin: 0 0 0.375rem;
+  }
+  .acct-orders-empty-body {
+    font-size: 0.9375rem;
+    color: var(--color-body);
+    margin: 0;
+  }
+
+  /* ---------- Table ---------- */
+  .acct-orders-table-wrap {
+    overflow-x: auto;
+    margin: 0 -0.5rem;
+  }
+  .acct-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .acct-th {
+    text-align: left;
+    padding: 0.625rem 0.5rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+  .acct-td {
+    padding: 0.875rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-heading);
+    vertical-align: middle;
+  }
+  .acct-tr:last-child .acct-td {
+    border-bottom: 0;
+  }
+  .acct-order-number {
+    font-weight: 600;
+    display: block;
+  }
+  .acct-order-date-mobile {
+    display: inline;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin-top: 0.125rem;
+  }
+  .acct-col-secondary {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .acct-col-secondary { display: table-cell; }
+    .acct-order-date-mobile { display: none; }
+  }
+  .acct-col-view {
+    text-align: right;
+  }
+  .acct-view-link {
+    color: var(--color-pine-dark);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+  }
+  .acct-view-link:hover,
+  .acct-view-link:focus-visible {
+    color: var(--color-amber);
+  }
+
+  .acct-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1875rem 0.625rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--color-pine) 10%, transparent);
+    color: var(--color-pine-dark);
+  }
+  .acct-status-badge[data-status="cancelled"] {
+    background: color-mix(in srgb, var(--color-sale) 12%, transparent);
+    color: var(--color-sale);
+  }
+  .acct-status-badge[data-status="pending"] {
+    background: color-mix(in srgb, var(--color-amber-decorative) 15%, transparent);
+    color: var(--color-amber);
+  }
+
+  /* ---------- Toolbar: count + pager + per-page ---------- */
+  .acct-orders-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    margin-top: 1.25rem;
+    padding-top: 1.125rem;
+    border-top: 1px solid var(--color-border);
+  }
+  @media (min-width: 640px) {
+    .acct-orders-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+  .acct-orders-count {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+  .acct-orders-toolbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .acct-pager {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+  }
+  .acct-pager-link {
+    color: var(--color-pine-dark);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acct-pager-link:hover,
+  .acct-pager-link:focus-visible {
+    color: var(--color-amber);
+  }
+  .acct-pager-disabled {
+    color: var(--color-muted);
+    text-decoration: none;
+    cursor: default;
+  }
+  .acct-pager-current {
+    color: var(--color-body);
+    white-space: nowrap;
+  }
+
+  .acct-per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+  .acct-per-page-link,
+  .acct-per-page-current {
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+  }
+  .acct-per-page-link {
+    color: var(--color-pine-dark);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acct-per-page-link:hover,
+  .acct-per-page-link:focus-visible {
+    color: var(--color-amber);
+  }
+  .acct-per-page-current {
+    font-weight: 700;
+    color: var(--color-pine-dark);
+    background: color-mix(in srgb, var(--color-pine) 8%, transparent);
+  }
+
+  /* ---------- Back link ---------- */
+  .acct-back-row {
+    margin: 0;
+  }
+  .acct-back-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-pine-dark);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acct-back-link:hover,
+  .acct-back-link:focus-visible {
+    color: var(--color-amber);
+  }
+</style>

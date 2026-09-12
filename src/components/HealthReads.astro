@@ -21,6 +21,19 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   { key: 'tcmBasics', image: imgTcm },
 ];
 
+// Stage: "featured + list" redesign (was a single, uniform divided list --
+// see the git history/claude/project-status.md for why: this section
+// deliberately avoided a 3rd card grid on a homepage that already has two
+// -- HealthGoals' discovery grid and NaturalOils' commerce grid). That
+// reasoning still holds for the REST of the items below, which stay a
+// plain divided list, not a grid. The first item now gets a distinct,
+// larger "lead story" treatment instead -- an asymmetric hero+list
+// pattern (the same one health/editorial sites use for an article index)
+// gives the section a clear focal point and visual hierarchy without
+// reintroducing a uniform grid: there is still only ONE card-like element
+// here, not a repeated tile pattern.
+const [featured, ...rest] = items;
+
 // ROUTE STATUS, re-verified fresh for this stage: no route exists under
 // `health-reads/{slug}` OR under `blogs/{slug}` anywhere in src/pages.
 // Worth noting separately: the i18n schema itself declares
@@ -30,22 +43,22 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
 // between the declared intended path and the one actually linked.
 // Neither `health-reads/*` nor `blogs/*` exists today either way, so
 // this pass does not resolve which one is "correct" -- that's a content/
-// routing decision, not a visual one. Per this stage's instruction, each
-// article's existing (still unresolved) destination is preserved
-// unchanged rather than guessed at or swapped to "#".
+// routing decision, not a visual one. Each article's existing (still
+// unresolved) destination is preserved unchanged rather than guessed at
+// or swapped to "#".
 //
-// The section-level "view all" CTA: re-requested explicitly for this
-// stage despite the same missing-route problem above -- confirmed with
-// the user, who chose "UI only for now" (same treatment already used for
-// AnnouncementBar's store-locator button). So `t.healthReads.ctaViewAll`
-// (an already-existing, previously-unused i18n string) is now rendered
-// below as a real, unwired `<button>` -- never an `<a href="#">`, which
-// would silently jump to the top of the page -- so nothing here claims a
-// working destination that doesn't exist yet. Wire it to a real href
-// once an actual index route exists under either `health-reads/` or
-// `blogs/` (see the basePath discrepancy noted above -- worth resolving
-// at the same time, since the individual article links need the same
-// fix).
+// The section-level "view all" CTA: still UI-only for the same
+// missing-route reason above (confirmed with the user previously, same
+// treatment already used for AnnouncementBar's store-locator button). So
+// `t.healthReads.ctaViewAll` renders below as a real, unwired `<button>`
+// -- never an `<a href="#">`, which would silently jump to the top of
+// the page -- so nothing here claims a working destination that doesn't
+// exist yet. Wire it to a real href once an actual index route exists
+// under either `health-reads/` or `blogs/` (see the basePath discrepancy
+// noted above -- worth resolving at the same time, since the individual
+// article links need the same fix).
+const featuredData = t.healthReads.items[featured.key];
+const featuredHref = localePath(lang, `health-reads/${featuredData.slug}`);
 ---
 <section class="hr-section" aria-labelledby="health-reads-heading">
   <div class="container-editorial">
@@ -54,43 +67,59 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
       <h2 id="health-reads-heading" class="text-heading-section font-serif m-0">{t.healthReads.heading}</h2>
     </div>
 
-    <!--
-      A single divided list at every breakpoint -- not a card grid (the
-      homepage already has two: HealthGoals' discovery grid and
-      NaturalOils' commerce grid) and not a horizontal mobile carousel
-      either. The previous horizontal scroll-snap treatment made sense
-      for square photo cards; it doesn't for this row-based editorial
-      format, which already reads naturally as a vertical list on every
-      screen size -- so there's nothing to adapt between breakpoints and
-      no duplicated markup is needed.
+    <div class="hr-layout">
+      <!--
+        Lead story -- one link, same aria-label-on-the-anchor pattern the
+        list rows below (and ProductCard elsewhere) already use, so a
+        screen reader announces just the title, not the full paragraph,
+        as the link's accessible name.
+      -->
+      <a href={featuredHref} data-astro-reload aria-label={featuredData.title} class="hr-feature group">
+        <span class="hr-feature-media">
+          <Image src={featured.image} alt="" width={480} height={480} loading="lazy" decoding="async" class="h-full w-full object-cover" />
+        </span>
+        <span class="hr-feature-text">
+          <span class="hr-feature-kicker">
+            <span class="hr-feature-index" aria-hidden="true">01</span>
+            <span class="hr-feature-label">{t.healthReads.featuredLabel}</span>
+          </span>
+          <h3 class="hr-feature-title font-serif m-0">
+            {featuredData.title}
+          </h3>
+          <p class="hr-feature-description m-0 mt-2">{featuredData.description}</p>
+          <span class="hr-feature-cta" aria-hidden="true">
+            {t.healthReads.readMore}
+            <span class="hr-row-arrow" aria-hidden="true"> →</span>
+          </span>
+        </span>
+      </a>
 
-      Each row is one link (matching ProductCard's existing pattern of a
-      single anchor with an explicit `aria-label` set to just the title,
-      rather than letting the screen reader announce the full description
-      paragraph as part of the link's accessible name).
-    -->
-    <ul class="hr-list m-0 p-0 list-none" role="list">
-      {items.map((it) => {
-        const d = t.healthReads.items[it.key];
-        const href = localePath(lang, `health-reads/${d.slug}`);
-        return (
-          <li class="hr-row">
-            <a href={href} data-astro-reload aria-label={d.title} class="hr-row-link group">
-              <span class="hr-row-thumb">
-                <Image src={it.image} alt="" width={220} height={220} loading="lazy" decoding="async" class="h-full w-full object-cover" />
-              </span>
-              <span class="hr-row-text">
-                <h3 class="text-heading-card font-serif m-0">
-                  {d.title}
-                  <span class="hr-row-arrow" aria-hidden="true"> →</span>
-                </h3>
-                <p class="hr-row-description m-0 mt-1">{d.description}</p>
-              </span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+      <!-- Remaining articles: a plain divided list, deliberately not a
+           second card treatment -- see the frontmatter comment above. -->
+      <ul class="hr-list m-0 p-0 list-none" role="list">
+        {rest.map((it, i) => {
+          const d = t.healthReads.items[it.key];
+          const href = localePath(lang, `health-reads/${d.slug}`);
+          return (
+            <li class="hr-row">
+              <a href={href} data-astro-reload aria-label={d.title} class="hr-row-link group">
+                <span class="hr-row-index" aria-hidden="true">{String(i + 2).padStart(2, '0')}</span>
+                <span class="hr-row-thumb">
+                  <Image src={it.image} alt="" width={220} height={220} loading="lazy" decoding="async" class="h-full w-full object-cover" />
+                </span>
+                <span class="hr-row-text">
+                  <h3 class="text-heading-card font-serif m-0">
+                    {d.title}
+                    <span class="hr-row-arrow" aria-hidden="true"> →</span>
+                  </h3>
+                  <p class="hr-row-description m-0 mt-1">{d.description}</p>
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
 
     <div class="hr-view-all-wrap">
       <button type="button" class="hr-view-all btn-tertiary">
@@ -102,21 +131,19 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
 </section>
 
 <style>
-  /* Quiet editorial conclusion to the homepage -- generous but not
-     competing with BrandStory/TrustCertifications' full rhythm, similar
-     reasoning to ExpertConsultation's spacing decision (the same "is the
-     page getting too vertically spacious" concern applies here too, and
-     this section's content is inherently more compact/scannable than a
-     heritage or trust statement). */
+  /* Quiet editorial section, now with one clear focal point (the lead
+     story) instead of a flat, uniform list -- still restrained relative
+     to BrandStory/TrustCertifications' fuller rhythm, same reasoning as
+     ExpertConsultation's own spacing decision. */
   .hr-section {
-    padding-block: 1.25rem; /* Stage 2N: compact tier, was 3/4/5rem */
+    padding-block: 2rem;
     background: var(--color-cream);
   }
   @media (min-width: 640px) {
-    .hr-section { padding-block: 1.5rem; }
+    .hr-section { padding-block: 2.75rem; }
   }
   @media (min-width: 1024px) {
-    .hr-section { padding-block: 1.75rem; }
+    .hr-section { padding-block: 3.5rem; }
   }
 
   .hr-header .eyebrow {
@@ -132,6 +159,139 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     letter-spacing: -0.01em;
   }
 
+  .hr-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  /* ---------- Lead story ---------- */
+  .hr-feature {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    text-decoration: none;
+    color: inherit;
+    background: var(--color-paper-2);
+    border: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-paper-2));
+    border-radius: var(--radius-editorial);
+    overflow: hidden;
+    box-shadow: 0 6px 20px -16px color-mix(in srgb, var(--color-pine-dark) 30%, transparent);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .hr-feature:hover,
+  .hr-feature:focus-visible {
+    border-color: color-mix(in srgb, var(--color-amber-decorative) 55%, var(--color-paper-2));
+    box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--color-pine-dark) 42%, transparent);
+    transform: translateY(-2px);
+  }
+  .hr-feature:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 768px) {
+    .hr-feature { flex-direction: row; align-items: stretch; gap: 0; }
+  }
+
+  .hr-feature-media {
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--color-paper-2);
+  }
+  .hr-feature-media :global(img) {
+    transition: transform 0.4s ease;
+  }
+  .hr-feature:hover .hr-feature-media :global(img),
+  .hr-feature:focus-visible .hr-feature-media :global(img) {
+    transform: scale(1.05);
+  }
+  @media (min-width: 768px) {
+    .hr-feature-media { flex: 0 0 42%; aspect-ratio: auto; }
+  }
+
+  .hr-feature-text {
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.5rem 1.75rem;
+  }
+  @media (min-width: 768px) {
+    .hr-feature-text {
+      flex: 1;
+      justify-content: center;
+      padding: 2rem 2.5rem;
+      max-width: 34rem;
+    }
+  }
+
+  .hr-feature-kicker {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+  .hr-feature-index {
+    font-family: var(--font-serif);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-amber-decorative);
+  }
+  .hr-feature-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-amber);
+  }
+  html[lang="zh"] .hr-feature-label { letter-spacing: 0; }
+
+  .hr-feature-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    color: var(--color-pine-dark);
+  }
+  @media (min-width: 1024px) {
+    .hr-feature-title { font-size: 1.75rem; }
+  }
+  html[lang="zh"] .hr-feature-title { letter-spacing: 0; line-height: 1.5; }
+
+  .hr-feature-description {
+    max-width: 42rem;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--color-body);
+  }
+
+  /* Explicit "read more" affordance for the lead card only -- decorative
+     (aria-hidden, see the markup comment) since the whole card is already
+     one link with its own accessible name. The larger footprint of the
+     lead card benefits from a stated next action instead of relying on
+     the reader to notice a small trailing arrow the way the compact list
+     rows below it do. */
+  .hr-feature-cta {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 1.125rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-pine-dark);
+    padding-bottom: 0.1875rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-pine-dark) 35%, transparent);
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .group:hover .hr-feature-cta,
+  .group:focus-visible .hr-feature-cta {
+    border-color: var(--color-amber-decorative);
+  }
+  .hr-feature-cta .hr-row-arrow {
+    opacity: 1;
+    margin-left: 0.375rem;
+  }
+
+  /* ---------- Remaining articles: plain divided list ---------- */
   .hr-list {
     width: 100%;
     border-top: 1px solid color-mix(in srgb, var(--color-pine-dark) 11%, var(--color-surface));
@@ -144,7 +304,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   .hr-row-link {
     display: flex;
     align-items: flex-start;
-    gap: 1.125rem;
+    gap: 1rem;
     padding-block: 1.25rem;
     /* Negative inline margin cancels the added inline padding below, so
        the row's TEXT still lines up at the same left edge as before --
@@ -155,15 +315,13 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     transition: background-color 0.2s ease;
   }
   @media (min-width: 640px) {
-    .hr-row-link { align-items: center; gap: 1.5rem; padding-block: 1.375rem; }
+    .hr-row-link { align-items: center; gap: 1.375rem; padding-block: 1.375rem; }
   }
 
-  /* Stage: row hover feedback -- previously only the arrow changed color
-     on hover/focus, so the row itself felt inert/static. A faint amber
-     wash (7% mix, well below anything that would fight the row text's
-     own contrast) plus a matching thumb-border tint reuses the same
-     amber-decorative accent the arrow already uses on hover, instead of
-     introducing a new color. */
+  /* Row hover feedback -- a faint amber wash (7% mix, well below anything
+     that would fight the row text's own contrast) plus a matching thumb-
+     border tint reuses the same amber-decorative accent the arrow already
+     uses on hover, instead of introducing a new color. */
   .hr-row-link:hover,
   .hr-row-link:focus-visible {
     background-color: color-mix(in oklab, var(--color-amber-decorative) 7%, transparent);
@@ -172,40 +330,53 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   .hr-row-link:focus-visible .hr-row-thumb {
     border-color: color-mix(in srgb, var(--color-amber-decorative) 45%, var(--color-surface));
   }
+  .hr-row-link:hover .hr-row-thumb :global(img),
+  .hr-row-link:focus-visible .hr-row-thumb :global(img) {
+    transform: scale(1.06);
+  }
+
+  /* Small serif numeral, hidden on the narrowest screens where every bit
+     of horizontal room goes to the thumbnail + text instead. */
+  .hr-row-index {
+    display: none;
+    flex-shrink: 0;
+    align-self: center;
+    font-family: var(--font-serif);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-amber-decorative);
+    min-width: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .hr-row-index { display: block; }
+  }
 
   .hr-row-thumb {
     display: block;
     flex-shrink: 0;
-    /* Stage: bumped from 4.5rem/5.5rem -- the redesigned icons (see
-       health-reads/*.svg) are fuller illustrations, not the old faint
-       single-stroke swooshes, so they read better with a bit more room
-       instead of looking cramped in the smaller box. */
-    width: 5rem;
+    width: 4.5rem;
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    /* --radius-thumb: the token already exists specifically for this
-       kind of small thumbnail treatment (see global.css); this is its
-       first real use on the homepage. */
     border: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-surface));
     border-radius: var(--radius-editorial);
     transition: border-color 0.2s ease;
   }
+  .hr-row-thumb :global(img) {
+    transition: transform 0.3s ease;
+  }
   @media (min-width: 640px) {
-    .hr-row-thumb { width: 6.25rem; }
+    .hr-row-thumb { width: 5.25rem; }
   }
 
   .hr-row-text { min-width: 0; }
 
   /* Desktop only: caps the row's actual readable content (title +
-     description) to an editorial measure, the same pattern
-     TrustCertifications already uses for its own row text
-     (.tc-row-text { max-width: 38rem }). .hr-list itself stays full
-     width inside .container-editorial -- this doesn't narrow the
-     section, it stops the row's TEXT from stretching to fill the full
-     96rem container once the description's own 2-line clamp and the
+     description) to an editorial measure -- .hr-list itself stays full
+     width, this only stops the row's TEXT from stretching to fill the
+     full container once the description's own 2-line clamp and the
      title's short length leave far more room than either needs. */
   @media (min-width: 1024px) {
-    .hr-row-text { max-width: 36rem; }
+    .hr-row-text { max-width: 34rem; }
   }
 
   /* Scoped bump, not a change to the shared .text-heading-card class:
@@ -214,7 +385,7 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
      for HealthReads' own article titles only, via the extra .hr-row-text
      ancestor class (higher specificity than the shared 0,1,0 rule). */
   .hr-row-text .text-heading-card {
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
     font-weight: 600;
     line-height: 1.4;
   }
@@ -223,12 +394,13 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
     display: inline-block;
     color: var(--color-amber);
     opacity: 0.7;
-    transition: opacity 0.2s ease, color 0.2s ease;
+    transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
   }
   .group:hover .hr-row-arrow,
   .group:focus-visible .hr-row-arrow {
     color: var(--color-pine);
     opacity: 1;
+    transform: translateX(2px);
   }
   .group:focus-visible {
     outline: 2px solid var(--color-pine);
@@ -251,19 +423,18 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   html[lang="zh"] .hr-row-text h3 { letter-spacing: 0; }
   html[lang="zh"] .hr-header .text-heading-section { letter-spacing: 0; }
 
-  /* Section-level "view all" -- centered below the list rather than
+  /* Section-level "view all" -- centered below the layout rather than
      NaturalOils' left-heading/right-CTA header row (.no-header): that
      split-header treatment is a commerce-grid convention, and adopting
      it here would restructure this section's own established "quiet
-     editorial conclusion" identity (see the .hr-section comment above)
-     just to fit a CTA. A centered link under the list keeps that intact.
-     Reuses the sitewide .btn-tertiary/.btn-tertiary-arrow base (see
-     global.css) with the same editorial-token color override
+     editorial" identity just to fit a CTA. A centered link keeps that
+     intact. Reuses the sitewide .btn-tertiary/.btn-tertiary-arrow base
+     (see global.css) with the same editorial-token color override
      NaturalOils' own .no-view-all already applies (pine-dark, not the
      generic --color-brand), since this section uses that same token
      family throughout. */
   .hr-view-all-wrap {
-    margin-top: 2rem;
+    margin-top: 2.25rem;
     text-align: center;
   }
 
@@ -288,8 +459,17 @@ const items: ReadonlyArray<{ key: HRKey; image: ImageMetadata }> = [
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hr-row-arrow { transition: none; }
-    .hr-row-link { transition: none; }
-    .hr-row-thumb { transition: none; }
+    .hr-row-arrow,
+    .hr-row-link,
+    .hr-row-thumb,
+    .hr-row-thumb :global(img),
+    .hr-feature,
+    .hr-feature-media :global(img) {
+      transition: none;
+    }
+    .hr-feature:hover,
+    .hr-feature:focus-visible {
+      transform: none;
+    }
   }
 </style>

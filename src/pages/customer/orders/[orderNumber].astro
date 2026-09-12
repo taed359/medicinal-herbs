@@ -1,0 +1,457 @@
+---
+/**
+ * Order detail page for a signed-in customer
+ * (/customer/orders/[orderNumber]?lang=vi|zh) -- modeled on the Magento 2
+ * (Hyva theme) `sales/order/view/order_id/:id` template the user shared,
+ * adapted to what this project's own schema supports rather than copied
+ * verbatim:
+ *
+ *   - No separate Billing Address -- this project's orders only ever
+ *     capture ONE address (shipping) directly on the order row itself,
+ *     so there is only a "Shipping Address" card, not Magento's separate
+ *     billing/shipping pair.
+ *   - No named "Shipping Method" (e.g. Magento's "Flat Rate - Fixed") --
+ *     `shippingFeeMinor` is currently always 0 (see order-service.ts's
+ *     placeOrder), there's no shipping-method concept to name at all, so
+ *     that card is simply omitted rather than showing a fabricated label.
+ *   - No Invoices/Shipments/Refunds tabs -- this project has no separate
+ *     invoice/shipment/credit-memo tables, just a single `orders.status`
+ *     enum, so there's nothing for those tabs to list.
+ *   - "Reorder" is NOT implemented -- re-adding every line item to the
+ *     cart in one action is a real, separate feature (needs to handle
+ *     items whose variant no longer exists or has no active price) that
+ *     wasn't asked for here; noted under Deferred in claude/
+ *     project-status.md rather than built as a fake/broken button.
+ *   - "Print Order" IS implemented for real, just via the browser's own
+ *     print dialog (`window.print()`) plus print-only CSS that hides the
+ *     header/footer/sidebar -- no separate printable template was built
+ *     (Magento's own /sales/order/print/ is a distinct controller action;
+ *     this project doesn't need one since the on-screen layout already
+ *     prints cleanly once chrome is hidden).
+ *
+ * Authorization is STRICTER than the existing guest-facing
+ * /vi|zh/checkout/confirmation page: getOrderForCustomer (order-
+ * service.ts) requires the order's `customerId` to match the signed-in
+ * session's id, not just an email match -- see that function's own doc
+ * comment for why that's meaningfully tighter. An order that exists but
+ * belongs to someone else (or was placed as a guest, customerId null)
+ * renders the same "not found" state as an order number that doesn't
+ * exist at all -- never distinguishes the two, for the same
+ * information-leak reason getOrderByNumberForEmail already avoids it.
+ *
+ * Shares `src/components/account/AccountNav.astro` with
+ * src/pages/customer/account.astro (active="orders") and
+ * src/lib/order-format.ts's formatting helpers with both that page and
+ * (indirectly, for the status-label map) OrderConfirmationPage.astro.
+ */
+export const prerender = false;
+
+import Layout from '../../../layouts/Layout.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import AccountNav from '../../../components/account/AccountNav.astro';
+import { getTranslations, localePath } from '../../../i18n/utils';
+import { resolveAuthLocale } from '../../../i18n/auth';
+import { getOrderForCustomer } from '../../../server/commerce/order-service';
+import { formatOrderMoney, formatOrderDate, getOrderStatusLabels } from '../../../lib/order-format';
+
+const lang = resolveAuthLocale(Astro.url.searchParams);
+
+const customerUser = Astro.locals.customerUser;
+if (!customerUser) {
+  const redirectBack = encodeURIComponent(Astro.url.pathname + Astro.url.search);
+  return Astro.redirect(`/customer/login?lang=${lang}&redirect=${redirectBack}`);
+}
+
+const t = getTranslations(lang);
+const a = t.account;
+const oc = t.orderConfirmation;
+
+const homeHref = localePath(lang, '');
+const accountHref = `/customer/account?lang=${lang}`;
+
+const orderNumberParam = Astro.params.orderNumber;
+const order = orderNumberParam ? await getOrderForCustomer(orderNumberParam, customerUser.id) : null;
+
+if (!order) {
+  Astro.response.status = 404;
+}
+
+const statusLabels = order ? getOrderStatusLabels(t) : {};
+const formatMoney = (minorUnits: number, currency: string) => formatOrderMoney(minorUnits, currency, lang);
+const formatDate = (iso: string) => formatOrderDate(iso, lang);
+
+const addressParts = order
+  ? [order.shippingAddressLine1, order.shippingWard, order.shippingDistrict, order.shippingProvince].filter(Boolean)
+  : [];
+const dialablePhone = order ? order.customerPhone.replace(/(?!^\+)[^\d]/g, '') : '';
+
+const paymentMethodLabel = order
+  ? order.paymentMethod === 'cod'
+    ? oc.codLabel
+    : oc.bankTransferLabel
+  : '';
+---
+<Layout
+  lang="en"
+  uiLang={lang}
+  htmlLang={lang}
+  title={order ? `${order.orderNumber} — ${a.metaTitle} — ${t.common.siteName}` : `${a.orderNotFoundHeading} — ${t.common.siteName}`}
+  noindex={true}
+>
+  <section class="acct-section py-8 sm:py-10" aria-labelledby="acct-heading">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: a.metaTitle, href: accountHref },
+          { label: order ? order.orderNumber : a.orderNotFoundHeading, current: true },
+        ]}
+      />
+
+      <div class="acct-layout">
+        <AccountNav lang={lang} active="orders" />
+
+        <div class="acct-main">
+          {!order ? (
+            <section class="acct-card" aria-labelledby="acct-heading">
+              <h1 id="acct-heading" class="acct-card-heading font-serif">{a.orderNotFoundHeading}</h1>
+              <p class="acct-empty-note">{a.orderNotFoundBody}</p>
+              <a href={accountHref} data-astro-reload class="btn btn-primary mt-3">{a.backToOrdersLabel}</a>
+            </section>
+          ) : (
+            <>
+              <div class="acct-order-header" data-order-print-hide>
+                <div>
+                  <h1 id="acct-heading" class="acct-order-title font-serif">{order.orderNumber}</h1>
+                  <p class="acct-order-date">{formatDate(order.createdAt)}</p>
+                </div>
+                <span class="acct-status-badge" data-status={order.status}>{statusLabels[order.status] || order.status}</span>
+              </div>
+
+              <div class="acct-order-actions" data-order-print-hide>
+                <a href={accountHref} data-astro-reload class="acct-view-link">← {a.backToOrdersLabel}</a>
+                <button type="button" data-print-order class="btn btn-secondary acct-print-btn">{a.printOrderButton}</button>
+              </div>
+
+              <div class="acct-info-grid">
+                <section class="acct-card" aria-labelledby="acct-shipping-heading">
+                  <h2 id="acct-shipping-heading" class="acct-card-heading font-serif">{oc.shippingToHeading}</h2>
+                  <address class="acct-address">
+                    {order.customerName}<br />
+                    {addressParts.join(', ')}<br />
+                    <a href={`tel:${dialablePhone}`}>{order.customerPhone}</a>
+                  </address>
+                </section>
+                <section class="acct-card" aria-labelledby="acct-payment-heading">
+                  <h2 id="acct-payment-heading" class="acct-card-heading font-serif">{oc.paymentMethodLabel}</h2>
+                  <p class="acct-empty-note">{paymentMethodLabel}</p>
+                  {order.note && (
+                    <>
+                      <h3 class="acct-note-heading">{oc.noteLabel}</h3>
+                      <p class="acct-empty-note">{order.note}</p>
+                    </>
+                  )}
+                </section>
+              </div>
+
+              <section class="acct-card" aria-labelledby="acct-items-heading">
+                <h2 id="acct-items-heading" class="acct-card-heading font-serif">{oc.itemsHeading}</h2>
+                <div class="acct-orders-table-wrap">
+                  <table class="acct-orders-table">
+                    <thead>
+                      <tr>
+                        <th class="acct-th">{a.itemsColumn}</th>
+                        <th class="acct-th acct-col-secondary">{a.skuLabel}</th>
+                        <th class="acct-th acct-col-secondary">{a.unitPriceLabel}</th>
+                        <th class="acct-th">{a.qtyLabel}</th>
+                        <th class="acct-th acct-col-right">{a.lineTotalLabel}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {order.items.map((item) => (
+                        <tr class="acct-tr">
+                          <td class="acct-td">
+                            <span class="acct-item-name">{item.productName}</span>
+                            {item.variantLabel && <span class="acct-item-variant">{item.variantLabel}</span>}
+                            <span class="acct-item-sku-mobile">{a.skuLabel}: {item.sku}</span>
+                          </td>
+                          <td class="acct-td acct-col-secondary">{item.sku}</td>
+                          <td class="acct-td acct-col-secondary">{formatMoney(item.unitPriceMinor, order.currency)}</td>
+                          <td class="acct-td">{item.quantity}</td>
+                          <td class="acct-td acct-col-right">{formatMoney(item.lineTotalMinor, order.currency)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="acct-totals">
+                  <div class="acct-totals-row">
+                    <span>{oc.subtotalLabel}</span>
+                    <span>{formatMoney(order.subtotalMinor, order.currency)}</span>
+                  </div>
+                  <div class="acct-totals-row">
+                    <span>{oc.shippingFeeLabel}</span>
+                    <span>{order.shippingFeeMinor === 0 ? oc.shippingFeeFreeLabel : formatMoney(order.shippingFeeMinor, order.currency)}</span>
+                  </div>
+                  <div class="acct-totals-row acct-totals-total">
+                    <span>{oc.totalLabel}</span>
+                    <span>{formatMoney(order.totalMinor, order.currency)}</span>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+{order && (
+  <script>
+    document.querySelectorAll('[data-print-order]').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement) || button.dataset.wired === 'true') return;
+      button.dataset.wired = 'true';
+      button.addEventListener('click', () => window.print());
+    });
+  </script>
+)}
+
+<style>
+  .acct-section {
+    background: var(--color-cream);
+    min-height: 60vh;
+  }
+
+  .acct-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  @media (min-width: 1024px) {
+    .acct-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+  }
+
+  .acct-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .acct-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-editorial);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .acct-card { padding: 1.75rem 2rem; }
+  }
+
+  .acct-card-heading {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--color-pine-dark);
+    margin: 0 0 1rem;
+  }
+
+  .acct-empty-note {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--color-body);
+  }
+
+  /* ---------- Header row ---------- */
+  .acct-order-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .acct-order-title {
+    font-size: 1.625rem;
+    font-weight: 500;
+    color: var(--color-pine-dark);
+    margin: 0;
+  }
+  .acct-order-date {
+    font-size: 0.9375rem;
+    color: var(--color-muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .acct-order-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .acct-print-btn {
+    padding: 0.5rem 1.125rem;
+    font-size: 0.875rem;
+  }
+
+  .acct-view-link {
+    color: var(--color-pine-dark);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acct-view-link:hover,
+  .acct-view-link:focus-visible {
+    color: var(--color-amber);
+  }
+
+  /* ---------- Info grid ---------- */
+  .acct-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .acct-info-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .acct-address {
+    font-style: normal;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-body);
+  }
+  .acct-address a {
+    color: var(--color-pine-dark);
+  }
+  .acct-note-heading {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin: 1rem 0 0.375rem;
+  }
+
+  /* ---------- Items table ---------- */
+  .acct-orders-table-wrap {
+    overflow-x: auto;
+    margin: 0 -0.5rem;
+  }
+  .acct-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .acct-th {
+    text-align: left;
+    padding: 0.625rem 0.5rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+  .acct-td {
+    padding: 0.875rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-heading);
+    vertical-align: middle;
+  }
+  .acct-tr:last-child .acct-td {
+    border-bottom: 0;
+  }
+  .acct-col-secondary {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .acct-col-secondary { display: table-cell; }
+  }
+  .acct-col-right {
+    text-align: right;
+  }
+  .acct-item-name {
+    font-weight: 600;
+    display: block;
+  }
+  .acct-item-variant {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin-top: 0.125rem;
+  }
+  .acct-item-sku-mobile {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin-top: 0.125rem;
+  }
+  @media (min-width: 768px) {
+    .acct-item-sku-mobile { display: none; }
+  }
+
+  /* ---------- Totals ---------- */
+  .acct-totals {
+    max-width: 22rem;
+    margin: 1.5rem 0 0 auto;
+  }
+  .acct-totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9375rem;
+    color: var(--color-body);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .acct-totals-total {
+    border-bottom: 0;
+    padding-top: 0.75rem;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--color-pine-dark);
+  }
+
+  .acct-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1875rem 0.625rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--color-pine) 10%, transparent);
+    color: var(--color-pine-dark);
+  }
+  .acct-status-badge[data-status="cancelled"] {
+    background: color-mix(in srgb, var(--color-sale) 12%, transparent);
+    color: var(--color-sale);
+  }
+  .acct-status-badge[data-status="pending"] {
+    background: color-mix(in srgb, var(--color-amber-decorative) 15%, transparent);
+    color: var(--color-amber);
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    :global(header),
+    :global(footer),
+    :global([data-cart-drawer]),
+    :global(.acct-nav),
+    [data-order-print-hide] {
+      display: none !important;
+    }
+    .acct-layout {
+      display: block;
+    }
+    .acct-card {
+      border: 1px solid #ccc;
+      break-inside: avoid;
+    }
+  }
+</style>

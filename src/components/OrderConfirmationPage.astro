@@ -33,6 +33,11 @@ const homeHref = localePath(lang, '');
     data-confirmation-page
     data-home-href={homeHref}
     data-status-pending-label={t.orderConfirmation.statusPendingLabel}
+    data-status-confirmed-label={t.orderConfirmation.statusConfirmedLabel}
+    data-status-processing-label={t.orderConfirmation.statusProcessingLabel}
+    data-status-shipped-label={t.orderConfirmation.statusShippedLabel}
+    data-status-completed-label={t.orderConfirmation.statusCompletedLabel}
+    data-status-cancelled-label={t.orderConfirmation.statusCancelledLabel}
     data-cod-label={t.orderConfirmation.codLabel}
     data-bank-transfer-label={t.orderConfirmation.bankTransferLabel}
   >
@@ -277,6 +282,21 @@ const homeHref = localePath(lang, '');
     const copyAddressButton = root.querySelector('[data-confirmation-copy-address-btn]');
 
     const statusPendingLabel = root.dataset.statusPendingLabel ?? '';
+    // Full status->label map, added alongside the customer account
+    // dashboard (src/pages/customer/account.astro), which needs all 6
+    // order statuses translated -- this page previously only translated
+    // 'pending' and fell back to the raw English status word for every
+    // other one (o.status === 'pending' ? ... : o.status below), so this
+    // closes that same pre-existing gap here too rather than leaving it
+    // newly inconsistent next to the dashboard's own order list.
+    const statusLabels: Record<string, string> = {
+      pending: statusPendingLabel,
+      confirmed: root.dataset.statusConfirmedLabel ?? '',
+      processing: root.dataset.statusProcessingLabel ?? '',
+      shipped: root.dataset.statusShippedLabel ?? '',
+      completed: root.dataset.statusCompletedLabel ?? '',
+      cancelled: root.dataset.statusCancelledLabel ?? '',
+    };
     const codLabel = root.dataset.codLabel ?? '';
     const bankTransferLabel = root.dataset.bankTransferLabel ?? '';
 
@@ -346,7 +366,7 @@ const homeHref = localePath(lang, '');
 
       thankYouEl.textContent = (thankYouEl.dataset.template ?? '').replace('{orderNumber}', o.orderNumber);
       orderNumberEl.textContent = o.orderNumber;
-      statusEl.textContent = o.status === 'pending' ? statusPendingLabel : o.status;
+      statusEl.textContent = statusLabels[o.status] || o.status;
       paymentMethodEl.textContent = o.paymentMethod === 'cod' ? codLabel : bankTransferLabel;
       if (bankNoteEl instanceof HTMLElement) bankNoteEl.hidden = o.paymentMethod !== 'bank_transfer';
 

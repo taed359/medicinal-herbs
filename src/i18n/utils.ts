@@ -197,6 +197,15 @@ export interface TranslationSchema {
   healthReads: {
     eyebrow: string;
     heading: string;
+    // Small "Featured"-style eyebrow label shown on the lead article in
+    // the featured+list layout (see HealthReads.astro) -- distinct from
+    // the section-level `eyebrow` above.
+    featuredLabel: string;
+    // Static "read the article" affordance shown on the lead/featured
+    // card only (see HealthReads.astro's .hr-feature-cta) -- the list
+    // rows below it rely on the inline title arrow instead, since the
+    // lead card's larger footprint benefits from a more explicit CTA.
+    readMore: string;
     ctaViewAll: string;
     basePath: string; // e.g., "blogs"
     items: {
@@ -218,6 +227,70 @@ export interface TranslationSchema {
     heading: string;
     ctaViewAll: string;
     collectionPath: string; // e.g., "products/natural-oils"
+  };
+  account: {
+    metaTitle: string;
+    welcomeHeading: string; // "{name}" token
+    navDashboard: string;
+    navAccountInfo: string;
+    navAddresses: string;
+    navOrders: string;
+    navSettings: string;
+    navLogout: string;
+    // Shown next to sidebar items that don't have a real destination yet
+    // (Account Information edit, Address Book management, Settings) --
+    // same honesty convention as the header's own still-unwired account-
+    // menu items (Profile/Addresses/Wishlist/Settings all `href="#"`
+    // there too) rather than linking to a page that doesn't exist.
+    comingSoonLabel: string;
+    contactInfoHeading: string;
+    emailLabel: string;
+    // Shown only when locals.customerUser.emailVerified is false --
+    // informational only, no resend action wired here (that flow already
+    // exists on its own at /customer/verify-email).
+    emailUnverifiedNote: string;
+    addressBookHeading: string;
+    // Honest empty state -- there is no address-book table/feature yet
+    // (orders capture shipping details directly on the order itself, see
+    // schema.ts's own doc comment on `orders.shippingAddressLine1` etc.),
+    // so this can never show fabricated saved addresses.
+    addressBookEmpty: string;
+    recentOrdersHeading: string;
+    ordersEmptyHeading: string;
+    ordersEmptyBody: string;
+    continueShoppingButton: string;
+    orderNumberColumn: string;
+    dateColumn: string;
+    itemsColumn: string;
+    totalColumn: string;
+    statusColumn: string;
+    viewOrderLabel: string;
+    // --- Order-detail page (src/pages/customer/orders/[orderNumber].astro) ---
+    // Everything else that page needs (items heading, shipping-to
+    // heading, payment method + cod/bank-transfer labels, subtotal/
+    // shipping/total labels, the order note label) is deliberately
+    // REUSED from `orderConfirmation` below rather than duplicated here
+    // -- both pages show the same order shape, just to a guest vs. a
+    // signed-in customer.
+    backToOrdersLabel: string;
+    printOrderButton: string;
+    orderNotFoundHeading: string;
+    orderNotFoundBody: string;
+    skuLabel: string;
+    qtyLabel: string;
+    unitPriceLabel: string;
+    lineTotalLabel: string;
+    // --- Full order-history page (src/pages/customer/orders/index.astro,
+    // modeled on Magento's own sales/order/history) ---
+    shipToColumn: string;
+    // Dashboard "recent orders" card's link to the full history page below.
+    viewAllOrdersLabel: string;
+    ordersCountLabel: string; // "{count}" token
+    previousPageLabel: string;
+    nextPageLabel: string;
+    pageOfLabel: string; // "{current}" and "{total}" tokens
+    perPageLabel: string;
+    backToAccountLabel: string;
   };
   // Bulk/wholesale line -- products packaged in large containers (e.g.
   // 20L drums) for B2B buyers; price is deliberately "contact us" rather
@@ -513,6 +586,11 @@ export interface TranslationSchema {
     orderNumberLabel: string;
     statusLabel: string;
     statusPendingLabel: string;
+    statusConfirmedLabel: string;
+    statusProcessingLabel: string;
+    statusShippedLabel: string;
+    statusCompletedLabel: string;
+    statusCancelledLabel: string;
     paymentMethodLabel: string;
     codLabel: string;
     bankTransferLabel: string;

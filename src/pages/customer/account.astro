@@ -1,0 +1,378 @@
+---
+/**
+ * Customer account dashboard (/customer/account?lang=vi|zh) -- the page
+ * Header's account menu has linked to since it was built (accountHref =
+ * `/customer/account?lang=${lang}`) but which never existed yet (see
+ * src/middleware.ts's own doc comment: "there is no protected
+ * /customer/account yet"). Modeled on a Magento 2 (Hyva theme) "My
+ * Account" dashboard the user shared as a structural reference --
+ * sidebar nav + welcome heading + account-info card + address book +
+ * recent orders -- adapted to what this project's own schema and design
+ * system actually support, not copied verbatim:
+ *
+ *   - No `customer_addresses` table exists yet (orders capture shipping
+ *     details directly on the order itself -- see schema.ts's own doc
+ *     comment on `orders.shippingAddressLine1` etc.), so "Address Book"
+ *     below is an honest empty state, never fabricated saved addresses.
+ *   - Wishlist / Compare Products / Downloadable Products / Stored
+ *     Payment Methods / Newsletter subscriptions -- all real Magento
+ *     dashboard sections -- have no equivalent feature anywhere in this
+ *     app (confirmed by reading schema.ts), so none of them appear here.
+ *     This mirrors Header.astro's OWN account-menu, which already lists
+ *     Profile/Addresses/Wishlist/Settings as real menu items but leaves
+ *     every one of them `href="#"` today -- same honesty convention
+ *     continues here (a "(Sắp ra mắt)"/"(即将推出)" note, never a link to
+ *     a page that doesn't exist).
+ *   - "My Orders" IS real, backed by `orders.customerId` (see
+ *     `listOrdersForCustomer` in order-service.ts) -- capped at the last
+ *     10 here, same as Magento's own recent-orders preview, with a real
+ *     "View all orders" link to /customer/orders/index.astro (the full,
+ *     paginated history page -- Magento's own sales/order/history,
+ *     backed by `listOrdersForCustomerPaged`).
+ *   - "View" on an order links to /customer/orders/[orderNumber] -- a
+ *     dedicated, authenticated order-detail page (modeled on Magento's
+ *     own sales/order/view template) added alongside this dashboard,
+ *     scoped by the signed-in customerId (stricter than the existing
+ *     guest-by-email checkout-confirmation page, which stays as-is for
+ *     the post-checkout redirect flow -- see order-service.ts's
+ *     getOrderForCustomer vs. getOrderByNumberForEmail).
+ *   - The sidebar nav is its own component now
+ *     (src/components/account/AccountNav.astro), shared with the new
+ *     order-detail page, instead of duplicated markup+CSS in both files.
+ *
+ * Uses the site's normal Layout/Header/Footer (unlike the standalone
+ * auth-shell pages in this same directory) since a signed-in customer
+ * should be able to keep browsing/searching from here -- Header.astro's
+ * own doc comment on `customerUser` anticipates exactly this: "This read
+ * stays correct (and free) on the day any page using this Header ever
+ * does become server-rendered." This is that day. Route stays unprefixed
+ * (`/customer/account`, not `/vi/customer/account`) for the same reasons
+ * documented in src/i18n/auth.ts (middleware's literal `/customer/`
+ * prefix match, and Better Auth's own email links) -- language switches
+ * via `?lang=`, reusing `resolveAuthLocale` exactly as the other 5
+ * customer pages do. `lang="en"` is passed to Layout (not the resolved
+ * vi/zh value) so it treats this as an unprefixed route and skips
+ * hreflang alternates -- the exact same escape hatch already used by
+ * src/pages/privacy-policy.astro (`lang="en"` + an explicit `uiLang`
+ * override) for the same "real content, no locale-prefixed URL" shape.
+ */
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import AccountNav from '../../components/account/AccountNav.astro';
+import { getTranslations, localePath } from '../../i18n/utils';
+import { resolveAuthLocale } from '../../i18n/auth';
+import { listOrdersForCustomer, type CustomerOrderSummary } from '../../server/commerce/order-service';
+import { formatOrderMoney, formatOrderDate, getOrderStatusLabels } from '../../lib/order-format';
+
+const lang = resolveAuthLocale(Astro.url.searchParams);
+
+const customerUser = Astro.locals.customerUser;
+if (!customerUser) {
+  const redirectBack = encodeURIComponent(Astro.url.pathname + Astro.url.search);
+  return Astro.redirect(`/customer/login?lang=${lang}&redirect=${redirectBack}`);
+}
+
+const t = getTranslations(lang);
+const a = t.account;
+
+const homeHref = localePath(lang, '');
+
+const orders = await listOrdersForCustomer(customerUser.id, 10);
+const statusLabels = getOrderStatusLabels(t);
+const formatMoney = (minorUnits: number, currency: string) => formatOrderMoney(minorUnits, currency, lang);
+const formatDate = (iso: string) => formatOrderDate(iso, lang);
+
+function orderHref(order: CustomerOrderSummary): string {
+  return `/customer/orders/${encodeURIComponent(order.orderNumber)}?lang=${lang}`;
+}
+
+const displayName = customerUser.name || customerUser.email;
+---
+<Layout lang="en" uiLang={lang} htmlLang={lang} title={`${a.metaTitle} — ${t.common.siteName}`} noindex={true}>
+  <section class="acct-section py-8 sm:py-10" aria-labelledby="acct-heading">
+    <div class="container-page">
+      <Breadcrumbs
+        lang={lang}
+        class="mb-6"
+        items={[
+          { label: t.productDetail.breadcrumbHome, href: homeHref },
+          { label: a.metaTitle, current: true },
+        ]}
+      />
+
+      <h1 id="acct-heading" class="acct-welcome font-serif">{a.welcomeHeading.replace('{name}', displayName)}</h1>
+
+      <div class="acct-layout">
+        <AccountNav lang={lang} active="dashboard" />
+
+        <div class="acct-main">
+          <section class="acct-card" aria-labelledby="acct-contact-heading">
+            <h2 id="acct-contact-heading" class="acct-card-heading font-serif">{a.contactInfoHeading}</h2>
+            <p class="acct-contact-name">{customerUser.name}</p>
+            <p class="acct-contact-email">
+              <span class="acct-contact-email-label">{a.emailLabel}: </span>{customerUser.email}
+            </p>
+            {!customerUser.emailVerified && (
+              <p class="acct-unverified-note">{a.emailUnverifiedNote}</p>
+            )}
+          </section>
+
+          <section class="acct-card" aria-labelledby="acct-address-heading">
+            <h2 id="acct-address-heading" class="acct-card-heading font-serif">{a.addressBookHeading}</h2>
+            <p class="acct-empty-note">{a.addressBookEmpty}</p>
+          </section>
+
+          <section id="acct-orders" class="acct-card" aria-labelledby="acct-orders-heading">
+            <h2 id="acct-orders-heading" class="acct-card-heading font-serif">{a.recentOrdersHeading}</h2>
+
+            {orders.length === 0 ? (
+              <div class="acct-orders-empty">
+                <p class="acct-orders-empty-heading">{a.ordersEmptyHeading}</p>
+                <p class="acct-orders-empty-body">{a.ordersEmptyBody}</p>
+                <a href={homeHref} data-astro-reload class="btn btn-primary mt-3">{a.continueShoppingButton}</a>
+              </div>
+            ) : (
+              <div class="acct-orders-table-wrap">
+                <table class="acct-orders-table">
+                  <thead>
+                    <tr>
+                      <th class="acct-th">{a.orderNumberColumn}</th>
+                      <th class="acct-th acct-col-secondary">{a.dateColumn}</th>
+                      <th class="acct-th acct-col-secondary">{a.itemsColumn}</th>
+                      <th class="acct-th">{a.totalColumn}</th>
+                      <th class="acct-th acct-col-secondary">{a.statusColumn}</th>
+                      <th class="acct-th acct-col-view"><span class="sr-only">{a.viewOrderLabel}</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr class="acct-tr">
+                        <td class="acct-td" data-label={a.orderNumberColumn}>
+                          <span class="acct-order-number">{order.orderNumber}</span>
+                          <span class="acct-order-date-mobile">{formatDate(order.createdAt)}</span>
+                        </td>
+                        <td class="acct-td acct-col-secondary">{formatDate(order.createdAt)}</td>
+                        <td class="acct-td acct-col-secondary">{order.itemCount}</td>
+                        <td class="acct-td">{formatMoney(order.totalMinor, order.currency)}</td>
+                        <td class="acct-td acct-col-secondary">
+                          <span class="acct-status-badge" data-status={order.status}>{statusLabels[order.status] || order.status}</span>
+                        </td>
+                        <td class="acct-td acct-col-view">
+                          <a href={orderHref(order)} data-astro-reload class="acct-view-link">{a.viewOrderLabel}</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {orders.length > 0 && (
+              <p class="acct-view-all-row">
+                <a href={`/customer/orders?lang=${lang}`} data-astro-reload class="acct-view-all-link">{a.viewAllOrdersLabel}</a>
+              </p>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .acct-section {
+    background: var(--color-cream);
+    min-height: 60vh;
+  }
+
+  .acct-welcome {
+    font-size: 1.625rem;
+    font-weight: 500;
+    color: var(--color-pine-dark);
+    margin: 0 0 1.5rem;
+  }
+  html[lang="zh"] .acct-welcome { letter-spacing: 0; }
+
+  .acct-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  @media (min-width: 1024px) {
+    .acct-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+  }
+
+  /* ---------- Main column ---------- */
+  .acct-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .acct-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-editorial);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .acct-card { padding: 1.75rem 2rem; }
+  }
+
+  .acct-card-heading {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--color-pine-dark);
+    margin: 0 0 1rem;
+  }
+
+  .acct-contact-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin: 0 0 0.375rem;
+  }
+  .acct-contact-email {
+    font-size: 0.9375rem;
+    color: var(--color-body);
+    margin: 0;
+  }
+  .acct-contact-email-label {
+    color: var(--color-muted);
+  }
+  .acct-unverified-note {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+    color: var(--color-amber);
+  }
+
+  .acct-empty-note {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--color-body);
+  }
+
+  /* ---------- Orders: empty state ---------- */
+  .acct-orders-empty {
+    text-align: center;
+    padding: 1.5rem 0;
+  }
+  .acct-orders-empty-heading {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin: 0 0 0.375rem;
+  }
+  .acct-orders-empty-body {
+    font-size: 0.9375rem;
+    color: var(--color-body);
+    margin: 0;
+  }
+
+  /* ---------- Orders: table ---------- */
+  .acct-orders-table-wrap {
+    overflow-x: auto;
+    margin: 0 -0.5rem;
+  }
+  .acct-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .acct-th {
+    text-align: left;
+    padding: 0.625rem 0.5rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+  .acct-td {
+    padding: 0.875rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-heading);
+    vertical-align: middle;
+  }
+  .acct-tr:last-child .acct-td {
+    border-bottom: 0;
+  }
+  .acct-order-number {
+    font-weight: 600;
+    display: block;
+  }
+  .acct-order-date-mobile {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin-top: 0.125rem;
+  }
+  .acct-col-secondary {
+    display: none;
+  }
+  .acct-order-date-mobile {
+    display: inline;
+  }
+  @media (min-width: 768px) {
+    .acct-col-secondary { display: table-cell; }
+    .acct-order-date-mobile { display: none; }
+  }
+  .acct-col-view {
+    text-align: right;
+  }
+  .acct-view-link {
+    color: var(--color-pine-dark);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+  }
+  .acct-view-link:hover,
+  .acct-view-link:focus-visible {
+    color: var(--color-amber);
+  }
+
+  .acct-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1875rem 0.625rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--color-pine) 10%, transparent);
+    color: var(--color-pine-dark);
+  }
+  .acct-status-badge[data-status="cancelled"] {
+    background: color-mix(in srgb, var(--color-sale) 12%, transparent);
+    color: var(--color-sale);
+  }
+  .acct-status-badge[data-status="pending"] {
+    background: color-mix(in srgb, var(--color-amber-decorative) 15%, transparent);
+    color: var(--color-amber);
+  }
+
+  .acct-view-all-row {
+    margin: 1.25rem 0 0;
+    text-align: right;
+  }
+  .acct-view-all-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-pine-dark);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acct-view-all-link:hover,
+  .acct-view-all-link:focus-visible {
+    color: var(--color-amber);
+  }
+</style>
