@@ -282,6 +282,17 @@ export const zh: TranslationSchema = {
     prevLabel: '上一页',
     nextLabel: '下一页',
     pageLabel: '第 {page} 页',
+    itemsRangeLabel: '第 {start}–{end} 项，共 {total} 项',
+  },
+  toolbar: {
+    viewGridLabel: '网格视图',
+    viewListLabel: '列表视图',
+    sortByLabel: '排序方式',
+    sortPositionLabel: '位置',
+    sortNameLabel: '名称',
+    sortPriceLabel: '价格',
+    sortDirectionAscLabel: '当前为升序，点击切换为降序',
+    sortDirectionDescLabel: '当前为降序，点击切换为升序',
   },
   product: {
     ctaViewDetails: '查看详情',

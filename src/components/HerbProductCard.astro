@@ -316,4 +316,37 @@ const contactHref = localePath(lang, 'contact');
     font-size: 0.75rem;
     color: var(--color-sale);
   }
+
+  /* "List" view mode: the listing page toggles a `data-product-view`
+     attribute on the grid's ancestor <ul> (see e.g. natural-oils'
+     `[...page].astro` and ProductToolbar.astro's own doc comment) --
+     `:global()` is required here to reach outside this component's own
+     scoped styles for that ancestor selector, while `.no-card` etc.
+     after it stay normally scoped to this component (Astro's documented
+     pattern for "style based on parent/ancestor state"). Image becomes a
+     fixed-width thumbnail on the left instead of a full-width square, so
+     the card reads as a row rather than a tile. */
+  :global([data-product-view='list']) .no-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  :global([data-product-view='list']) .no-card-media {
+    flex: 0 0 96px;
+    width: 96px;
+    aspect-ratio: auto;
+    border-bottom: 0;
+    border-right: 1px solid color-mix(in srgb, var(--color-pine-dark) 10%, var(--color-paper-2));
+  }
+  :global([data-product-view='list']) .no-card-img {
+    padding: 0.625rem;
+  }
+  :global([data-product-view='list']) .no-card-info {
+    padding: 0.75rem 1rem;
+  }
+  @media (min-width: 480px) {
+    :global([data-product-view='list']) .no-card-media {
+      flex-basis: 140px;
+      width: 140px;
+    }
+  }
 </style>

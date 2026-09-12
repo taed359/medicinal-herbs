@@ -296,6 +296,17 @@ export const vi: TranslationSchema = {
     prevLabel: 'Trang trước',
     nextLabel: 'Trang sau',
     pageLabel: 'Trang {page}',
+    itemsRangeLabel: '{start}–{end} trong {total} sản phẩm',
+  },
+  toolbar: {
+    viewGridLabel: 'Xem dạng lưới',
+    viewListLabel: 'Xem dạng danh sách',
+    sortByLabel: 'Sắp xếp theo',
+    sortPositionLabel: 'Vị trí',
+    sortNameLabel: 'Tên',
+    sortPriceLabel: 'Giá',
+    sortDirectionAscLabel: 'Đang sắp xếp tăng dần, bấm để đổi thành giảm dần',
+    sortDirectionDescLabel: 'Đang sắp xếp giảm dần, bấm để đổi thành tăng dần',
   },
   product: {
     ctaViewDetails: 'Xem chi tiết',

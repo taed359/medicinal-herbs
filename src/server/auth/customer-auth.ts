@@ -25,10 +25,27 @@
  * @better-auth/core's init-options.d.mts): `requireEmailVerification:
  * false` (default) + `emailVerification.sendOnSignUp: true` -- this sends
  * the verification email and creates emailVerified:false on sign-up
- * *without* blocking session creation or later sign-ins. The actual
- * verification gate belongs at the application layer (the checkout/order
- * mutation route checking `session.user.emailVerified` directly), exactly
- * as the brief's own §19 requires.
+ * *without* blocking session creation or later sign-ins.
+ *
+ * CORRECTION (2026-09-12, raised by the user -- "customer phải confirm
+ * thì mới có quyền đăng nhập chứ nhỉ?"): an earlier version of this
+ * comment said the brief's §19 app-layer verification gate would live at
+ * checkout ("the checkout/order mutation route checking
+ * session.user.emailVerified directly"). That gate was never actually
+ * built -- grepped src/pages/api/checkout.ts, which places an order for
+ * ANY caller, signed in or not, with no `emailVerified` check anywhere.
+ * Confirmed with the user this stays as-is rather than building it now,
+ * for a real reason beyond "not done yet": this project separately
+ * allows full GUEST checkout (no account at all -- see
+ * order-service.ts's own doc comments), so gating only a signed-in-but-
+ * unverified customer's checkout would be easy to route around by simply
+ * checking out as a guest with the same email, making that gate low-value
+ * on its own. `emailVerified` today is informational only -- read by
+ * `middleware.ts` into `locals.customerUser.emailVerified` and shown as a
+ * "chưa xác minh" note on `/customer/account` (see account.astro), never
+ * used to block anything. Revisit if verified-only functionality (e.g.
+ * transactional emails, order-status notifications) ever gets built and
+ * genuinely needs a real, confirmed email address to work.
  */
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';

@@ -14,16 +14,51 @@ import type { Page } from 'astro';
  *   ...
  *   <Pager page={page} basePath={localePath(lang, t.someCollection.collectionPath)} />
  *
- * `basePath` must be the locale-aware base URL of the listing page WITHOUT
- * a trailing slash (e.g. `/vi/products/natural-oils`) -- it's used to build
- * the numbered page links (`${basePath}/` for page 1, `${basePath}/2/` for
- * page 2, ...), matching Astro's own `[...page].astro` convention where
- * page 1 has no `/N/` suffix. `page.url.prev` / `page.url.next` come
- * straight from Astro and are used as-is for the prev/next links.
+ * `basePath` must be the locale-aware, EFFECTIVE base URL for THIS
+ * listing's current filter state, WITHOUT a trailing slash (e.g.
+ * `/vi/products/natural-oils`, or `/vi/products/natural-oils/sort/name-asc`
+ * when a non-default sort is active -- see the Sort/View toolbar's own
+ * `[...page].astro` pages, which pass a `pagerBasePath` that already has
+ * the current sort slug folded in, NOT the plain category `basePath` that
+ * `ProductToolbar` uses to link to other sort options). It's used to build
+ * EVERY link this component renders -- numbered pages (`${basePath}/` for
+ * page 1, `${basePath}/2/` for page 2, ...) AND prev/next -- matching
+ * Astro's own `[...page].astro` convention where page 1 has no `/N/`
+ * suffix.
  *
- * Renders nothing when there's only one page, so it's always safe to drop
- * into a listing page regardless of how many items that collection
- * currently has.
+ * Prev/next links are deliberately computed from `basePath` + page number
+ * (via the same `pageHref()` numbered links use), NOT read from Astro's
+ * own `page.url.prev`/`page.url.next`. Astro's `paginate()` computes those
+ * two URLs itself, internally, using only the bare page number -- it has
+ * no idea that a caller might rename/prefix the route's own `page` param
+ * afterwards (as the Sort/View toolbar's `getStaticPaths` does, to fold a
+ * `sort/{key}-{dir}` slug onto the page-number segment). So on any listing
+ * page that does that kind of post-hoc param rewrite, `page.url.prev`/
+ * `page.url.next` point at the WRONG page -- the same page number, but
+ * under the plain unsorted route, silently dropping the active sort the
+ * moment someone pages forward/back. Building every link (numbered AND
+ * prev/next) from the one `basePath` this component is actually given
+ * keeps them consistent by construction, whether or not the caller happens
+ * to be doing that kind of rewrite.
+ *
+ * Also renders an "Items X-Y of Z" range line (`page.start`/`page.end` are
+ * Astro's own 0-based indices into `page.data`, so +1 both for the
+ * customer-facing 1-based count) -- modeled on a Magento (Hyva theme)
+ * toolbar the user shared as a reference, which additionally has a
+ * "Show 12/24/36" per-page limiter. That limiter was deliberately NOT
+ * built here: it depends on Magento being server-rendered, whereas this
+ * project's product listings are static (`paginate()` at build time with
+ * a fixed `pageSize: 12` -- see astro.config's `output: 'static'`
+ * posture in claude/project-status.md), and with only 15-19 products per
+ * category today, 12-per-page already means at most 2 pages -- discussed
+ * with the user directly rather than building a decorative control that
+ * can't actually change the page size, or a real one that would mean
+ * moving these listings off static rendering. Revisit if the catalog
+ * grows enough that this trade-off changes.
+ *
+ * The items-range line renders whenever the page has at least one item
+ * (`page.total > 0`) -- even on a single-page collection, where the numbered
+ * nav below it still renders nothing, same as before this change.
  */
 interface Props {
   page: Page<unknown>;
@@ -31,9 +66,15 @@ interface Props {
   prevLabel: string;
   nextLabel: string;
   pageLabel: string; // e.g. "Trang {page}" -- "{page}" is replaced with the page number
+  itemsRangeLabel: string; // "{start}", "{end}", "{total}" tokens
 }
 
-const { page, basePath, prevLabel, nextLabel, pageLabel } = Astro.props;
+const { page, basePath, prevLabel, nextLabel, pageLabel, itemsRangeLabel } = Astro.props;
+
+const itemsRangeText = itemsRangeLabel
+  .replace('{start}', String(page.start + 1))
+  .replace('{end}', String(page.end + 1))
+  .replace('{total}', String(page.total));
 
 // `basePath` commonly comes from `localePath()`, which -- under this
 // project's `trailingSlash: 'ignore'` + default `directory` build format
@@ -45,6 +86,14 @@ const { page, basePath, prevLabel, nextLabel, pageLabel } = Astro.props;
 const cleanBasePath = basePath.replace(/\/+$/, '');
 const pageHref = (n: number) => (n <= 1 ? `${cleanBasePath}/` : `${cleanBasePath}/${n}/`);
 const ariaLabelFor = (n: number) => pageLabel.replace('{page}', String(n));
+
+// See this component's own doc comment above for why these are derived
+// from `basePath` + `page.currentPage`/`page.lastPage` rather than read
+// from `page.url.prev`/`page.url.next` directly.
+const hasPrev = page.currentPage > 1;
+const hasNext = page.currentPage < page.lastPage;
+const prevHref = hasPrev ? pageHref(page.currentPage - 1) : undefined;
+const nextHref = hasNext ? pageHref(page.currentPage + 1) : undefined;
 
 // Compact ellipsis-based page list: always show first, last, current, and
 // one neighbour on each side of the current page; collapse any gap into a
@@ -62,68 +111,102 @@ for (let n = 1; n <= page.lastPage; n += 1) {
 }
 ---
 
-{page.lastPage > 1 && (
-  <nav class="pager" aria-label="Pagination">
-    {page.url.prev ? (
-      <a class="pager-arrow" href={page.url.prev} aria-label={prevLabel}>
-        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
-          <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </a>
-    ) : (
-      // No previous page: rendered as a disabled <button>, not an <a>
-      // without an href. An anchor with no href resolves to the ARIA
-      // "generic" role, which -- per the ARIA spec -- prohibits aria-label
-      // (axe/Lighthouse flag this as "prohibited ARIA attributes"). A
-      // disabled <button> keeps the "button" role, which does support
-      // aria-label, and `disabled` already removes it from the tab order
-      // and from screen-reader interaction, so no separate aria-disabled/
-      // tabindex is needed here.
-      <button type="button" class="pager-arrow" disabled aria-label={prevLabel}>
-        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
-          <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-    )}
+{page.total > 0 && (
+  <div class="pager-toolbar">
+    <p class="pager-amount">{itemsRangeText}</p>
 
-    <ul class="pager-list">
-      {pageNumbers.map((n) =>
-        n === 'ellipsis' ? (
-          <li class="pager-ellipsis" aria-hidden="true">&hellip;</li>
+    {page.lastPage > 1 && (
+      <nav class="pager" aria-label="Pagination">
+        {prevHref ? (
+          <a class="pager-arrow" href={prevHref} aria-label={prevLabel}>
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
         ) : (
-          <li>
-            <a
-              class="pager-link"
-              href={pageHref(n)}
-              aria-label={ariaLabelFor(n)}
-              aria-current={n === page.currentPage ? 'page' : undefined}
-            >
-              {n}
-            </a>
-          </li>
-        )
-      )}
-    </ul>
+          // No previous page: rendered as a disabled <button>, not an <a>
+          // without an href. An anchor with no href resolves to the ARIA
+          // "generic" role, which -- per the ARIA spec -- prohibits aria-label
+          // (axe/Lighthouse flag this as "prohibited ARIA attributes"). A
+          // disabled <button> keeps the "button" role, which does support
+          // aria-label, and `disabled` already removes it from the tab order
+          // and from screen-reader interaction, so no separate aria-disabled/
+          // tabindex is needed here.
+          <button type="button" class="pager-arrow" disabled aria-label={prevLabel}>
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M5 1 1 5.5 5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        )}
 
-    {page.url.next ? (
-      <a class="pager-arrow" href={page.url.next} aria-label={nextLabel}>
-        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
-          <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </a>
-    ) : (
-      <button type="button" class="pager-arrow" disabled aria-label={nextLabel}>
-        <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
-          <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
+        <ul class="pager-list">
+          {pageNumbers.map((n) =>
+            n === 'ellipsis' ? (
+              <li class="pager-ellipsis" aria-hidden="true">&hellip;</li>
+            ) : (
+              <li>
+                <a
+                  class="pager-link"
+                  href={pageHref(n)}
+                  aria-label={ariaLabelFor(n)}
+                  aria-current={n === page.currentPage ? 'page' : undefined}
+                >
+                  {n}
+                </a>
+              </li>
+            )
+          )}
+        </ul>
+
+        {nextHref ? (
+          <a class="pager-arrow" href={nextHref} aria-label={nextLabel}>
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        ) : (
+          <button type="button" class="pager-arrow" disabled aria-label={nextLabel}>
+            <svg width="6" height="11" viewBox="0 0 6 11" fill="none" aria-hidden="true">
+              <path d="M1 1 5 5.5 1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        )}
+      </nav>
     )}
-  </nav>
+  </div>
 )}
 
 <style>
-  .pager {
+  /* Wraps the "Items X-Y of Z" line + the numbered nav -- stacked and
+     centered on mobile (an amount line above a pager nav reads fine
+     narrow), a left/right row from sm+ once there's width to spare.
+     Renders even when `.pager` (the numbered nav) doesn't, on a
+     single-page collection -- so this can't just be `.pager`'s own
+     margin-top; it needs its own. */
+  .pager-toolbar {
     margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .pager-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .pager-amount {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-body);
+    white-space: nowrap;
+  }
+
+  .pager {
+    margin-top: 0;
     display: flex;
     align-items: center;
     justify-content: center;

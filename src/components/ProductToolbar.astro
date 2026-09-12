@@ -1,0 +1,337 @@
+---
+import type { SortDir, SortKey } from '../lib/product-sort';
+import { sortHref } from '../lib/product-sort';
+
+/**
+ * Toolbar rendered ABOVE a paginated product grid: a Grid/List view
+ * toggle on the left, a "Sort By" field + direction toggle on the
+ * right -- modeled on a Magento 2 (Hyva theme) toolbar the user shared
+ * as a reference. Deliberately a separate component from `Pager.astro`
+ * (which renders the "Items X-Y of Z" line + numbered pager BELOW the
+ * grid): the Magento reference itself splits these into two toolbar
+ * rows at different positions, and the two controls have very
+ * different runtime behavior (see below), so keeping them apart keeps
+ * each component's job obvious.
+ *
+ * Grid/List is PURE CLIENT STATE -- a CSS-only relayout of the already-
+ * rendered cards via a `data-product-view="grid" | "list"` attribute on
+ * the listing page's own grid wrapper (see e.g. natural-oils'
+ * `[...page].astro`), persisted to `localStorage` so it survives a
+ * reload/other page, wrapped in try/catch per this project's usual
+ * "browser storage is a best-effort per-viewer convenience" posture --
+ * it never blocks rendering if storage is unavailable, it just falls
+ * back to the CSS default (grid). No data fetching, no build-time
+ * concern, and nothing here scales badly with catalog size.
+ *
+ * Sort By + direction are NOT client-side: this project's storefront is
+ * fully static (`output: 'static'`), so there is no server to re-query
+ * and no client-side dataset larger than one page to re-sort correctly
+ * (see `product-sort.ts`'s own doc comment for why). Picking a sort
+ * option or toggling direction is therefore a plain navigation to a
+ * different pre-built static page (`sortHref()`) -- staying on the
+ * CURRENT page number (`currentPage` prop) rather than always jumping to
+ * page 1, since `lastPage` never changes across a category's sort
+ * combinations (see `sortHref()`'s own doc comment: it only depends on
+ * item count + page size, not order), so the current page number is
+ * always a real page under any combination this toolbar can link to. The
+ * <select> uses a small inline script
+ * (`location.assign`) rather than Astro's client-router `navigate()`
+ * helper (unused elsewhere in this codebase) to avoid adding a new
+ * client-side dependency for a plain "jump to another URL" action;
+ * this intentionally forgoes the soft-transition feel Pager's plain
+ * `<a>` links get from `<ClientRouter />` (see Layout.astro) -- a
+ * `<select>`'s native `change` event can't be a same-document
+ * transition anyway without a framework, so there's nothing lost by a
+ * normal navigation here specifically. The direction toggle IS a plain
+ * `<a>`, so it DOES get the same soft transition as Pager's page links.
+ */
+interface Props {
+  sortKey: SortKey;
+  sortDir: SortDir;
+  basePath: string;
+  /** The listing page's current 1-based page number (`page.currentPage`)
+   * -- every link this toolbar renders stays on this page number instead
+   * of resetting to page 1 (see this component's own doc comment above
+   * and `sortHref()`'s doc comment for why that's always safe). */
+  currentPage: number;
+  /** false when every product in this category is price-on-request
+   * (e.g. wholesale -- see product-sort.ts's own doc comment) --
+   * omits the Price option entirely rather than offering a sort that
+   * would silently do nothing. */
+  showPriceSort: boolean;
+  viewGridLabel: string;
+  viewListLabel: string;
+  sortByLabel: string;
+  sortPositionLabel: string;
+  sortNameLabel: string;
+  sortPriceLabel: string;
+  sortDirectionAscLabel: string;
+  sortDirectionDescLabel: string;
+}
+
+const {
+  sortKey,
+  sortDir,
+  basePath,
+  currentPage,
+  showPriceSort,
+  viewGridLabel,
+  viewListLabel,
+  sortByLabel,
+  sortPositionLabel,
+  sortNameLabel,
+  sortPriceLabel,
+  sortDirectionAscLabel,
+  sortDirectionDescLabel,
+} = Astro.props;
+
+const sortOptions: { key: SortKey; label: string }[] = [
+  { key: 'position', label: sortPositionLabel },
+  { key: 'name', label: sortNameLabel },
+  ...(showPriceSort ? [{ key: 'price' as SortKey, label: sortPriceLabel }] : []),
+];
+
+const directionHref = sortHref(basePath, sortKey, sortDir === 'asc' ? 'desc' : 'asc', currentPage);
+const directionLabel = sortDir === 'asc' ? sortDirectionAscLabel : sortDirectionDescLabel;
+---
+
+<div class="no-toolbar" data-view-toggle>
+  <div class="no-toolbar-views" role="group">
+    <button
+      type="button"
+      class="no-toolbar-view-btn"
+      data-view-mode="grid"
+      aria-pressed="true"
+      aria-label={viewGridLabel}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4" />
+        <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4" />
+        <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4" />
+        <rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4" />
+      </svg>
+    </button>
+    <button
+      type="button"
+      class="no-toolbar-view-btn"
+      data-view-mode="list"
+      aria-pressed="false"
+      aria-label={viewListLabel}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="1" y="2" width="14" height="3" rx="1" stroke="currentColor" stroke-width="1.4" />
+        <rect x="1" y="11" width="14" height="3" rx="1" stroke="currentColor" stroke-width="1.4" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="no-toolbar-sort">
+    <label class="no-toolbar-sort-label" for="product-sort-select">{sortByLabel}</label>
+    <select id="product-sort-select" class="no-toolbar-sort-select" data-sort-select>
+      {sortOptions.map((opt) => (
+        <option value={sortHref(basePath, opt.key, sortDir, currentPage)} selected={opt.key === sortKey}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+
+    <a class="no-toolbar-dir" href={directionHref} aria-label={directionLabel}>
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+        aria-hidden="true"
+        class:list={['no-toolbar-dir-icon', { 'is-desc': sortDir === 'desc' }]}
+      >
+        <path d="M6 1v10M2.5 7.5 6 11l3.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
+  </div>
+</div>
+
+<script>
+  // Re-init pattern matches Header/AnnouncementBar/CartDrawer elsewhere in
+  // this codebase -- required because Layout.astro renders <ClientRouter />
+  // (astro:transitions). Sort-key links, the direction-toggle <a>, and
+  // Pager's page-number links are all plain same-origin <a> navigations, so
+  // Astro's view-transitions intercept them as SOFT navigations: the DOM is
+  // swapped in-place rather than a real page load. A browser never
+  // re-executes a <script type="module"> whose content it has already run,
+  // so code that only runs once at the top of this file (as it originally
+  // did) wires up the FIRST page's buttons/select and then goes silent --
+  // the new grid/list buttons and <select> swapped in by every subsequent
+  // soft navigation (e.g. landing on .../sort/position-desc/ from a click
+  // rather than a hard reload) are never wired at all. `astro:page-load`
+  // is Astro's own event for exactly this: it fires after the initial load
+  // AND after every soft-navigation swap, so re-running init on it keeps
+  // the toolbar working no matter how the page was reached.
+  const STORAGE_KEY = 'pv-product-view';
+
+  function initProductToolbar() {
+    document.querySelectorAll<HTMLElement>('[data-view-toggle]').forEach((toolbar) => {
+      if (toolbar.dataset.wired === 'true') return;
+      toolbar.dataset.wired = 'true';
+
+      // The grid wrapper this toolbar controls is its own next sibling in
+      // every listing page that renders it (toolbar, then the <ul> grid,
+      // both inside one shared container) -- see e.g. natural-oils'
+      // `[...page].astro`.
+      const container = toolbar.parentElement?.querySelector<HTMLElement>('[data-product-view]');
+      const buttons = toolbar.querySelectorAll<HTMLButtonElement>('[data-view-mode]');
+
+      function applyMode(mode: string) {
+        if (container) container.setAttribute('data-product-view', mode);
+        buttons.forEach((btn) => {
+          btn.setAttribute('aria-pressed', String(btn.dataset.viewMode === mode));
+        });
+      }
+
+      let stored: string | null = null;
+      try {
+        stored = localStorage.getItem(STORAGE_KEY);
+      } catch {
+        stored = null;
+      }
+      if (stored === 'grid' || stored === 'list') applyMode(stored);
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.viewMode;
+          if (mode !== 'grid' && mode !== 'list') return;
+          applyMode(mode);
+          try {
+            localStorage.setItem(STORAGE_KEY, mode);
+          } catch {
+            /* per-viewer convenience only -- fine to drop silently */
+          }
+        });
+      });
+    });
+
+    document.querySelectorAll<HTMLSelectElement>('[data-sort-select]').forEach((select) => {
+      if (select.dataset.wired === 'true') return;
+      select.dataset.wired = 'true';
+      select.addEventListener('change', () => {
+        if (select.value) window.location.assign(select.value);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProductToolbar);
+  } else {
+    initProductToolbar();
+  }
+  document.addEventListener('astro:page-load', initProductToolbar);
+</script>
+
+<style>
+  .no-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .no-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .no-toolbar-views {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    align-self: flex-start;
+  }
+
+  .no-toolbar-view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-thumb);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-body);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+  .no-toolbar-view-btn:hover {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+  }
+  .no-toolbar-view-btn:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .no-toolbar-view-btn[aria-pressed='true'] {
+    background-color: var(--color-brand);
+    border-color: var(--color-brand);
+    color: var(--color-surface);
+  }
+
+  .no-toolbar-sort {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .no-toolbar-sort-label {
+    font-size: 0.8125rem;
+    color: var(--color-body);
+    white-space: nowrap;
+  }
+
+  .no-toolbar-sort-select {
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--color-heading);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-thumb);
+    padding: 0.375rem 0.625rem;
+    cursor: pointer;
+  }
+  .no-toolbar-sort-select:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .no-toolbar-dir {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: var(--radius-thumb);
+    border: 1px solid var(--color-border);
+    color: var(--color-heading);
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .no-toolbar-dir:hover,
+  .no-toolbar-dir:focus-visible {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+    text-decoration: none;
+  }
+  .no-toolbar-dir:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  /* Arrow points up (ascending) by default; .is-desc flips it to point
+     down -- one icon, no separate asset for each direction. */
+  .no-toolbar-dir-icon {
+    transition: transform 0.15s ease;
+  }
+  .no-toolbar-dir-icon.is-desc {
+    transform: rotate(180deg);
+  }
+</style>

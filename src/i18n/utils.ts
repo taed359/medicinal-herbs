@@ -313,6 +313,33 @@ export interface TranslationSchema {
     prevLabel: string;
     nextLabel: string;
     pageLabel: string; // e.g., "Trang {page}" -- used with a page number
+    // "{start}", "{end}", "{total}" tokens -- e.g. "{start}-{end} trong
+    // {total} sản phẩm". Only shown when there's at least one item (see
+    // Pager.astro's own guard) -- a listing that renders zero items never
+    // reaches this at all, so there's no "0-0 of 0" case to word for.
+    itemsRangeLabel: string;
+  };
+  // Generic labels for the reusable `ProductToolbar.astro` component --
+  // the Grid/List view toggle and the Sort By / direction control shown
+  // above a paginated listing's product grid, shared by any category
+  // that offers sorting (natural-oils, wholesale today). Split out at
+  // the top level for the same reason as `pager` above.
+  toolbar: {
+    viewGridLabel: string; // aria-label for the "grid view" button
+    viewListLabel: string; // aria-label for the "list view" button
+    sortByLabel: string; // visible label before the sort <select>
+    sortPositionLabel: string;
+    sortNameLabel: string;
+    sortPriceLabel: string; // never shown on a category where every
+    // product is price-on-request (see ProductToolbar's own
+    // `showPriceSort` prop) -- still translated here so any category
+    // that DOES have real prices can use it.
+    // aria-labels for the direction toggle button, describing the
+    // CURRENT direction (screen readers announce what clicking will do
+    // is the opposite -- these describe state, not the action, matching
+    // this button's aria-pressed-less toggle-via-navigation behavior).
+    sortDirectionAscLabel: string;
+    sortDirectionDescLabel: string;
   };
   product: {
     ctaViewDetails: string;
