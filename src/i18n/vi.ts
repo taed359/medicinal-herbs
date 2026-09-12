@@ -8,7 +8,7 @@ import type { TranslationSchema } from './utils';
  */
 export const vi: TranslationSchema = {
   common: {
-    siteName: 'Thảo Dược',
+    siteName: 'Tinh Dầu',
     tagline: 'Chăm sóc sức khỏe truyền thống',
   },
   header: {
@@ -16,7 +16,7 @@ export const vi: TranslationSchema = {
     navSale: 'Khuyến Mãi',
     navShopBy: 'Mua theo',
     navOurStory: 'Câu chuyện',
-    navHealthReads: 'Thảo dược & Sức khỏe',
+    navHealthReads: 'Tinh dầu & Sức khỏe',
     findStoreLabel: 'Tìm cửa hàng',
     searchPlaceholder: 'Tìm kiếm sản phẩm...',
     searchLabel: 'Tìm kiếm',
@@ -38,7 +38,7 @@ export const vi: TranslationSchema = {
     aboutHeadingPrefix: 'Về',
     aboutLinks: {
       story: 'Câu chuyện của chúng tôi',
-      reads: 'Thảo dược / Bài viết sức khỏe',
+      reads: 'Tinh dầu / Bài viết sức khỏe',
       sustainability: 'Phát triển bền vững',
     },
     supportHeading: 'Hỗ trợ',
@@ -66,11 +66,11 @@ export const vi: TranslationSchema = {
   },
   hero: {
     eyebrow: 'Di Sản Y Học Cổ Truyền',
-    title: 'Tinh Hoa Thảo Dược · Chuẩn Mực Hiện Đại',
+    title: 'Tinh Hoa Tinh Dầu · Chuẩn Mực Hiện Đại',
     description:
-      'Kế thừa trí tuệ y học cổ truyền, chúng tôi tuyển chọn nguyên liệu tự nhiên và tuân thủ tiêu chuẩn chất lượng hiện đại, mang đến những sản phẩm thảo dược đáng tin cậy cho sức khỏe của bạn.',
+      'Kế thừa tinh hoa chưng cất tinh dầu truyền thống, chúng tôi tuyển chọn nguyên liệu tự nhiên và tuân thủ tiêu chuẩn chất lượng hiện đại, mang đến những sản phẩm tinh dầu đáng tin cậy cho sức khỏe của bạn.',
     ctaLabel: 'Khám Phá Sản Phẩm',
-    imageAlt: 'Minh họa lọ cao thảo dược hổ phách cùng con dấu di sản, bao quanh bởi lá và rễ thảo mộc',
+    imageAlt: 'Minh họa lọ tinh dầu hổ phách cùng con dấu di sản, bao quanh bởi lá và cành cây thiên nhiên',
   },
   healthGoals: {
     eyebrow: 'Mua theo',
@@ -91,14 +91,14 @@ export const vi: TranslationSchema = {
     },
     descriptions: {
       beauty: 'Những dưỡng chất từ thiên nhiên giúp nuôi dưỡng làn da và mái tóc từ bên trong, đồng hành cùng vẻ đẹp rạng rỡ theo năm tháng. Chúng tôi chọn lọc nguyên liệu dịu nhẹ, phù hợp để sử dụng đều đặn mỗi ngày.',
-      energy: 'Bổ sung năng lượng tự nhiên cho một ngày dài năng động, không cần đến các chất kích thích mạnh. Các thành phần thảo dược được lựa chọn để hỗ trợ sự tỉnh táo và sức bền bền vững.',
+      energy: 'Bổ sung năng lượng tự nhiên cho một ngày dài năng động, không cần đến các chất kích thích mạnh. Các loại tinh dầu được lựa chọn để hỗ trợ sự tỉnh táo và sức bền bền vững.',
       generalWellness: 'Một nền tảng sức khỏe vững vàng bắt đầu từ những thói quen chăm sóc cơ thể đơn giản mỗi ngày. Dòng sản phẩm này được xây dựng để hỗ trợ sự cân bằng và khỏe mạnh toàn diện.',
       immunity: 'Hỗ trợ hệ miễn dịch khỏe mạnh là bước đầu tiên để cơ thể sẵn sàng thích nghi với mọi thay đổi. Chúng tôi ưu tiên các thành phần tự nhiên đã được tin dùng qua nhiều thế hệ.',
-      mensWellness: 'Những giải pháp thảo dược được nghiên cứu riêng cho nhu cầu sức khỏe của nam giới ở mọi độ tuổi, tập trung vào sự bền bỉ, cân bằng nội tiết và sức sống hàng ngày.',
+      mensWellness: 'Những giải pháp tinh dầu được nghiên cứu riêng cho nhu cầu sức khỏe của nam giới ở mọi độ tuổi, tập trung vào sự bền bỉ, cân bằng nội tiết và sức sống hàng ngày.',
       jointHeart: 'Chăm sóc xương khớp và tim mạch là nền tảng để duy trì sự vận động linh hoạt theo thời gian. Các công thức được chọn lọc nhằm hỗ trợ sự dẻo dai và tuần hoàn khỏe mạnh.',
-      mindFocus: 'Giữ cho tâm trí minh mẫn và tập trung giữa nhịp sống bận rộn là điều không dễ dàng. Những thành phần thảo dược nhẹ nhàng có thể đồng hành cùng sự tỉnh táo và cân bằng tinh thần.',
-      sleepStress: 'Một giấc ngủ trọn vẹn và tinh thần thư thái là nền tảng cho sức khỏe bền vững. Chúng tôi chọn lọc các thảo dược truyền thống được biết đến với khả năng hỗ trợ thư giãn tự nhiên.',
-      womensHealth: 'Đồng hành cùng phụ nữ qua từng giai đoạn cuộc sống với những giải pháp thảo dược dịu nhẹ và an toàn, tập trung vào sự cân bằng nội tiết và sức khỏe toàn diện.',
+      mindFocus: 'Giữ cho tâm trí minh mẫn và tập trung giữa nhịp sống bận rộn là điều không dễ dàng. Những loại tinh dầu dịu nhẹ có thể đồng hành cùng sự tỉnh táo và cân bằng tinh thần.',
+      sleepStress: 'Một giấc ngủ trọn vẹn và tinh thần thư thái là nền tảng cho sức khỏe bền vững. Chúng tôi chọn lọc các loại tinh dầu truyền thống được biết đến với khả năng hỗ trợ thư giãn tự nhiên.',
+      womensHealth: 'Đồng hành cùng phụ nữ qua từng giai đoạn cuộc sống với những giải pháp tinh dầu dịu nhẹ và an toàn, tập trung vào sự cân bằng nội tiết và sức khỏe toàn diện.',
     },
     page: {
       indexHeading: 'Khám phá theo mục tiêu sức khỏe',
@@ -122,18 +122,18 @@ export const vi: TranslationSchema = {
     heading: 'Di sản và Tay nghề của chúng tôi',
     body:
       'Bắt nguồn từ trí tuệ y học cổ truyền, các công thức của chúng tôi tôn vinh những bài thuốc đã được kiểm chứng qua thời gian, đồng thời đáp ứng tiêu chuẩn chất lượng hiện đại. Chúng tôi tuyển chọn nguyên liệu tự nhiên một cách tỉ mỉ để hỗ trợ sức khỏe mỗi ngày.',
-    imageAlt: 'Hình ảnh thương hiệu mang cảm hứng thảo dược',
+    imageAlt: 'Hình ảnh thương hiệu mang cảm hứng tinh dầu',
     readMoreLabel: 'Xem câu chuyện đầy đủ',
   },
   ourStory: {
     eyebrow: 'Câu chuyện thương hiệu',
     heading: 'Câu chuyện của chúng tôi',
     lede:
-      'Hành trình gìn giữ trí tuệ y học cổ truyền và mang đến những sản phẩm thảo dược đáng tin cậy cho cuộc sống hiện đại.',
-    heroImageAlt: 'Không gian thảo dược truyền thống với cối chày và các bó dược liệu khô',
+      'Hành trình gìn giữ trí tuệ y học cổ truyền và mang đến những sản phẩm tinh dầu đáng tin cậy cho cuộc sống hiện đại.',
+    heroImageAlt: 'Không gian chưng cất tinh dầu truyền thống với bình chưng cất và các lọ tinh dầu nguyên chất',
     philosophyHeading: 'Vì sao chúng tôi bắt đầu',
     philosophyBody1:
-      'Thảo Dược ra đời từ một niềm tin đơn giản: những bài thuốc thảo dược đã được lưu truyền qua nhiều thế hệ xứng đáng được gìn giữ và tiếp cận theo cách rõ ràng, đáng tin cậy hơn. Chúng tôi tin rằng trí tuệ y học cổ truyền không đối lập với khoa học hiện đại — khi được kết hợp đúng cách, cả hai bổ trợ cho nhau để mang lại những lựa chọn chăm sóc sức khỏe thực sự đáng tin.',
+      'Tinh Dầu ra đời từ một niềm tin đơn giản: những bí quyết chưng cất tinh dầu đã được lưu truyền qua nhiều thế hệ xứng đáng được gìn giữ và tiếp cận theo cách rõ ràng, đáng tin cậy hơn. Chúng tôi tin rằng trí tuệ y học cổ truyền không đối lập với khoa học hiện đại — khi được kết hợp đúng cách, cả hai bổ trợ cho nhau để mang lại những lựa chọn chăm sóc sức khỏe thực sự đáng tin.',
     philosophyBody2:
       'Mỗi sản phẩm trong danh mục của chúng tôi đều được lựa chọn theo bốn nguyên tắc dưới đây, từ khâu tìm hiểu nguồn gốc nguyên liệu đến trình bày thông tin minh bạch — để bạn luôn biết rõ mình đang lựa chọn điều gì cho sức khỏe của bản thân và gia đình.',
     valuesEyebrow: 'Giá trị cốt lõi',
@@ -141,7 +141,7 @@ export const vi: TranslationSchema = {
     values: [
       {
         title: 'Thiên nhiên là gốc rễ',
-        description: 'Ưu tiên nguyên liệu thảo dược tự nhiên, hạn chế thành phần tổng hợp không cần thiết.',
+        description: 'Ưu tiên tinh dầu chiết xuất tự nhiên, hạn chế thành phần tổng hợp không cần thiết.',
       },
       {
         title: 'Minh bạch & trung thực',
@@ -192,10 +192,10 @@ export const vi: TranslationSchema = {
           'Sản xuất tại các cơ sở đăng ký FDA với quy trình kiểm soát chất lượng nghiêm ngặt.',
       },
       fingerprinting: {
-        title: 'Định danh thảo dược',
+        title: 'Định danh tinh dầu',
         subtitle: 'Xác thực khoa học',
         description:
-          'Thảo dược được xác minh khoa học về danh tính, chất lượng và tính nhất quán.',
+          'Tinh dầu được xác minh khoa học về danh tính, chất lượng và tính nhất quán.',
       },
     },
   },
@@ -203,7 +203,7 @@ export const vi: TranslationSchema = {
     eyebrow: 'Nguyên tắc lựa chọn',
     heading: 'Từ nguyên liệu đến thông tin sản phẩm',
     lede:
-      'Bốn nguyên tắc định hướng cách chúng tôi lựa chọn và giới thiệu sản phẩm thảo dược cho nhu cầu hằng ngày.',
+      'Bốn nguyên tắc định hướng cách chúng tôi lựa chọn và giới thiệu sản phẩm tinh dầu cho nhu cầu hằng ngày.',
     steps: [
       {
         title: 'Tìm hiểu nguồn gốc',
@@ -240,7 +240,7 @@ export const vi: TranslationSchema = {
       chronicIllness: {
         title: 'Chăm sóc bệnh mạn tính',
         description:
-          'Cách kết hợp thảo dược và lối sống khoa học để hỗ trợ kiểm soát bệnh mạn tính hằng ngày.',
+          'Cách kết hợp tinh dầu và lối sống khoa học để hỗ trợ kiểm soát bệnh mạn tính hằng ngày.',
         slug: 'chronic-illness',
       },
       womensHealth: {
@@ -258,13 +258,13 @@ export const vi: TranslationSchema = {
     },
   },
   home: {
-    title: 'Thảo Dược - Trang chủ',
+    title: 'Tinh Dầu - Trang chủ',
   },
   expertCta: {
     eyebrow: 'Hãy hỏi chúng tôi',
     heading: 'Chuyên gia Y học cổ truyền luôn sẵn sàng hỗ trợ.',
     description:
-      'Bạn có câu hỏi về sức khỏe, thảo dược hoặc thói quen chăm sóc hằng ngày? Hãy gửi câu hỏi và nhận những chia sẻ hữu ích từ các chuyên gia Y học cổ truyền.',
+      'Bạn có câu hỏi về sức khỏe, tinh dầu hoặc thói quen chăm sóc hằng ngày? Hãy gửi câu hỏi và nhận những chia sẻ hữu ích từ các chuyên gia Y học cổ truyền.',
     ctaLabel: 'Bắt đầu trò chuyện',
     imageAlt: 'Chuyên gia Y học cổ truyền tư vấn sức khỏe',
   },
@@ -291,7 +291,7 @@ export const vi: TranslationSchema = {
     addressBookEmpty: 'Bạn chưa lưu địa chỉ nào. Tính năng quản lý sổ địa chỉ sẽ sớm ra mắt.',
     recentOrdersHeading: 'Đơn hàng gần đây',
     ordersEmptyHeading: 'Bạn chưa có đơn hàng nào',
-    ordersEmptyBody: 'Hãy khám phá các sản phẩm thảo dược của chúng tôi và đặt hàng đầu tiên.',
+    ordersEmptyBody: 'Hãy khám phá các sản phẩm tinh dầu của chúng tôi và đặt hàng đầu tiên.',
     continueShoppingButton: 'Tiếp tục mua sắm',
     orderNumberColumn: 'Mã đơn hàng',
     dateColumn: 'Ngày đặt',
@@ -426,11 +426,11 @@ export const vi: TranslationSchema = {
   },
   seo: {
     description:
-      'Thảo Dược mang đến các sản phẩm chăm sóc sức khỏe từ thảo dược thiên nhiên, kết hợp trí tuệ y học cổ truyền với tiêu chuẩn chất lượng hiện đại.',
+      'Tinh Dầu mang đến các sản phẩm chăm sóc sức khỏe từ tinh dầu thiên nhiên, kết hợp trí tuệ y học cổ truyền với tiêu chuẩn chất lượng hiện đại.',
   },
   auth: {
     common: {
-      logoAriaLabel: 'Thảo Dược — quay lại trang chủ cửa hàng',
+      logoAriaLabel: 'Tinh Dầu — quay lại trang chủ cửa hàng',
       languageSwitcherLabel: 'Chọn ngôn ngữ',
       orDivider: 'hoặc',
       socialGoogle: 'Tiếp tục với Google',
@@ -451,9 +451,9 @@ export const vi: TranslationSchema = {
         'Đăng nhập để theo dõi đơn hàng, nhận tư vấn riêng từ chuyên gia Y học cổ truyền và lưu lại sản phẩm yêu thích của bạn.',
     },
     login: {
-      title: 'Đăng nhập — Thảo Dược',
+      title: 'Đăng nhập — Tinh Dầu',
       metaDescription:
-        'Đăng nhập vào tài khoản Thảo Dược để quản lý hồ sơ, theo dõi đơn hàng và tiếp tục trải nghiệm mua sắm an toàn.',
+        'Đăng nhập vào tài khoản Tinh Dầu để quản lý hồ sơ, theo dõi đơn hàng và tiếp tục trải nghiệm mua sắm an toàn.',
       heading: 'Đăng nhập tài khoản',
       eyebrow: 'Chào mừng trở lại',
       subtitle: 'Đăng nhập hoặc tạo tài khoản để tiếp tục.',
@@ -468,9 +468,9 @@ export const vi: TranslationSchema = {
       createAccount: 'Tạo tài khoản',
     },
     register: {
-      title: 'Tạo tài khoản — Thảo Dược',
+      title: 'Tạo tài khoản — Tinh Dầu',
       metaDescription:
-        'Tạo tài khoản Thảo Dược để quản lý hồ sơ, theo dõi đơn hàng và có trải nghiệm mua sắm nhanh hơn, cá nhân hóa hơn.',
+        'Tạo tài khoản Tinh Dầu để quản lý hồ sơ, theo dõi đơn hàng và có trải nghiệm mua sắm nhanh hơn, cá nhân hóa hơn.',
       heading: 'Tạo tài khoản',
       eyebrow: 'Bắt đầu hành trình',
       subtitle: 'Tham gia để theo dõi đơn hàng và thanh toán nhanh hơn.',
@@ -488,9 +488,9 @@ export const vi: TranslationSchema = {
       signIn: 'Đăng nhập',
     },
     forgotPassword: {
-      title: 'Quên mật khẩu — Thảo Dược',
+      title: 'Quên mật khẩu — Tinh Dầu',
       metaDescription:
-        'Đặt lại mật khẩu tài khoản Thảo Dược qua email để khôi phục quyền truy cập an toàn vào tài khoản của bạn.',
+        'Đặt lại mật khẩu tài khoản Tinh Dầu qua email để khôi phục quyền truy cập an toàn vào tài khoản của bạn.',
       heading: 'Quên mật khẩu?',
       subtitle: 'Nhập email của bạn và chúng tôi sẽ gửi liên kết đặt lại mật khẩu.',
       emailLabel: 'Email',
@@ -500,8 +500,8 @@ export const vi: TranslationSchema = {
       backToSignIn: 'Quay lại đăng nhập',
     },
     resetPassword: {
-      title: 'Đặt lại mật khẩu — Thảo Dược',
-      metaDescription: 'Đặt mật khẩu mới cho tài khoản Thảo Dược để hoàn tất khôi phục quyền truy cập an toàn.',
+      title: 'Đặt lại mật khẩu — Tinh Dầu',
+      metaDescription: 'Đặt mật khẩu mới cho tài khoản Tinh Dầu để hoàn tất khôi phục quyền truy cập an toàn.',
       heading: 'Đặt lại mật khẩu',
       subtitle: 'Chọn mật khẩu mới cho tài khoản của bạn.',
       newPasswordLabel: 'Mật khẩu mới',
@@ -516,8 +516,8 @@ export const vi: TranslationSchema = {
       backToSignIn: 'Quay lại đăng nhập',
     },
     verifyEmail: {
-      title: 'Xác minh email — Thảo Dược',
-      metaDescription: 'Xác minh địa chỉ email của bạn để hoàn tất thiết lập tài khoản Thảo Dược.',
+      title: 'Xác minh email — Tinh Dầu',
+      metaDescription: 'Xác minh địa chỉ email của bạn để hoàn tất thiết lập tài khoản Tinh Dầu.',
       verifyingHeading: 'Đang xác minh email của bạn…',
       verifyingSubtitle: 'Việc này sẽ chỉ mất một chút thời gian.',
       successHeading: 'Email đã được xác minh',

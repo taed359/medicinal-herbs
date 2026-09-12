@@ -8,7 +8,7 @@ import type { TranslationSchema } from './utils';
  */
 export const zh: TranslationSchema = {
   common: {
-    siteName: '草药',
+    siteName: '精油',
     tagline: '传统健康呵护',
   },
   header: {
@@ -16,7 +16,7 @@ export const zh: TranslationSchema = {
     navSale: '特惠',
     navShopBy: '按分类选购',
     navOurStory: '品牌故事',
-    navHealthReads: '本草与健康',
+    navHealthReads: '精油与健康',
     findStoreLabel: '查找门店',
     searchPlaceholder: '搜索产品...',
     searchLabel: '搜索',
@@ -38,7 +38,7 @@ export const zh: TranslationSchema = {
     aboutHeadingPrefix: '关于',
     aboutLinks: {
       story: '我们的故事',
-      reads: '本草与健康阅读',
+      reads: '精油与健康阅读',
       sustainability: '可持续发展',
     },
     supportHeading: '支持',
@@ -66,10 +66,10 @@ export const zh: TranslationSchema = {
   },
   hero: {
     eyebrow: '传统医学传承',
-    title: '草本精粹 · 现代品质',
-    description: '我们秉承传统智慧，精选天然原料，同时符合现代品质标准，为您带来值得信赖的草本产品。',
+    title: '精油精粹 · 现代品质',
+    description: '我们秉承传统智慧，精选天然原料，同时符合现代品质标准，为您带来值得信赖的精油产品。',
     ctaLabel: '探索产品',
-    imageAlt: '琥珀色草本膏罐与传承印章插画，周围环绕草本枝叶',
+    imageAlt: '琥珀色精油瓶插画配传承印章，周围环绕天然枝叶',
   },
   healthGoals: {
     eyebrow: '按分类选购',
@@ -90,14 +90,14 @@ export const zh: TranslationSchema = {
     },
     descriptions: {
       beauty: '来自天然植物的养分从内而外滋养肌肤与秀发，伴您岁月流转依然光彩焕发。我们精心甄选温和成分，适合日常持续使用。',
-      energy: '以天然方式为繁忙的一天补充能量，无需依赖强烈刺激成分。精选草本成分有助于维持清醒与持久活力。',
+      energy: '以天然方式为繁忙的一天补充能量，无需依赖强烈刺激成分。精选精油成分有助于维持清醒与持久活力。',
       generalWellness: '稳固的健康基础始于每日简单的自我养护习惯。此系列致力于支持身体的全面平衡与健康。',
       immunity: '维持免疫系统的健康是身体从容应对各种变化的第一步。我们优先选用历经世代验证的天然成分。',
-      mensWellness: '专为不同年龄段男性健康需求研发的草本方案，聚焦耐力、内分泌平衡与日常活力。',
+      mensWellness: '专为不同年龄段男性健康需求研发的精油方案，聚焦耐力、内分泌平衡与日常活力。',
       jointHeart: '呵护骨骼关节与心血管健康，是长期保持灵活行动力的基础。精选配方旨在支持柔韧度与健康循环。',
-      mindFocus: '在繁忙的生活节奏中保持思维清晰与专注并不容易。温和的草本成分可陪伴您维持清醒与内心平衡。',
-      sleepStress: '充足的睡眠与放松的心情是长久健康的基础。我们精选传统草本，以其天然舒缓特性而广受信赖。',
-      womensHealth: '以温和安全的草本方案，陪伴女性走过人生每个阶段，专注内分泌平衡与整体健康。',
+      mindFocus: '在繁忙的生活节奏中保持思维清晰与专注并不容易。温和的精油成分可陪伴您维持清醒与内心平衡。',
+      sleepStress: '充足的睡眠与放松的心情是长久健康的基础。我们精选传统精油，以其天然舒缓特性而广受信赖。',
+      womensHealth: '以温和安全的精油方案，陪伴女性走过人生每个阶段，专注内分泌平衡与整体健康。',
     },
     page: {
       indexHeading: '按健康目标探索',
@@ -115,17 +115,17 @@ export const zh: TranslationSchema = {
     eyebrow: '品牌故事',
     heading: '传承与匠心',
     body: '我们的配方植根于传统智慧，秉承历经时间考验的养生之道，同时符合现代品质标准。我们精心甄选天然原料，用心呵护您的日常健康。',
-    imageAlt: '承载草本灵感的品牌形象照片',
+    imageAlt: '承载精油灵感的品牌形象照片',
     readMoreLabel: '阅读完整故事',
   },
   ourStory: {
     eyebrow: '品牌故事',
     heading: '我们的故事',
-    lede: '传承传统草药智慧，为现代生活带来值得信赖的草本呵护。',
-    heroImageAlt: '传统本草药房场景，展示药钵与晒干的草本药材',
+    lede: '传承传统精油智慧，为现代生活带来值得信赖的精油呵护。',
+    heroImageAlt: '传统精油蒸馏坊场景，展示蒸馏器与纯天然精油瓶',
     philosophyHeading: '源于对自然的信念',
     philosophyBody1:
-      '草药的创立，源于一个简单的信念：世代相传的草本智慧，值得被以更清晰、更值得信赖的方式延续下去。我们相信，传统医学智慧与现代科学并不对立——当两者恰当结合，才能为您带来真正值得信赖的健康选择。',
+      '精油的创立，源于一个简单的信念：世代相传的精油智慧，值得被以更清晰、更值得信赖的方式延续下去。我们相信，传统医学智慧与现代科学并不对立——当两者恰当结合，才能为您带来真正值得信赖的健康选择。',
     philosophyBody2:
       '我们目录中的每一款产品，都依循以下四项原则精心甄选——从了解原料来源，到清晰呈现产品信息，只为让您在为自己与家人选择健康产品时，始终心中有数。',
     valuesEyebrow: '核心价值',
@@ -133,7 +133,7 @@ export const zh: TranslationSchema = {
     values: [
       {
         title: '天然为本',
-        description: '优先选用天然草本原料，尽量减少不必要的合成成分。',
+        description: '优先选用天然萃取精油，尽量减少不必要的合成成分。',
       },
       {
         title: '透明与诚信',
@@ -179,16 +179,16 @@ export const zh: TranslationSchema = {
         description: '在 FDA 注册设施中生产，并执行严格的质量控制。',
       },
       fingerprinting: {
-        title: '草本指纹鉴定',
+        title: '精油指纹鉴定',
         subtitle: '科学验证',
-        description: '通过科学方法验证草本原料的身份、品质与一致性。',
+        description: '通过科学方法验证精油的身份、品质与一致性。',
       },
     },
   },
   process: {
     eyebrow: '甄选原则',
     heading: '从原料到产品信息',
-    lede: '四项原则，指引我们甄选并介绍适合日常需求的草本产品。',
+    lede: '四项原则，指引我们甄选并介绍适合日常需求的精油产品。',
     steps: [
       {
         title: '了解来源',
@@ -225,7 +225,7 @@ export const zh: TranslationSchema = {
       chronicIllness: {
         title: '慢性疾病管理',
         description:
-          '结合草本调理与健康生活方式，支持日常管理与稳步改善。',
+          '结合精油调理与健康生活方式，支持日常管理与稳步改善。',
         slug: 'chronic-illness',
       },
       womensHealth: {
@@ -243,13 +243,13 @@ export const zh: TranslationSchema = {
     },
   },
   home: {
-    title: '草药 - 首页',
+    title: '精油 - 首页',
   },
   expertCta: {
     eyebrow: '有健康问题？',
     heading: '向我们的传统医学专家咨询',
     description:
-      '无论是健康、草药还是日常养生，都可以向我们提问，获取传统医学专家的实用建议。',
+      '无论是健康、精油还是日常养生，都可以向我们提问，获取传统医学专家的实用建议。',
     ctaLabel: '开始咨询',
     imageAlt: '传统医学专家提供健康咨询',
   },
@@ -276,7 +276,7 @@ export const zh: TranslationSchema = {
     addressBookEmpty: '您还没有保存任何地址。地址管理功能即将推出。',
     recentOrdersHeading: '最近订单',
     ordersEmptyHeading: '您还没有任何订单',
-    ordersEmptyBody: '快去看看我们的草本产品，下第一笔订单吧。',
+    ordersEmptyBody: '快去看看我们的精油产品，下第一笔订单吧。',
     continueShoppingButton: '继续购物',
     orderNumberColumn: '订单号',
     dateColumn: '下单日期',
@@ -410,11 +410,11 @@ export const zh: TranslationSchema = {
     searchCta: '搜索商品',
   },
   seo: {
-    description: '草药甄选天然本草原料，融合传统养生智慧与现代品质标准，为您带来值得信赖的健康呵护产品。',
+    description: '精油甄选天然萃取原料，融合传统养生智慧与现代品质标准，为您带来值得信赖的健康呵护产品。',
   },
   auth: {
     common: {
-      logoAriaLabel: '草药 — 返回商店首页',
+      logoAriaLabel: '精油 — 返回商店首页',
       languageSwitcherLabel: '选择语言',
       orDivider: '或',
       socialGoogle: '使用 Google 继续',
@@ -434,8 +434,8 @@ export const zh: TranslationSchema = {
       imagePanelBody: '登录以追踪订单、获得传统医学专家的专属咨询，并保存您喜爱的产品。',
     },
     login: {
-      title: '登录 — 草药',
-      metaDescription: '登录您的草药账户，管理个人资料、追踪订单，并安全地继续您的购物体验。',
+      title: '登录 — 精油',
+      metaDescription: '登录您的精油账户，管理个人资料、追踪订单，并安全地继续您的购物体验。',
       heading: '登录账户',
       eyebrow: '欢迎回来',
       subtitle: '登录或创建账户以继续。',
@@ -450,8 +450,8 @@ export const zh: TranslationSchema = {
       createAccount: '创建账户',
     },
     register: {
-      title: '创建账户 — 草药',
-      metaDescription: '创建您的草药账户，管理个人资料、追踪订单，享受更快捷、更个性化的购物体验。',
+      title: '创建账户 — 精油',
+      metaDescription: '创建您的精油账户，管理个人资料、追踪订单，享受更快捷、更个性化的购物体验。',
       heading: '创建账户',
       eyebrow: '开启旅程',
       subtitle: '加入我们，追踪订单并更快结账。',
@@ -469,8 +469,8 @@ export const zh: TranslationSchema = {
       signIn: '登录',
     },
     forgotPassword: {
-      title: '忘记密码 — 草药',
-      metaDescription: '通过电子邮箱重置您的草药账户密码，恢复对账户的安全访问。',
+      title: '忘记密码 — 精油',
+      metaDescription: '通过电子邮箱重置您的精油账户密码，恢复对账户的安全访问。',
       heading: '忘记密码？',
       subtitle: '输入您的电子邮箱，我们将发送密码重置链接。',
       emailLabel: '电子邮箱',
@@ -480,8 +480,8 @@ export const zh: TranslationSchema = {
       backToSignIn: '返回登录',
     },
     resetPassword: {
-      title: '重置密码 — 草药',
-      metaDescription: '为您的草药账户设置新密码，完成账户安全访问的恢复。',
+      title: '重置密码 — 精油',
+      metaDescription: '为您的精油账户设置新密码，完成账户安全访问的恢复。',
       heading: '重置密码',
       subtitle: '为您的账户选择一个新密码。',
       newPasswordLabel: '新密码',
@@ -496,8 +496,8 @@ export const zh: TranslationSchema = {
       backToSignIn: '返回登录',
     },
     verifyEmail: {
-      title: '验证电子邮箱 — 草药',
-      metaDescription: '验证您的电子邮箱地址，以完成草药账户的设置。',
+      title: '验证电子邮箱 — 精油',
+      metaDescription: '验证您的电子邮箱地址，以完成精油账户的设置。',
       verifyingHeading: '正在验证您的电子邮箱…',
       verifyingSubtitle: '这只需要片刻时间。',
       successHeading: '邮箱验证成功',
