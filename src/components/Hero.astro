@@ -344,8 +344,29 @@ const trustItems = TRUST_ORDER.map((key) => ({
     height: 1.0625rem;
   }
 
+  /* min-height/-webkit-line-clamp reserve exactly 2 lines' worth of
+     space for BOTH the heading and detail text, regardless of how many
+     lines each column's own (different-length) real copy actually wraps
+     to. Without this, a short heading like "Xác thực khoa học" (1 line)
+     sits next to a long one like "Chất lượng & Tuân thủ" (2-3 lines at
+     narrow widths) and the detail line beneath starts at a different
+     height in every column -- a visibly jagged row, confirmed with the
+     real Be Vietnam Pro/Playfair Display webfonts (not just a fallback
+     font) at real narrow phone widths (320-390px), where this was
+     reported as "chưa ổn". `em` units here deliberately (not rem/px) so
+     this scales automatically with `font-size` at every breakpoint below
+     without needing a matching min-height override at each one. The
+     line-clamp is the backstop for the narrowest widths (~320-360px),
+     where even 2 reserved lines isn't enough room for the longest real
+     heading/detail strings -- truncates with an ellipsis instead of
+     overflowing into the icon above or the next column. */
   .hero-trust-heading {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     margin-top: 0.625rem;
+    min-height: 2.6em;
     color: var(--color-pine-dark);
     font-size: 0.75rem;
     font-weight: 600;
@@ -353,7 +374,12 @@ const trustItems = TRUST_ORDER.map((key) => ({
   }
 
   .hero-trust-detail {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     margin-top: 0.25rem;
+    min-height: 2.7em;
     color: var(--color-body);
     font-size: 0.6875rem;
     line-height: 1.35;
